@@ -91,6 +91,18 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, EventChannel.
           result.success(state)
         }
       }
+      "getAdvertisingId" -> {
+        if (beAround == null) {
+          result.error(
+            "NOT_INITIALIZED",
+            "BeAround ainda não foi inicializado. Chame initialize() antes.",
+            null
+          )
+        } else {
+          val advertisingId = beAround?.getAdvertisingId()
+          result.success(advertisingId)
+        }
+      }
       else -> result.notImplemented()
     }
   }

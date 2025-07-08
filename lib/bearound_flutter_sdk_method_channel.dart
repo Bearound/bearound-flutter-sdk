@@ -25,4 +25,24 @@ class MethodChannelBearoundFlutterSdk extends BearoundFlutterSdkPlatform {
         .map<Map<String, dynamic>>((dynamic event) => Map<String, dynamic>.from(event));
     return _eventsStream!;
   }
+
+  @override
+  Future<String> getAppState() async {
+    try {
+      final state = await _channel.invokeMethod<String>('getAppState');
+      return state ?? "unknown";
+    } catch (e) {
+      return "unknown";
+    }
+  }
+
+  @override
+  Future<String> getAdvertisingId() async {
+    try {
+      final id = await _channel.invokeMethod<String>('getAdvertisingId');
+      return id ?? "unknown";
+    } catch (e) {
+      return "unknown";
+    }
+  }
 }

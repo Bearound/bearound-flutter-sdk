@@ -59,7 +59,9 @@ class BeaconTracker: NSObject, CLLocationManagerDelegate {
     }
     
     func locationManager(_ manager: CLLocationManager, didRangeBeacons beacons: [CLBeacon], in region: CLBeaconRegion) {
+        print("📡 [BeaconTracker] didRangeBeacons count: \(beacons.count)")
         for beacon in beacons {
+            print("📡 [BeaconTracker] Beacon major: \(beacon.major), minor: \(beacon.minor), RSSI: \(beacon.rssi)")
             let beacon = Beacon(
                 major: String(describing: beacon.major),
                 minor: String(describing: beacon.minor),

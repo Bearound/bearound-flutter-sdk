@@ -13,11 +13,11 @@ protocol BeaconActionsDelegate {
     func updateBeaconList(_ beacon: Beacon)
 }
 
+@available(iOS 13.0, *)
 public class Bearound: BeaconActionsDelegate {
     private var clientToken: String
     private var beacons: Array<Beacon>
     
-    @available(iOS 13.0, *)
     public init(clientToken: String) {
         self.beacons = []
         self.clientToken = clientToken
