@@ -82,7 +82,8 @@ class _BeaconHomePageState extends State<BeaconHomePage> {
       appBar: AppBar(
         title: const Text('Bearound Flutter SDK Example'),
       ),
-      body: Padding(
+      body: Container(
+        width: double.infinity,
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
