@@ -1,5 +1,7 @@
 import 'dart:io' show Platform;
 
+import 'package:bearound_flutter_sdk/src/data/models/beacon.dart';
+
 import 'bearound_flutter_sdk_platform_interface.dart';
 
 import 'package:permission_handler/permission_handler.dart';
@@ -71,5 +73,8 @@ class BearoundFlutterSdk {
   }
 
   /// Stream dos eventos
-  Stream<Map<String, dynamic>> get events => BearoundFlutterSdkPlatform.instance.events;
+  Stream<List<Beacon>> get beacons => BearoundFlutterSdkPlatform.instance.events.map((event) {
+    final list = event['beacons'] as List<dynamic>? ?? [];
+    return list.map((b) => Beacon.fromJson(Map<String, dynamic>.from(b))).toList();
+  });
 }

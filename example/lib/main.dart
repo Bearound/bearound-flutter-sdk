@@ -112,8 +112,8 @@ class _BeaconHomePageState extends State<BeaconHomePage> {
             if (_isScanning)
               ElevatedButton(
                 onPressed: _stopScan,
-                child: const Text("Parar Beacon Scan"),
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                child: const Text("Parar Beacon Scan"),
               ),
             const SizedBox(height: 32),
             Text(

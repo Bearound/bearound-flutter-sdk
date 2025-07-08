@@ -120,16 +120,15 @@ class BeAround(private val context: Context) : MonitorNotifier {
             foregroundNotification,
             FOREGROUND_SERVICE_NOTIFICATION_ID
         )
-        // Enable scheduled jobs for true background scanning
+
         beaconManager.setEnableScheduledScanJobs(false)
         beaconManager.setRegionStatePersistenceEnabled(false)
         beaconManager.setBackgroundScanPeriod(1100L)
         beaconManager.setBackgroundBetweenScanPeriod(20000L)
-        beaconManager.setForegroundBetweenScanPeriod(20000L)
+        beaconManager.setForegroundBetweenScanPeriod(1000L)
         beaconManager.addMonitorNotifier(this)
         beaconManager.startMonitoring(getRegion())
 
-        // Já inicia a busca do advertisingId em background
         fetchAdvertisingId()
     }
 
