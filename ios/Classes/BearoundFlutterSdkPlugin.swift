@@ -74,6 +74,6 @@ extension BearoundFlutterSdkPlugin: BeaconActionsDelegate {
             "distanceMeters": beacon.distanceMeters ?? -1,
             "lastSeen": beacon.lastSeen.timeIntervalSince1970
         ]
-        eventSink?(["event": "beacons", "beacons": [data]])
+        eventSink?(["event": "beacons", "beacons": data])
     }
 }

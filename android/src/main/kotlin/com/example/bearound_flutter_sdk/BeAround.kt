@@ -23,7 +23,6 @@ class BeAround(private val context: Context) : MonitorNotifier {
 
     private val beaconUUID = "e25b8d3c-947a-452f-a13f-589cb706d2e5"
     private val beaconManager = BeaconManager.getInstanceForApplication(context.applicationContext)
-    private var lastSeenBeacon: Collection<Beacon>? = null
     private var debug: Boolean = false
     private var advertisingId: String? = null
     private var advertisingIdFetchAttempted = false
@@ -32,15 +31,13 @@ class BeAround(private val context: Context) : MonitorNotifier {
         private const val TAG = "BeAroundSdkFlutter"
         private const val NOTIFICATION_CHANNEL_ID = "beacon_notifications"
         private const val FOREGROUND_SERVICE_NOTIFICATION_ID = 3
-        private const val EVENT_ENTER = "enter"
-        private const val EVENT_EXIT = "exit"
     }
 
     interface Listener {
-        fun onEnterRegion(beacons: List<BeaconData>)
-        fun onExitRegion(beacons: List<BeaconData>?)
+        fun onBeaconsFound(beacons: List<BeaconData>)
         fun onStateChanged(state: String)
     }
+
     private var listener: Listener? = null
 
     fun setListener(l: Listener?) {
@@ -69,7 +66,6 @@ class BeAround(private val context: Context) : MonitorNotifier {
 
     fun getAdvertisingId(): String? = advertisingId
 
-    /** Busca o Advertising ID em background (só se ainda não buscou) */
     fun fetchAdvertisingId() {
         if (advertisingIdFetchAttempted && advertisingId != null) return
         advertisingIdFetchAttempted = true
@@ -85,9 +81,6 @@ class BeAround(private val context: Context) : MonitorNotifier {
         }
     }
 
-    /**
-     * Retorna o estado do app como string para logs, telemetria ou lógica.
-     */
     fun getAppState(): String {
         val state = ProcessLifecycleOwner.get().lifecycle.currentState
         return when {
@@ -101,7 +94,6 @@ class BeAround(private val context: Context) : MonitorNotifier {
         this.debug = debug
         log("Initializing BeAround SDK...")
 
-        // Foreground notification for background scanning
         createNotificationChannel()
         beaconManager.beaconParsers.clear()
         beaconManager.beaconParsers.add(
@@ -143,22 +135,19 @@ class BeAround(private val context: Context) : MonitorNotifier {
         log("didEnterRegion: ${region.uniqueId}")
         beaconManager.startRangingBeacons(region)
         beaconManager.addRangeNotifier(rangeNotifierForEvent)
-        listener?.onStateChanged(EVENT_ENTER)
+        listener?.onStateChanged("enter")
     }
 
     override fun didExitRegion(region: Region) {
         log("didExitRegion: ${region.uniqueId}")
-        lastSeenBeacon?.let {
-            listener?.onExitRegion(it.map { b -> toData(b) })
-        } ?: listener?.onExitRegion(null)
+        // *** Não chama mais onExitRegion! ***
         beaconManager.stopRangingBeacons(region)
         beaconManager.removeRangeNotifier(rangeNotifierForEvent)
-        lastSeenBeacon = null
-        listener?.onStateChanged(EVENT_EXIT)
+        listener?.onStateChanged("exit")
     }
 
     override fun didDetermineStateForRegion(state: Int, region: Region) {
-        val stateString = if (state == MonitorNotifier.INSIDE) EVENT_ENTER else EVENT_EXIT
+        val stateString = if (state == MonitorNotifier.INSIDE) "enter" else "exit"
         log("didDetermineStateForRegion: $stateString")
         listener?.onStateChanged(stateString)
     }
@@ -168,10 +157,8 @@ class BeAround(private val context: Context) : MonitorNotifier {
         val matchingBeacons = beacons.filter {
             it.id1.toString() == beaconUUID
         }
-        lastSeenBeacon = matchingBeacons
-        if (matchingBeacons.isNotEmpty()) {
-            listener?.onEnterRegion(matchingBeacons.map { toData(it) })
-        }
+        // *** Emite TODOS os beacons encontrados SEMPRE! ***
+        listener?.onBeaconsFound(matchingBeacons.map { toData(it) })
     }
 
     private fun toData(beacon: Beacon) = BeaconData(

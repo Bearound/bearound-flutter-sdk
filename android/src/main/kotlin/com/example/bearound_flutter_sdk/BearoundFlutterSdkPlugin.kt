@@ -44,20 +44,11 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, EventChannel.
         val debug = call.argument<Boolean>("debug") ?: false
         beAround = BeAround(context).apply {
           setListener(object : BeAround.Listener {
-            override fun onEnterRegion(beacons: List<BeAround.BeaconData>) {
+            override fun onBeaconsFound(beacons: List<BeAround.BeaconData>) {
               Handler(Looper.getMainLooper()).post {
                 eventSink?.success(mapOf(
-                  "event" to "enter",
+                  "event" to "beacons",
                   "beacons" to beacons.map { it.toMap() }
-                ))
-              }
-            }
-
-            override fun onExitRegion(beacons: List<BeAround.BeaconData>?) {
-              Handler(Looper.getMainLooper()).post {
-                eventSink?.success(mapOf(
-                  "event" to "exit",
-                  "beacons" to (beacons?.map { it.toMap() } ?: emptyList<Map<String, Any>>())
                 ))
               }
             }

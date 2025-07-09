@@ -1,25 +1,60 @@
 export 'src/core/beacon_scanner.dart';
 export 'src/data/models/beacon.dart';
 
-
 import 'package:bearound_flutter_sdk/src/core/bearound_manager.dart';
 
 import 'src/core/permission_service.dart';
 import 'src/core/beacon_scanner.dart';
 import 'src/data/models/beacon.dart';
 
+/// SDK principal do Bearound para integração com beacons.
+///
+/// Esta facade estática centraliza permissões, scanner, sync automático e acesso à stream de eventos.
 class BearoundFlutterSdk {
   BearoundFlutterSdk._();
 
+  /// Solicita todas as permissões necessárias para operar o scanner de beacons.
+  ///
+  /// Exemplo de uso:
+  /// ```dart
+  /// final ok = await BearoundFlutterSdk.requestPermissions();
+  /// if (!ok) {
+  ///   // Avise o usuário que permissões são obrigatórias.
+  /// }
+  /// ```
+  /// Retorna `true` se todas as permissões foram concedidas, ou `false` caso contrário.
   static Future<bool> requestPermissions() => PermissionService.instance.requestPermissions();
 
-  /// Inicia scanner e sync (tudo automático).
-  static Future<void> startScan({bool debug = false}) =>
-      BearoundManager.instance.start(debug: debug);
+  /// Inicia o scanner de beacons e sincronização automática com a API.
+  ///
+  /// Esse método inicializa toda a stack (scanner + sync local/API).
+  /// O parâmetro [debug] ativa logs extras no nativo.
+  ///
+  /// Exemplo:
+  /// ```dart
+  /// await BearoundFlutterSdk.startScan(debug: true);
+  /// ```
+  ///
+  /// Importante: Não precisa se preocupar em passar IDFA, estado do app ou deviceType, pois tudo é obtido automaticamente pelo SDK.
+  static Future<void> startScan({bool debug = false}) => BearoundManager.instance.start(debug: debug);
 
-  /// Para tudo.
+  /// Para completamente o scanner e a sincronização dos beacons.
+  ///
+  /// Exemplo:
+  /// ```dart
+  /// await BearoundFlutterSdk.stopScan();
+  /// ```
+  ///
+  /// Recomenda-se sempre chamar esse método ao fechar a tela ou app, para evitar uso desnecessário de recursos.
   static Future<void> stopScan() => BearoundManager.instance.stop();
 
-  /// Stream dos beacons encontrados.
+  /// Stream dos beacons encontrados em tempo real.
+  ///
+  /// Pode ser usada, por exemplo, para exibir na UI ou para log/debug:
+  /// ```dart
+  /// BearoundFlutterSdk.beaconStream.listen((beacons) {
+  ///   // Atualize sua interface, salve logs, etc.
+  /// });
+  /// ```
   static Stream<List<Beacon>> get beaconStream => BeaconScanner.beaconStream;
 }

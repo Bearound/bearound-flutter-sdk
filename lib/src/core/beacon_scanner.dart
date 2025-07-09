@@ -12,9 +12,9 @@ class BeaconScanner {
   BeaconScanner._internal();
 
   static Future<void> startScan({bool debug = false}) async {
-    try{
+    try {
       await _instance._startScan(debug: debug);
-    }catch(_){
+    } catch (_) {
       await _instance._stopScan();
       rethrow;
     }
@@ -33,10 +33,19 @@ class BeaconScanner {
     await MethodChannelBearoundFlutterSdk().initialize(debug: debug);
 
     _nativeSub = MethodChannelBearoundFlutterSdk().events.listen((event) {
-      final list = event['beacons'] as List<dynamic>? ?? [];
-      _beaconStreamController.add(
-        list.map((b) => Beacon.fromJson(Map<String, dynamic>.from(b))).toList(),
-      );
+      if (event['event'] == 'beacons') {
+        final dynamic beaconsRaw = event['beacons'];
+
+        List<Beacon> beacons = [];
+        if (beaconsRaw is List) {
+          beacons = beaconsRaw
+              .map((b) => Beacon.fromJson(Map<String, dynamic>.from(b)))
+              .toList();
+        } else if (beaconsRaw is Map) {
+          beacons = [Beacon.fromJson(Map<String, dynamic>.from(beaconsRaw))];
+        }
+        _beaconStreamController.add(beacons);
+      }
     });
   }
 

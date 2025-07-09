@@ -6,6 +6,8 @@ class MethodChannelBearoundFlutterSdk extends BearoundFlutterSdkPlatform {
   static const MethodChannel _channel = MethodChannel('bearound_flutter_sdk');
   static const EventChannel _eventChannel = EventChannel('bearound_flutter_sdk_events');
 
+  Stream<Map<String, dynamic>>? _eventsStream;
+
   @override
   Future<void> initialize({bool debug = false}) async {
     await _channel.invokeMethod('initialize', {'debug': debug});
@@ -16,13 +18,12 @@ class MethodChannelBearoundFlutterSdk extends BearoundFlutterSdkPlatform {
     await _channel.invokeMethod('stop');
   }
 
-  Stream<Map<String, dynamic>>? _eventsStream;
-
   @override
   Stream<Map<String, dynamic>> get events {
     _eventsStream ??= _eventChannel
         .receiveBroadcastStream()
-        .map<Map<String, dynamic>>((dynamic event) => Map<String, dynamic>.from(event));
+        .map<Map<String, dynamic>>(
+            (dynamic event) => Map<String, dynamic>.from(event));
     return _eventsStream!;
   }
 
