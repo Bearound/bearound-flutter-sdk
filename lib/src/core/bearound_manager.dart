@@ -17,8 +17,8 @@ class BearoundManager {
 
   Future<void> _ensureInitialized() async {
     if (_syncService != null) return;
-    final db = await BeaconDatabase.database;
-    final storage = BeaconLocalStorage(db);
+    // final db = await BeaconDatabase.database;
+    // final storage = BeaconLocalStorage(db);
     final api = BeaconApiService();
     _syncService = BeaconSyncService(apiService: api);
   }
@@ -36,7 +36,6 @@ class BearoundManager {
     print("[BearoundFlutterSdk] Scanner iniciado, IDFA: $idfa, Tipo de dispositivo: $deviceType, Estado do app: $appState");
     print("[BearoundFlutterSdk] Iniciando sync...");
 
-    // Só chama startSync! Não precisa ouvir a stream aqui!
     _syncService!.startSync(
       beaconStream: BeaconScanner.beaconStream,
       deviceType: deviceType,

@@ -1,4 +1,5 @@
 import Flutter
+import AppTrackingTransparency
 import AdSupport
 import UIKit
 import CoreLocation
@@ -40,8 +41,17 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, FlutterStreamHan
              }
              result(state)
         case "getAdvertisingId":
-            let idfa = ASIdentifierManager.shared().advertisingIdentifier.uuidString
-            result(idfa)
+            if #available(iOS 14, *) {
+                     ATTrackingManager.requestTrackingAuthorization { status in
+                         DispatchQueue.main.async {
+                             let idfa = ASIdentifierManager.shared().advertisingIdentifier.uuidString
+                             result(idfa)
+                         }
+                     }
+                 } else {
+                     let idfa = ASIdentifierManager.shared().advertisingIdentifier.uuidString
+                     result(idfa)
+                 }
         default:
             result(FlutterMethodNotImplemented)
         }

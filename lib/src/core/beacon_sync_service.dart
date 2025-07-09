@@ -34,20 +34,17 @@ class BeaconSyncService {
     _timer = Timer.periodic(const Duration(seconds: 5), (_) async {
       final now = DateTime.now().millisecondsSinceEpoch / 1000;
 
-      // Beacons ativos (enter)
       final enterBeacons = _currentBeacons.entries
           .where((e) => now - (_lastSeen[e.key] ?? now) < threshold)
           .map((e) => e.value)
           .toList();
 
-      // Beacons que saíram (exit)
       final exitKeys = _lastSeen.entries
           .where((e) => now - e.value >= threshold)
           .map((e) => e.key)
           .toList();
       final exitBeacons = exitKeys.map((k) => _currentBeacons[k]!).toList();
 
-      // Envia ENTER
       if (enterBeacons.isNotEmpty) {
         print("[BeaconSyncService] Enviando ENTER: ${enterBeacons.length} beacons");
         await apiService.sendBeacons(
@@ -58,7 +55,6 @@ class BeaconSyncService {
           beacons: enterBeacons,
         );
       }
-      // Envia EXIT
       if (exitBeacons.isNotEmpty) {
         print("[BeaconSyncService] Enviando EXIT: ${exitBeacons.length} beacons");
         await apiService.sendBeacons(
@@ -68,7 +64,6 @@ class BeaconSyncService {
           appState: appState,
           beacons: exitBeacons,
         );
-        // Remove os beacons que saíram
         for (final key in exitKeys) {
           _currentBeacons.remove(key);
           _lastSeen.remove(key);
