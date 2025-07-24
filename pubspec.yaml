@@ -13,9 +13,6 @@ dependencies:
   plugin_platform_interface: ^2.0.2
   permission_handler: ">=12.0.0 <13.0.0"
   location:
-  http:
-  sqflite:
-  path:
 
 dev_dependencies:
   flutter_test:

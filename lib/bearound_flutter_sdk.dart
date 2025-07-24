@@ -1,11 +1,8 @@
 export 'src/core/beacon_scanner.dart';
 export 'src/data/models/beacon.dart';
 
-import 'package:bearound_flutter_sdk/src/core/bearound_manager.dart';
-
 import 'src/core/permission_service.dart';
 import 'src/core/beacon_scanner.dart';
-import 'src/data/models/beacon.dart';
 
 /// SDK principal do Bearound para integração com beacons.
 ///
@@ -36,7 +33,7 @@ class BearoundFlutterSdk {
   /// ```
   ///
   /// Importante: Não precisa se preocupar em passar IDFA, estado do app ou deviceType, pois tudo é obtido automaticamente pelo SDK.
-  static Future<void> startScan({bool debug = false}) => BearoundManager.instance.start(debug: debug);
+  static Future<void> startScan({bool debug = false}) async => await BeaconScanner.startScan(debug: debug);
 
   /// Para completamente o scanner e a sincronização dos beacons.
   ///
@@ -46,7 +43,7 @@ class BearoundFlutterSdk {
   /// ```
   ///
   /// Recomenda-se sempre chamar esse método ao fechar a tela ou app, para evitar uso desnecessário de recursos.
-  static Future<void> stopScan() => BearoundManager.instance.stop();
+  static Future<void> stopScan() async => await BeaconScanner.stopScan();
 
   /// Stream dos beacons encontrados em tempo real.
   ///
@@ -56,5 +53,5 @@ class BearoundFlutterSdk {
   ///   // Atualize sua interface, salve logs, etc.
   /// });
   /// ```
-  static Stream<List<Beacon>> get beaconStream => BeaconScanner.beaconStream;
+  //static Stream<List<Beacon>> get beaconStream => BeaconScanner.beaconStream;
 }

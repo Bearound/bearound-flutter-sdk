@@ -49,19 +49,18 @@ class _BeaconHomePageState extends State<BeaconHomePage> {
 
   Future<void> _startScan() async {
     await BearoundFlutterSdk.startScan(debug: true);
-    _eventSub = BearoundFlutterSdk.beaconStream.listen((beacons) {
-      //print(">>> DEBUG: Recebido na stream: $beacons");
-      setState(() {
-        // Guarda a lista completa em vez de string
-        if (beacons.isEmpty) {
-          _lastEvent = "";
-        } else {
-          _lastEvent = ""; // Não usado, agora vai exibir lista!
-        }
-        _status = beacons.isNotEmpty ? "Beacon evento recebido!" : "Nenhum beacon encontrado";
-        _lastBeacons = beacons;
-      });
-    });
+    // _eventSub = BearoundFlutterSdk.beaconStream.listen((beacons) {
+    //   //print(">>> DEBUG: Recebido na stream: $beacons");
+    //   setState(() {
+    //     if (beacons.isEmpty) {
+    //       _lastEvent = "";
+    //     } else {
+    //       _lastEvent = "";
+    //     }
+    //     _status = beacons.isNotEmpty ? "Beacon evento recebido!" : "Nenhum beacon encontrado";
+    //     _lastBeacons = beacons;
+    //   });
+    // });
     setState(() {
       _isScanning = true;
       _status = "Scanning…";

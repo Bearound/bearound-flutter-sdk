@@ -1,18 +1,18 @@
 import 'dart:async';
 import 'package:bearound_flutter_sdk/bearound_flutter_sdk_method_channel.dart';
-import 'package:bearound_flutter_sdk/src/data/models/beacon.dart';
+import 'package:bearound_flutter_sdk/src/core/permission_service.dart';
 
 class BeaconScanner {
   static final BeaconScanner _instance = BeaconScanner._internal();
-  final StreamController<List<Beacon>> _beaconStreamController = StreamController.broadcast();
-
-  bool _isScanning = false;
-  StreamSubscription? _nativeSub;
 
   BeaconScanner._internal();
 
   static Future<void> startScan({bool debug = false}) async {
     try {
+      bool isGranted = await PermissionService.instance.requestPermissions();
+      if (!isGranted) {
+        throw Exception("Permissões necessárias não concedidas.");
+      }
       await _instance._startScan(debug: debug);
     } catch (_) {
       await _instance._stopScan();
@@ -24,37 +24,11 @@ class BeaconScanner {
     await _instance._stopScan();
   }
 
-  static Stream<List<Beacon>> get beaconStream => _instance._beaconStreamController.stream;
-
   Future<void> _startScan({bool debug = false}) async {
-    if (_isScanning) return;
-    _isScanning = true;
-
     await MethodChannelBearoundFlutterSdk().initialize(debug: debug);
-
-    _nativeSub = MethodChannelBearoundFlutterSdk().events.listen((event) {
-      if (event['event'] == 'beacons') {
-        final dynamic beaconsRaw = event['beacons'];
-
-        List<Beacon> beacons = [];
-        if (beaconsRaw is List) {
-          beacons = beaconsRaw
-              .map((b) => Beacon.fromJson(Map<String, dynamic>.from(b)))
-              .toList();
-        } else if (beaconsRaw is Map) {
-          beacons = [Beacon.fromJson(Map<String, dynamic>.from(beaconsRaw))];
-        }
-        _beaconStreamController.add(beacons);
-      }
-    });
   }
 
   Future<void> _stopScan() async {
-    if (!_isScanning) return;
-    _isScanning = false;
     await MethodChannelBearoundFlutterSdk().stop();
-    await _nativeSub?.cancel();
-    _nativeSub = null;
-    _beaconStreamController.add([]);
   }
 }
