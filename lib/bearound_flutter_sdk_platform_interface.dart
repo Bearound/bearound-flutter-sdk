@@ -22,13 +22,4 @@ abstract class BearoundFlutterSdkPlatform extends PlatformInterface {
   Future<void> stop() async {
     throw UnimplementedError('getAdvertisingId() has not been implemented.');
   }
-
-  Stream<Map<String, dynamic>> get events;
-  Future<String> getAppState() async {
-    throw UnimplementedError('getAdvertisingId() has not been implemented.');
-  }
-
-  Future<String> getAdvertisingId() async {
-    throw UnimplementedError('getAdvertisingId() has not been implemented.');
-  }
 }
