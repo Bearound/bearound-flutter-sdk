@@ -1,0 +1,15 @@
+{
+  "originHash" : "b0624493dc2ca16f1523378a8ba83cb3875d0147482e28401d868c10e53fa308",
+  "pins" : [
+    {
+      "identity" : "bearound-ios-sdk",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Bearound/bearound-ios-sdk.git",
+      "state" : {
+        "revision" : "072f78b4e3fb661db5eb7c26ffeabdb816090ada",
+        "version" : "1.0.3"
+      }
+    }
+  ],
+  "version" : 3
+}
