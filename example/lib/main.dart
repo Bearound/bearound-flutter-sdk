@@ -29,9 +29,6 @@ class _BeaconHomePageState extends State<BeaconHomePage> {
   bool _hasPermission = false;
   bool _isScanning = false;
   String _status = "Parado";
-  String _lastEvent = "";
-  List<Beacon> _lastBeacons = [];
-  StreamSubscription<List<Beacon>>? _eventSub;
 
   @override
   void initState() {
@@ -49,18 +46,6 @@ class _BeaconHomePageState extends State<BeaconHomePage> {
 
   Future<void> _startScan() async {
     await BearoundFlutterSdk.startScan(debug: true);
-    // _eventSub = BearoundFlutterSdk.beaconStream.listen((beacons) {
-    //   //print(">>> DEBUG: Recebido na stream: $beacons");
-    //   setState(() {
-    //     if (beacons.isEmpty) {
-    //       _lastEvent = "";
-    //     } else {
-    //       _lastEvent = "";
-    //     }
-    //     _status = beacons.isNotEmpty ? "Beacon evento recebido!" : "Nenhum beacon encontrado";
-    //     _lastBeacons = beacons;
-    //   });
-    // });
     setState(() {
       _isScanning = true;
       _status = "Scanning…";
@@ -69,18 +54,10 @@ class _BeaconHomePageState extends State<BeaconHomePage> {
 
   Future<void> _stopScan() async {
     await BearoundFlutterSdk.stopScan();
-    await _eventSub?.cancel();
     setState(() {
       _isScanning = false;
       _status = "Parado";
-      _lastEvent = "";
     });
-  }
-
-  @override
-  void dispose() {
-    _eventSub?.cancel();
-    super.dispose();
   }
 
   @override
@@ -122,42 +99,6 @@ class _BeaconHomePageState extends State<BeaconHomePage> {
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
                 child: const Text("Parar Beacon Scan"),
               ),
-            const SizedBox(height: 32),
-            Text(
-              "Último evento recebido:",
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey.shade300),
-              ),
-              child: _lastBeacons.isEmpty
-                  ? const Text("Nenhum beacon ainda…", style: TextStyle(fontSize: 14))
-                  : Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: _lastBeacons.map((beacon) => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text("UUID: ${beacon.uuid}"),
-                      Text("Major: ${beacon.major}"),
-                      Text("Minor: ${beacon.minor}"),
-                      Text("RSSI: ${beacon.rssi}"),
-                      Text("Distância: ${beacon.distanceMeters?.toStringAsFixed(2)} m"),
-                      if (beacon.bluetoothName != null) Text("Nome BT: ${beacon.bluetoothName}"),
-                      if (beacon.bluetoothAddress != null) Text("Endereço BT: ${beacon.bluetoothAddress}"),
-                      const Divider(),
-                    ],
-                  ),
-                )).toList(),
-              ),
-            ),
-
           ],
         ),
       ),

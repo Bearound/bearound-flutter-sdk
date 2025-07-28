@@ -3,7 +3,7 @@ import UIKit
 import BearoundSDK
 
 public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin {
-    var detector: BeaconDetector?
+    var detector: Bearound?
 
     public static func register(with registrar: FlutterPluginRegistrar) {
         let channel = FlutterMethodChannel(name: "bearound_flutter_sdk", binaryMessenger: registrar.messenger())
@@ -14,13 +14,11 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin {
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         switch call.method {
         case "initialize":
-            detector = BeaconDetector.shared
-            detector?.startScanning { beacon in
-                print("Detected beacon: \(beacon)")
-            }
+            detector = Bearound.init(clientToken: "", isDebugEnable: true)
+            detector?.startServices()
             result(nil)
         case "stop":
-            detector?.stopScanning()
+            //detector?.stopScanning()
             result(nil)
         default:
             result(FlutterMethodNotImplemented)
