@@ -14,7 +14,7 @@
 	<key>NSLocationAlwaysUsageDescription</key>
 	<string>Precisamos da sua localização para identificar beacons próximos.</string>
 	<key>NSUserTrackingUsageDescription</key>
-    <string>Seu texto explicando por que o app usa o IDFA.</string>
+    <string>Precisamos dessa permissão</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
