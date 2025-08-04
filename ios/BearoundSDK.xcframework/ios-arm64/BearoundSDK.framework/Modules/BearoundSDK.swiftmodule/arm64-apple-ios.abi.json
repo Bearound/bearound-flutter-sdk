@@ -33,157 +33,6 @@
       },
       {
         "kind": "Import",
-        "name": "CoreLocation",
-        "printedName": "CoreLocation",
-        "declKind": "Import",
-        "moduleName": "BearoundSDK"
-      },
-      {
-        "kind": "Import",
-        "name": "Foundation",
-        "printedName": "Foundation",
-        "declKind": "Import",
-        "moduleName": "BearoundSDK",
-        "declAttributes": [
-          "RawDocComment"
-        ]
-      },
-      {
-        "kind": "Import",
-        "name": "Foundation",
-        "printedName": "Foundation",
-        "declKind": "Import",
-        "moduleName": "BearoundSDK",
-        "declAttributes": [
-          "RawDocComment"
-        ]
-      },
-      {
-        "kind": "Import",
-        "name": "Foundation",
-        "printedName": "Foundation",
-        "declKind": "Import",
-        "moduleName": "BearoundSDK",
-        "declAttributes": [
-          "RawDocComment"
-        ]
-      },
-      {
-        "kind": "Import",
-        "name": "Foundation",
-        "printedName": "Foundation",
-        "declKind": "Import",
-        "moduleName": "BearoundSDK",
-        "declAttributes": [
-          "RawDocComment"
-        ]
-      },
-      {
-        "kind": "Import",
-        "name": "UIKit",
-        "printedName": "UIKit",
-        "declKind": "Import",
-        "moduleName": "BearoundSDK"
-      },
-      {
-        "kind": "Import",
-        "name": "AdSupport",
-        "printedName": "AdSupport",
-        "declKind": "Import",
-        "moduleName": "BearoundSDK"
-      },
-      {
-        "kind": "Import",
-        "name": "CoreLocation",
-        "printedName": "CoreLocation",
-        "declKind": "Import",
-        "moduleName": "BearoundSDK"
-      },
-      {
-        "kind": "TypeDecl",
-        "name": "Bearound",
-        "printedName": "Bearound",
-        "children": [
-          {
-            "kind": "Constructor",
-            "name": "init",
-            "printedName": "init(clientToken:isDebugEnable:)",
-            "children": [
-              {
-                "kind": "TypeNominal",
-                "name": "Bearound",
-                "printedName": "BearoundSDK.Bearound",
-                "usr": "s:11BearoundSDK0A0C"
-              },
-              {
-                "kind": "TypeNominal",
-                "name": "String",
-                "printedName": "Swift.String",
-                "usr": "s:SS"
-              },
-              {
-                "kind": "TypeNominal",
-                "name": "Bool",
-                "printedName": "Swift.Bool",
-                "usr": "s:Sb"
-              }
-            ],
-            "declKind": "Constructor",
-            "usr": "s:11BearoundSDK0A0C11clientToken13isDebugEnableACSS_Sbtcfc",
-            "mangledName": "$s11BearoundSDK0A0C11clientToken13isDebugEnableACSS_Sbtcfc",
-            "moduleName": "BearoundSDK",
-            "declAttributes": [
-              "AccessControl"
-            ],
-            "init_kind": "Designated"
-          },
-          {
-            "kind": "Function",
-            "name": "startServices",
-            "printedName": "startServices()",
-            "children": [
-              {
-                "kind": "TypeNominal",
-                "name": "Void",
-                "printedName": "()"
-              }
-            ],
-            "declKind": "Func",
-            "usr": "s:11BearoundSDK0A0C13startServicesyyF",
-            "mangledName": "$s11BearoundSDK0A0C13startServicesyyF",
-            "moduleName": "BearoundSDK",
-            "declAttributes": [
-              "AccessControl"
-            ],
-            "funcSelfKind": "NonMutating"
-          }
-        ],
-        "declKind": "Class",
-        "usr": "s:11BearoundSDK0A0C",
-        "mangledName": "$s11BearoundSDK0A0C",
-        "moduleName": "BearoundSDK",
-        "declAttributes": [
-          "AccessControl"
-        ],
-        "conformances": [
-          {
-            "kind": "Conformance",
-            "name": "Copyable",
-            "printedName": "Copyable",
-            "usr": "s:s8CopyableP",
-            "mangledName": "$ss8CopyableP"
-          },
-          {
-            "kind": "Conformance",
-            "name": "Escapable",
-            "printedName": "Escapable",
-            "usr": "s:s9EscapableP",
-            "mangledName": "$ss9EscapableP"
-          }
-        ]
-      },
-      {
-        "kind": "Import",
         "name": "Foundation",
         "printedName": "Foundation",
         "declKind": "Import",
@@ -204,6 +53,762 @@
         "name": "Beacon",
         "printedName": "Beacon",
         "children": [
+          {
+            "kind": "Var",
+            "name": "uuid",
+            "printedName": "uuid",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "UUID",
+                "printedName": "Foundation.UUID",
+                "usr": "s:10Foundation4UUIDV"
+              }
+            ],
+            "declKind": "Var",
+            "usr": "s:11BearoundSDK6BeaconV4uuid10Foundation4UUIDVvp",
+            "mangledName": "$s11BearoundSDK6BeaconV4uuid10Foundation4UUIDVvp",
+            "moduleName": "BearoundSDK",
+            "declAttributes": [
+              "HasInitialValue",
+              "HasStorage",
+              "AccessControl"
+            ],
+            "hasStorage": true,
+            "accessors": [
+              {
+                "kind": "Accessor",
+                "name": "Get",
+                "printedName": "Get()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "UUID",
+                    "printedName": "Foundation.UUID",
+                    "usr": "s:10Foundation4UUIDV"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:11BearoundSDK6BeaconV4uuid10Foundation4UUIDVvg",
+                "mangledName": "$s11BearoundSDK6BeaconV4uuid10Foundation4UUIDVvg",
+                "moduleName": "BearoundSDK",
+                "implicit": true,
+                "accessorKind": "get"
+              },
+              {
+                "kind": "Accessor",
+                "name": "Set",
+                "printedName": "Set()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Void",
+                    "printedName": "()"
+                  },
+                  {
+                    "kind": "TypeNominal",
+                    "name": "UUID",
+                    "printedName": "Foundation.UUID",
+                    "usr": "s:10Foundation4UUIDV"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:11BearoundSDK6BeaconV4uuid10Foundation4UUIDVvs",
+                "mangledName": "$s11BearoundSDK6BeaconV4uuid10Foundation4UUIDVvs",
+                "moduleName": "BearoundSDK",
+                "implicit": true,
+                "accessorKind": "set"
+              },
+              {
+                "kind": "Accessor",
+                "name": "Modify",
+                "printedName": "Modify()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Void",
+                    "printedName": "()"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:11BearoundSDK6BeaconV4uuid10Foundation4UUIDVvM",
+                "mangledName": "$s11BearoundSDK6BeaconV4uuid10Foundation4UUIDVvM",
+                "moduleName": "BearoundSDK",
+                "implicit": true,
+                "accessorKind": "_modify"
+              }
+            ]
+          },
+          {
+            "kind": "Var",
+            "name": "major",
+            "printedName": "major",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "String",
+                "printedName": "Swift.String",
+                "usr": "s:SS"
+              }
+            ],
+            "declKind": "Var",
+            "usr": "s:11BearoundSDK6BeaconV5majorSSvp",
+            "mangledName": "$s11BearoundSDK6BeaconV5majorSSvp",
+            "moduleName": "BearoundSDK",
+            "declAttributes": [
+              "HasStorage",
+              "AccessControl"
+            ],
+            "hasStorage": true,
+            "accessors": [
+              {
+                "kind": "Accessor",
+                "name": "Get",
+                "printedName": "Get()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "String",
+                    "printedName": "Swift.String",
+                    "usr": "s:SS"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:11BearoundSDK6BeaconV5majorSSvg",
+                "mangledName": "$s11BearoundSDK6BeaconV5majorSSvg",
+                "moduleName": "BearoundSDK",
+                "implicit": true,
+                "accessorKind": "get"
+              },
+              {
+                "kind": "Accessor",
+                "name": "Set",
+                "printedName": "Set()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Void",
+                    "printedName": "()"
+                  },
+                  {
+                    "kind": "TypeNominal",
+                    "name": "String",
+                    "printedName": "Swift.String",
+                    "usr": "s:SS"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:11BearoundSDK6BeaconV5majorSSvs",
+                "mangledName": "$s11BearoundSDK6BeaconV5majorSSvs",
+                "moduleName": "BearoundSDK",
+                "implicit": true,
+                "accessorKind": "set"
+              },
+              {
+                "kind": "Accessor",
+                "name": "Modify",
+                "printedName": "Modify()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Void",
+                    "printedName": "()"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:11BearoundSDK6BeaconV5majorSSvM",
+                "mangledName": "$s11BearoundSDK6BeaconV5majorSSvM",
+                "moduleName": "BearoundSDK",
+                "implicit": true,
+                "accessorKind": "_modify"
+              }
+            ]
+          },
+          {
+            "kind": "Var",
+            "name": "minor",
+            "printedName": "minor",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "String",
+                "printedName": "Swift.String",
+                "usr": "s:SS"
+              }
+            ],
+            "declKind": "Var",
+            "usr": "s:11BearoundSDK6BeaconV5minorSSvp",
+            "mangledName": "$s11BearoundSDK6BeaconV5minorSSvp",
+            "moduleName": "BearoundSDK",
+            "declAttributes": [
+              "HasStorage",
+              "AccessControl"
+            ],
+            "hasStorage": true,
+            "accessors": [
+              {
+                "kind": "Accessor",
+                "name": "Get",
+                "printedName": "Get()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "String",
+                    "printedName": "Swift.String",
+                    "usr": "s:SS"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:11BearoundSDK6BeaconV5minorSSvg",
+                "mangledName": "$s11BearoundSDK6BeaconV5minorSSvg",
+                "moduleName": "BearoundSDK",
+                "implicit": true,
+                "accessorKind": "get"
+              },
+              {
+                "kind": "Accessor",
+                "name": "Set",
+                "printedName": "Set()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Void",
+                    "printedName": "()"
+                  },
+                  {
+                    "kind": "TypeNominal",
+                    "name": "String",
+                    "printedName": "Swift.String",
+                    "usr": "s:SS"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:11BearoundSDK6BeaconV5minorSSvs",
+                "mangledName": "$s11BearoundSDK6BeaconV5minorSSvs",
+                "moduleName": "BearoundSDK",
+                "implicit": true,
+                "accessorKind": "set"
+              },
+              {
+                "kind": "Accessor",
+                "name": "Modify",
+                "printedName": "Modify()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Void",
+                    "printedName": "()"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:11BearoundSDK6BeaconV5minorSSvM",
+                "mangledName": "$s11BearoundSDK6BeaconV5minorSSvM",
+                "moduleName": "BearoundSDK",
+                "implicit": true,
+                "accessorKind": "_modify"
+              }
+            ]
+          },
+          {
+            "kind": "Var",
+            "name": "rssi",
+            "printedName": "rssi",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Int",
+                "printedName": "Swift.Int",
+                "usr": "s:Si"
+              }
+            ],
+            "declKind": "Var",
+            "usr": "s:11BearoundSDK6BeaconV4rssiSivp",
+            "mangledName": "$s11BearoundSDK6BeaconV4rssiSivp",
+            "moduleName": "BearoundSDK",
+            "declAttributes": [
+              "HasStorage",
+              "AccessControl"
+            ],
+            "hasStorage": true,
+            "accessors": [
+              {
+                "kind": "Accessor",
+                "name": "Get",
+                "printedName": "Get()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Int",
+                    "printedName": "Swift.Int",
+                    "usr": "s:Si"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:11BearoundSDK6BeaconV4rssiSivg",
+                "mangledName": "$s11BearoundSDK6BeaconV4rssiSivg",
+                "moduleName": "BearoundSDK",
+                "implicit": true,
+                "accessorKind": "get"
+              },
+              {
+                "kind": "Accessor",
+                "name": "Set",
+                "printedName": "Set()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Void",
+                    "printedName": "()"
+                  },
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Int",
+                    "printedName": "Swift.Int",
+                    "usr": "s:Si"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:11BearoundSDK6BeaconV4rssiSivs",
+                "mangledName": "$s11BearoundSDK6BeaconV4rssiSivs",
+                "moduleName": "BearoundSDK",
+                "implicit": true,
+                "accessorKind": "set"
+              },
+              {
+                "kind": "Accessor",
+                "name": "Modify",
+                "printedName": "Modify()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Void",
+                    "printedName": "()"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:11BearoundSDK6BeaconV4rssiSivM",
+                "mangledName": "$s11BearoundSDK6BeaconV4rssiSivM",
+                "moduleName": "BearoundSDK",
+                "implicit": true,
+                "accessorKind": "_modify"
+              }
+            ]
+          },
+          {
+            "kind": "Var",
+            "name": "bluetoothName",
+            "printedName": "bluetoothName",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Optional",
+                "printedName": "Swift.String?",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "String",
+                    "printedName": "Swift.String",
+                    "usr": "s:SS"
+                  }
+                ],
+                "usr": "s:Sq"
+              }
+            ],
+            "declKind": "Var",
+            "usr": "s:11BearoundSDK6BeaconV13bluetoothNameSSSgvp",
+            "mangledName": "$s11BearoundSDK6BeaconV13bluetoothNameSSSgvp",
+            "moduleName": "BearoundSDK",
+            "declAttributes": [
+              "HasInitialValue",
+              "HasStorage",
+              "AccessControl"
+            ],
+            "hasStorage": true,
+            "accessors": [
+              {
+                "kind": "Accessor",
+                "name": "Get",
+                "printedName": "Get()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Optional",
+                    "printedName": "Swift.String?",
+                    "children": [
+                      {
+                        "kind": "TypeNominal",
+                        "name": "String",
+                        "printedName": "Swift.String",
+                        "usr": "s:SS"
+                      }
+                    ],
+                    "usr": "s:Sq"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:11BearoundSDK6BeaconV13bluetoothNameSSSgvg",
+                "mangledName": "$s11BearoundSDK6BeaconV13bluetoothNameSSSgvg",
+                "moduleName": "BearoundSDK",
+                "implicit": true,
+                "accessorKind": "get"
+              },
+              {
+                "kind": "Accessor",
+                "name": "Set",
+                "printedName": "Set()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Void",
+                    "printedName": "()"
+                  },
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Optional",
+                    "printedName": "Swift.String?",
+                    "children": [
+                      {
+                        "kind": "TypeNominal",
+                        "name": "String",
+                        "printedName": "Swift.String",
+                        "usr": "s:SS"
+                      }
+                    ],
+                    "usr": "s:Sq"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:11BearoundSDK6BeaconV13bluetoothNameSSSgvs",
+                "mangledName": "$s11BearoundSDK6BeaconV13bluetoothNameSSSgvs",
+                "moduleName": "BearoundSDK",
+                "implicit": true,
+                "accessorKind": "set"
+              },
+              {
+                "kind": "Accessor",
+                "name": "Modify",
+                "printedName": "Modify()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Void",
+                    "printedName": "()"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:11BearoundSDK6BeaconV13bluetoothNameSSSgvM",
+                "mangledName": "$s11BearoundSDK6BeaconV13bluetoothNameSSSgvM",
+                "moduleName": "BearoundSDK",
+                "implicit": true,
+                "accessorKind": "_modify"
+              }
+            ]
+          },
+          {
+            "kind": "Var",
+            "name": "bluetoothAddress",
+            "printedName": "bluetoothAddress",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Optional",
+                "printedName": "Swift.String?",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "String",
+                    "printedName": "Swift.String",
+                    "usr": "s:SS"
+                  }
+                ],
+                "usr": "s:Sq"
+              }
+            ],
+            "declKind": "Var",
+            "usr": "s:11BearoundSDK6BeaconV16bluetoothAddressSSSgvp",
+            "mangledName": "$s11BearoundSDK6BeaconV16bluetoothAddressSSSgvp",
+            "moduleName": "BearoundSDK",
+            "declAttributes": [
+              "HasInitialValue",
+              "HasStorage",
+              "AccessControl"
+            ],
+            "hasStorage": true,
+            "accessors": [
+              {
+                "kind": "Accessor",
+                "name": "Get",
+                "printedName": "Get()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Optional",
+                    "printedName": "Swift.String?",
+                    "children": [
+                      {
+                        "kind": "TypeNominal",
+                        "name": "String",
+                        "printedName": "Swift.String",
+                        "usr": "s:SS"
+                      }
+                    ],
+                    "usr": "s:Sq"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:11BearoundSDK6BeaconV16bluetoothAddressSSSgvg",
+                "mangledName": "$s11BearoundSDK6BeaconV16bluetoothAddressSSSgvg",
+                "moduleName": "BearoundSDK",
+                "implicit": true,
+                "accessorKind": "get"
+              },
+              {
+                "kind": "Accessor",
+                "name": "Set",
+                "printedName": "Set()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Void",
+                    "printedName": "()"
+                  },
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Optional",
+                    "printedName": "Swift.String?",
+                    "children": [
+                      {
+                        "kind": "TypeNominal",
+                        "name": "String",
+                        "printedName": "Swift.String",
+                        "usr": "s:SS"
+                      }
+                    ],
+                    "usr": "s:Sq"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:11BearoundSDK6BeaconV16bluetoothAddressSSSgvs",
+                "mangledName": "$s11BearoundSDK6BeaconV16bluetoothAddressSSSgvs",
+                "moduleName": "BearoundSDK",
+                "implicit": true,
+                "accessorKind": "set"
+              },
+              {
+                "kind": "Accessor",
+                "name": "Modify",
+                "printedName": "Modify()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Void",
+                    "printedName": "()"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:11BearoundSDK6BeaconV16bluetoothAddressSSSgvM",
+                "mangledName": "$s11BearoundSDK6BeaconV16bluetoothAddressSSSgvM",
+                "moduleName": "BearoundSDK",
+                "implicit": true,
+                "accessorKind": "_modify"
+              }
+            ]
+          },
+          {
+            "kind": "Var",
+            "name": "distanceMeters",
+            "printedName": "distanceMeters",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Optional",
+                "printedName": "Swift.Float?",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Float",
+                    "printedName": "Swift.Float",
+                    "usr": "s:Sf"
+                  }
+                ],
+                "usr": "s:Sq"
+              }
+            ],
+            "declKind": "Var",
+            "usr": "s:11BearoundSDK6BeaconV14distanceMetersSfSgvp",
+            "mangledName": "$s11BearoundSDK6BeaconV14distanceMetersSfSgvp",
+            "moduleName": "BearoundSDK",
+            "declAttributes": [
+              "HasInitialValue",
+              "HasStorage",
+              "AccessControl"
+            ],
+            "hasStorage": true,
+            "accessors": [
+              {
+                "kind": "Accessor",
+                "name": "Get",
+                "printedName": "Get()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Optional",
+                    "printedName": "Swift.Float?",
+                    "children": [
+                      {
+                        "kind": "TypeNominal",
+                        "name": "Float",
+                        "printedName": "Swift.Float",
+                        "usr": "s:Sf"
+                      }
+                    ],
+                    "usr": "s:Sq"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:11BearoundSDK6BeaconV14distanceMetersSfSgvg",
+                "mangledName": "$s11BearoundSDK6BeaconV14distanceMetersSfSgvg",
+                "moduleName": "BearoundSDK",
+                "implicit": true,
+                "accessorKind": "get"
+              },
+              {
+                "kind": "Accessor",
+                "name": "Set",
+                "printedName": "Set()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Void",
+                    "printedName": "()"
+                  },
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Optional",
+                    "printedName": "Swift.Float?",
+                    "children": [
+                      {
+                        "kind": "TypeNominal",
+                        "name": "Float",
+                        "printedName": "Swift.Float",
+                        "usr": "s:Sf"
+                      }
+                    ],
+                    "usr": "s:Sq"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:11BearoundSDK6BeaconV14distanceMetersSfSgvs",
+                "mangledName": "$s11BearoundSDK6BeaconV14distanceMetersSfSgvs",
+                "moduleName": "BearoundSDK",
+                "implicit": true,
+                "accessorKind": "set"
+              },
+              {
+                "kind": "Accessor",
+                "name": "Modify",
+                "printedName": "Modify()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Void",
+                    "printedName": "()"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:11BearoundSDK6BeaconV14distanceMetersSfSgvM",
+                "mangledName": "$s11BearoundSDK6BeaconV14distanceMetersSfSgvM",
+                "moduleName": "BearoundSDK",
+                "implicit": true,
+                "accessorKind": "_modify"
+              }
+            ]
+          },
+          {
+            "kind": "Var",
+            "name": "lastSeen",
+            "printedName": "lastSeen",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Date",
+                "printedName": "Foundation.Date",
+                "usr": "s:10Foundation4DateV"
+              }
+            ],
+            "declKind": "Var",
+            "usr": "s:11BearoundSDK6BeaconV8lastSeen10Foundation4DateVvp",
+            "mangledName": "$s11BearoundSDK6BeaconV8lastSeen10Foundation4DateVvp",
+            "moduleName": "BearoundSDK",
+            "declAttributes": [
+              "HasStorage",
+              "AccessControl"
+            ],
+            "hasStorage": true,
+            "accessors": [
+              {
+                "kind": "Accessor",
+                "name": "Get",
+                "printedName": "Get()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Date",
+                    "printedName": "Foundation.Date",
+                    "usr": "s:10Foundation4DateV"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:11BearoundSDK6BeaconV8lastSeen10Foundation4DateVvg",
+                "mangledName": "$s11BearoundSDK6BeaconV8lastSeen10Foundation4DateVvg",
+                "moduleName": "BearoundSDK",
+                "implicit": true,
+                "accessorKind": "get"
+              },
+              {
+                "kind": "Accessor",
+                "name": "Set",
+                "printedName": "Set()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Void",
+                    "printedName": "()"
+                  },
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Date",
+                    "printedName": "Foundation.Date",
+                    "usr": "s:10Foundation4DateV"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:11BearoundSDK6BeaconV8lastSeen10Foundation4DateVvs",
+                "mangledName": "$s11BearoundSDK6BeaconV8lastSeen10Foundation4DateVvs",
+                "moduleName": "BearoundSDK",
+                "implicit": true,
+                "accessorKind": "set"
+              },
+              {
+                "kind": "Accessor",
+                "name": "Modify",
+                "printedName": "Modify()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Void",
+                    "printedName": "()"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:11BearoundSDK6BeaconV8lastSeen10Foundation4DateVvM",
+                "mangledName": "$s11BearoundSDK6BeaconV8lastSeen10Foundation4DateVvM",
+                "moduleName": "BearoundSDK",
+                "implicit": true,
+                "accessorKind": "_modify"
+              }
+            ]
+          },
           {
             "kind": "Function",
             "name": "==",
@@ -337,6 +942,293 @@
       },
       {
         "kind": "Import",
+        "name": "UIKit",
+        "printedName": "UIKit",
+        "declKind": "Import",
+        "moduleName": "BearoundSDK"
+      },
+      {
+        "kind": "Import",
+        "name": "AdSupport",
+        "printedName": "AdSupport",
+        "declKind": "Import",
+        "moduleName": "BearoundSDK"
+      },
+      {
+        "kind": "Import",
+        "name": "CoreLocation",
+        "printedName": "CoreLocation",
+        "declKind": "Import",
+        "moduleName": "BearoundSDK"
+      },
+      {
+        "kind": "TypeDecl",
+        "name": "BearoundEventDelegate",
+        "printedName": "BearoundEventDelegate",
+        "children": [
+          {
+            "kind": "Function",
+            "name": "didUpdateBeacon",
+            "printedName": "didUpdateBeacon(_:)",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Void",
+                "printedName": "()"
+              },
+              {
+                "kind": "TypeNominal",
+                "name": "Beacon",
+                "printedName": "BearoundSDK.Beacon",
+                "usr": "s:11BearoundSDK6BeaconV"
+              }
+            ],
+            "declKind": "Func",
+            "usr": "s:11BearoundSDK0A13EventDelegateP15didUpdateBeaconyyAA0G0VF",
+            "mangledName": "$s11BearoundSDK0A13EventDelegateP15didUpdateBeaconyyAA0G0VF",
+            "moduleName": "BearoundSDK",
+            "genericSig": "<τ_0_0 where τ_0_0 : BearoundSDK.BearoundEventDelegate>",
+            "sugared_genericSig": "<Self where Self : BearoundSDK.BearoundEventDelegate>",
+            "protocolReq": true,
+            "reqNewWitnessTableEntry": true,
+            "funcSelfKind": "NonMutating"
+          }
+        ],
+        "declKind": "Protocol",
+        "usr": "s:11BearoundSDK0A13EventDelegateP",
+        "mangledName": "$s11BearoundSDK0A13EventDelegateP",
+        "moduleName": "BearoundSDK",
+        "genericSig": "<τ_0_0 : AnyObject>",
+        "sugared_genericSig": "<Self : AnyObject>",
+        "declAttributes": [
+          "AccessControl"
+        ],
+        "conformances": [
+          {
+            "kind": "Conformance",
+            "name": "Escapable",
+            "printedName": "Escapable",
+            "usr": "s:s9EscapableP",
+            "mangledName": "$ss9EscapableP"
+          },
+          {
+            "kind": "Conformance",
+            "name": "Copyable",
+            "printedName": "Copyable",
+            "usr": "s:s8CopyableP",
+            "mangledName": "$ss8CopyableP"
+          }
+        ]
+      },
+      {
+        "kind": "TypeDecl",
+        "name": "Bearound",
+        "printedName": "Bearound",
+        "children": [
+          {
+            "kind": "Var",
+            "name": "eventDelegate",
+            "printedName": "eventDelegate",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "WeakStorage",
+                "printedName": "(any BearoundSDK.BearoundEventDelegate)?"
+              }
+            ],
+            "declKind": "Var",
+            "usr": "s:11BearoundSDK0A0C13eventDelegateAA0a5EventD0_pSgvp",
+            "mangledName": "$s11BearoundSDK0A0C13eventDelegateAA0a5EventD0_pSgvp",
+            "moduleName": "BearoundSDK",
+            "declAttributes": [
+              "HasInitialValue",
+              "HasStorage",
+              "ReferenceOwnership",
+              "AccessControl",
+              "RawDocComment"
+            ],
+            "ownership": 1,
+            "hasStorage": true,
+            "accessors": [
+              {
+                "kind": "Accessor",
+                "name": "Get",
+                "printedName": "Get()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Optional",
+                    "printedName": "(any BearoundSDK.BearoundEventDelegate)?",
+                    "children": [
+                      {
+                        "kind": "TypeNominal",
+                        "name": "BearoundEventDelegate",
+                        "printedName": "any BearoundSDK.BearoundEventDelegate",
+                        "usr": "s:11BearoundSDK0A13EventDelegateP"
+                      }
+                    ],
+                    "usr": "s:Sq"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:11BearoundSDK0A0C13eventDelegateAA0a5EventD0_pSgvg",
+                "mangledName": "$s11BearoundSDK0A0C13eventDelegateAA0a5EventD0_pSgvg",
+                "moduleName": "BearoundSDK",
+                "implicit": true,
+                "accessorKind": "get"
+              },
+              {
+                "kind": "Accessor",
+                "name": "Set",
+                "printedName": "Set()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Void",
+                    "printedName": "()"
+                  },
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Optional",
+                    "printedName": "(any BearoundSDK.BearoundEventDelegate)?",
+                    "children": [
+                      {
+                        "kind": "TypeNominal",
+                        "name": "BearoundEventDelegate",
+                        "printedName": "any BearoundSDK.BearoundEventDelegate",
+                        "usr": "s:11BearoundSDK0A13EventDelegateP"
+                      }
+                    ],
+                    "usr": "s:Sq"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:11BearoundSDK0A0C13eventDelegateAA0a5EventD0_pSgvs",
+                "mangledName": "$s11BearoundSDK0A0C13eventDelegateAA0a5EventD0_pSgvs",
+                "moduleName": "BearoundSDK",
+                "implicit": true,
+                "accessorKind": "set"
+              },
+              {
+                "kind": "Accessor",
+                "name": "Modify",
+                "printedName": "Modify()",
+                "children": [
+                  {
+                    "kind": "TypeNominal",
+                    "name": "Void",
+                    "printedName": "()"
+                  }
+                ],
+                "declKind": "Accessor",
+                "usr": "s:11BearoundSDK0A0C13eventDelegateAA0a5EventD0_pSgvM",
+                "mangledName": "$s11BearoundSDK0A0C13eventDelegateAA0a5EventD0_pSgvM",
+                "moduleName": "BearoundSDK",
+                "implicit": true,
+                "accessorKind": "_modify"
+              }
+            ]
+          },
+          {
+            "kind": "Constructor",
+            "name": "init",
+            "printedName": "init(clientToken:isDebugEnable:)",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Bearound",
+                "printedName": "BearoundSDK.Bearound",
+                "usr": "s:11BearoundSDK0A0C"
+              },
+              {
+                "kind": "TypeNominal",
+                "name": "String",
+                "printedName": "Swift.String",
+                "usr": "s:SS"
+              },
+              {
+                "kind": "TypeNominal",
+                "name": "Bool",
+                "printedName": "Swift.Bool",
+                "usr": "s:Sb"
+              }
+            ],
+            "declKind": "Constructor",
+            "usr": "s:11BearoundSDK0A0C11clientToken13isDebugEnableACSS_Sbtcfc",
+            "mangledName": "$s11BearoundSDK0A0C11clientToken13isDebugEnableACSS_Sbtcfc",
+            "moduleName": "BearoundSDK",
+            "declAttributes": [
+              "AccessControl"
+            ],
+            "init_kind": "Designated"
+          },
+          {
+            "kind": "Function",
+            "name": "startServices",
+            "printedName": "startServices()",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Void",
+                "printedName": "()"
+              }
+            ],
+            "declKind": "Func",
+            "usr": "s:11BearoundSDK0A0C13startServicesyyF",
+            "mangledName": "$s11BearoundSDK0A0C13startServicesyyF",
+            "moduleName": "BearoundSDK",
+            "declAttributes": [
+              "AccessControl"
+            ],
+            "funcSelfKind": "NonMutating"
+          },
+          {
+            "kind": "Function",
+            "name": "stopServices",
+            "printedName": "stopServices()",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Void",
+                "printedName": "()"
+              }
+            ],
+            "declKind": "Func",
+            "usr": "s:11BearoundSDK0A0C12stopServicesyyF",
+            "mangledName": "$s11BearoundSDK0A0C12stopServicesyyF",
+            "moduleName": "BearoundSDK",
+            "declAttributes": [
+              "AccessControl"
+            ],
+            "funcSelfKind": "NonMutating"
+          }
+        ],
+        "declKind": "Class",
+        "usr": "s:11BearoundSDK0A0C",
+        "mangledName": "$s11BearoundSDK0A0C",
+        "moduleName": "BearoundSDK",
+        "declAttributes": [
+          "AccessControl"
+        ],
+        "conformances": [
+          {
+            "kind": "Conformance",
+            "name": "Copyable",
+            "printedName": "Copyable",
+            "usr": "s:s8CopyableP",
+            "mangledName": "$ss8CopyableP"
+          },
+          {
+            "kind": "Conformance",
+            "name": "Escapable",
+            "printedName": "Escapable",
+            "usr": "s:s9EscapableP",
+            "mangledName": "$ss9EscapableP"
+          }
+        ]
+      },
+      {
+        "kind": "Import",
         "name": "Foundation",
         "printedName": "Foundation",
         "declKind": "Import",
@@ -344,31 +1236,71 @@
         "declAttributes": [
           "RawDocComment"
         ]
+      },
+      {
+        "kind": "Import",
+        "name": "Foundation",
+        "printedName": "Foundation",
+        "declKind": "Import",
+        "moduleName": "BearoundSDK",
+        "declAttributes": [
+          "RawDocComment"
+        ]
+      },
+      {
+        "kind": "Import",
+        "name": "Foundation",
+        "printedName": "Foundation",
+        "declKind": "Import",
+        "moduleName": "BearoundSDK",
+        "declAttributes": [
+          "RawDocComment"
+        ]
+      },
+      {
+        "kind": "Import",
+        "name": "Foundation",
+        "printedName": "Foundation",
+        "declKind": "Import",
+        "moduleName": "BearoundSDK",
+        "declAttributes": [
+          "RawDocComment"
+        ]
+      },
+      {
+        "kind": "Import",
+        "name": "Foundation",
+        "printedName": "Foundation",
+        "declKind": "Import",
+        "moduleName": "BearoundSDK",
+        "declAttributes": [
+          "RawDocComment"
+        ]
+      },
+      {
+        "kind": "Import",
+        "name": "CoreLocation",
+        "printedName": "CoreLocation",
+        "declKind": "Import",
+        "moduleName": "BearoundSDK"
       }
     ],
     "json_format_version": 8
   },
   "ConstValues": [
     {
-      "filePath": "\/Users\/felipearaujo\/Empresa\/OpenCircle\/bearound-ios-sdk-framework\/BearoundSDK\/BearoundSDK\/BeAround\/Utils\/Constants.swift",
-      "kind": "StringLiteral",
-      "offset": 172,
-      "length": 26,
-      "value": "\"Beacon registrado na API\""
+      "filePath": "\/Users\/felipearaujo\/Empresa\/OpenCircle\/bearound-ios-sdk-framework\/BearoundSDK\/BearoundSDK\/BeAround\/BeaconSource\/BeaconParser.swift",
+      "kind": "IntegerLiteral",
+      "offset": 1081,
+      "length": 3,
+      "value": "-59"
     },
     {
-      "filePath": "\/Users\/felipearaujo\/Empresa\/OpenCircle\/bearound-ios-sdk-framework\/BearoundSDK\/BearoundSDK\/BeAround\/Utils\/Constants.swift",
+      "filePath": "\/Users\/felipearaujo\/Empresa\/OpenCircle\/bearound-ios-sdk-framework\/BearoundSDK\/BearoundSDK\/BeAround\/BeaconSource\/Beacon.swift",
       "kind": "StringLiteral",
-      "offset": 231,
-      "length": 34,
-      "value": "\"Beacon removido e enviado à API\""
-    },
-    {
-      "filePath": "\/Users\/felipearaujo\/Empresa\/OpenCircle\/bearound-ios-sdk-framework\/BearoundSDK\/BearoundSDK\/BeAround\/Utils\/Constants.swift",
-      "kind": "StringLiteral",
-      "offset": 302,
-      "length": 32,
-      "value": "\"Beacons perdidos salvos na API\""
+      "offset": 215,
+      "length": 38,
+      "value": "\"E25B8D3C-947A-452F-A13F-589CB706D2E5\""
     },
     {
       "filePath": "\/Users\/felipearaujo\/Empresa\/OpenCircle\/bearound-ios-sdk-framework\/BearoundSDK\/BearoundSDK\/BearoundSDK.swift",
@@ -392,18 +1324,25 @@
       "value": "\"lost\""
     },
     {
-      "filePath": "\/Users\/felipearaujo\/Empresa\/OpenCircle\/bearound-ios-sdk-framework\/BearoundSDK\/BearoundSDK\/BeAround\/BeaconSource\/Beacon.swift",
+      "filePath": "\/Users\/felipearaujo\/Empresa\/OpenCircle\/bearound-ios-sdk-framework\/BearoundSDK\/BearoundSDK\/BeAround\/Utils\/Constants.swift",
       "kind": "StringLiteral",
-      "offset": 202,
-      "length": 38,
-      "value": "\"E25B8D3C-947A-452F-A13F-589CB706D2E5\""
+      "offset": 172,
+      "length": 26,
+      "value": "\"Beacon registrado na API\""
     },
     {
-      "filePath": "\/Users\/felipearaujo\/Empresa\/OpenCircle\/bearound-ios-sdk-framework\/BearoundSDK\/BearoundSDK\/BeAround\/BeaconSource\/BeaconParser.swift",
-      "kind": "IntegerLiteral",
-      "offset": 1081,
-      "length": 3,
-      "value": "-59"
+      "filePath": "\/Users\/felipearaujo\/Empresa\/OpenCircle\/bearound-ios-sdk-framework\/BearoundSDK\/BearoundSDK\/BeAround\/Utils\/Constants.swift",
+      "kind": "StringLiteral",
+      "offset": 231,
+      "length": 34,
+      "value": "\"Beacon removido e enviado à API\""
+    },
+    {
+      "filePath": "\/Users\/felipearaujo\/Empresa\/OpenCircle\/bearound-ios-sdk-framework\/BearoundSDK\/BearoundSDK\/BeAround\/Utils\/Constants.swift",
+      "kind": "StringLiteral",
+      "offset": 302,
+      "length": 32,
+      "value": "\"Beacons perdidos salvos na API\""
     }
   ]
 }

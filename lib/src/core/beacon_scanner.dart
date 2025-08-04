@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'package:bearound_flutter_sdk/bearound_flutter_sdk.dart';
 import 'package:bearound_flutter_sdk/bearound_flutter_sdk_method_channel.dart';
 import 'package:bearound_flutter_sdk/src/core/permission_service.dart';
 
 class BeaconScanner {
   static final BeaconScanner _instance = BeaconScanner._internal();
+  static Stream<List<Beacon>>? _beaconStream;
 
   BeaconScanner._internal();
 
@@ -30,5 +32,16 @@ class BeaconScanner {
 
   Future<void> _stopScan() async {
     await MethodChannelBearoundFlutterSdk().stop();
+  }
+
+  static Stream<Beacon> get beaconStream {
+    return MethodChannelBearoundFlutterSdk().beaconStream.map((event) {
+      final dynamic beaconRaw = event['beacon'];
+      if (beaconRaw is Map) {
+        return Beacon.fromJson(Map<String, dynamic>.from(beaconRaw));
+      } else {
+        throw Exception('Evento inválido: $event');
+      }
+    });
   }
 }

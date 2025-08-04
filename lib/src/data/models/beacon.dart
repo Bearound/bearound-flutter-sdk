@@ -19,8 +19,8 @@ class Beacon {
 
   factory Beacon.fromJson(Map<String, dynamic> json) => Beacon(
     uuid: json['uuid'] as String,
-    major: json['major'] as int,
-    minor: json['minor'] as int,
+    major: int.parse(json['major'].toString()),
+    minor: int.parse(json['minor'].toString()),
     rssi: json['rssi'] as int,
     bluetoothName: json['bluetoothName'] as String?,
     bluetoothAddress: json['bluetoothAddress'] as String?,

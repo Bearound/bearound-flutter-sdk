@@ -11,13 +11,26 @@ import UIKit
 import _Concurrency
 import _StringProcessing
 import _SwiftConcurrencyShims
-public class Bearound {
-  public init(clientToken: Swift.String, isDebugEnable: Swift.Bool)
-  @objc deinit
-  public func startServices()
-}
 public struct Beacon : Swift.Codable, Swift.Equatable {
+  public var uuid: Foundation.UUID
+  public var major: Swift.String
+  public var minor: Swift.String
+  public var rssi: Swift.Int
+  public var bluetoothName: Swift.String?
+  public var bluetoothAddress: Swift.String?
+  public var distanceMeters: Swift.Float?
+  public var lastSeen: Foundation.Date
   public static func == (lhs: BearoundSDK.Beacon, rhs: BearoundSDK.Beacon) -> Swift.Bool
   public func encode(to encoder: any Swift.Encoder) throws
   public init(from decoder: any Swift.Decoder) throws
+}
+public protocol BearoundEventDelegate : AnyObject {
+  func didUpdateBeacon(_ beacon: BearoundSDK.Beacon)
+}
+public class Bearound {
+  weak public var eventDelegate: (any BearoundSDK.BearoundEventDelegate)?
+  public init(clientToken: Swift.String, isDebugEnable: Swift.Bool)
+  @objc deinit
+  public func startServices()
+  public func stopServices()
 }

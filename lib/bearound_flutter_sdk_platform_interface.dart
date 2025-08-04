@@ -15,6 +15,10 @@ abstract class BearoundFlutterSdkPlatform extends PlatformInterface {
     _instance = instance;
   }
 
+  Stream<Map<String, dynamic>> get beaconStream {
+    throw UnimplementedError('beaconStream has not been implemented.');
+  }
+
   Future<void> initialize({bool debug = false}) async {
     throw UnimplementedError('getAdvertisingId() has not been implemented.');
   }

@@ -6,15 +6,15 @@
 	<dict>
 		<key>Info.plist</key>
 		<data>
-		wbt262H4uF2bIRhOaBW5kKT8kFQ=
+		nND8DXJ06hdpccETc5L4EoAk+gk=
 		</data>
 		<key>Modules/BearoundSDK.swiftmodule/arm64-apple-ios-simulator.abi.json</key>
 		<data>
-		erAdPzSXWqWgxucgf36zHCkfDpY=
+		kqVE8s+aSemxWR7BkE7r4JOPnhI=
 		</data>
 		<key>Modules/BearoundSDK.swiftmodule/arm64-apple-ios-simulator.private.swiftinterface</key>
 		<data>
-		GmA7z/9ZplBuP/yVQ8NBSh0dk+U=
+		ef39lNlx5tEtNONBhmn2GCe0wC8=
 		</data>
 		<key>Modules/BearoundSDK.swiftmodule/arm64-apple-ios-simulator.swiftdoc</key>
 		<data>
@@ -22,19 +22,19 @@
 		</data>
 		<key>Modules/BearoundSDK.swiftmodule/arm64-apple-ios-simulator.swiftinterface</key>
 		<data>
-		GmA7z/9ZplBuP/yVQ8NBSh0dk+U=
+		ef39lNlx5tEtNONBhmn2GCe0wC8=
 		</data>
 		<key>Modules/BearoundSDK.swiftmodule/arm64-apple-ios-simulator.swiftmodule</key>
 		<data>
-		E+N9vFT+YqKlloWCHD77abygvlU=
+		oqRVUSVy339Q9ngBMXEbUlKcLPk=
 		</data>
 		<key>Modules/BearoundSDK.swiftmodule/x86_64-apple-ios-simulator.abi.json</key>
 		<data>
-		erAdPzSXWqWgxucgf36zHCkfDpY=
+		kqVE8s+aSemxWR7BkE7r4JOPnhI=
 		</data>
 		<key>Modules/BearoundSDK.swiftmodule/x86_64-apple-ios-simulator.private.swiftinterface</key>
 		<data>
-		7NpKLP+mCM5ReWnpa9dLzV32lEo=
+		ccyRJi/32oaLALtWP8thI3I1Hxc=
 		</data>
 		<key>Modules/BearoundSDK.swiftmodule/x86_64-apple-ios-simulator.swiftdoc</key>
 		<data>
@@ -42,11 +42,11 @@
 		</data>
 		<key>Modules/BearoundSDK.swiftmodule/x86_64-apple-ios-simulator.swiftinterface</key>
 		<data>
-		7NpKLP+mCM5ReWnpa9dLzV32lEo=
+		ccyRJi/32oaLALtWP8thI3I1Hxc=
 		</data>
 		<key>Modules/BearoundSDK.swiftmodule/x86_64-apple-ios-simulator.swiftmodule</key>
 		<data>
-		wfxWv/8hfKiEtxXOgUcb5+EbPTA=
+		uv6O+rV+w14jkyJAcPD0XiIaX2I=
 		</data>
 	</dict>
 	<key>files2</key>
@@ -55,14 +55,14 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			xeUsre+Nwa8jq2N+cO0/65isi+X23OTRILtCNPQ280E=
+			c5PFNd5fFtJLoertbSlOVZkMMl0QITvJcwpL1iPn5VM=
 			</data>
 		</dict>
 		<key>Modules/BearoundSDK.swiftmodule/arm64-apple-ios-simulator.private.swiftinterface</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			xUfNhK6eKp1q7rT6BQgLbg1lxTdJvOKyZgOKJcsYt2M=
+			PGLHs2F3JNQWFG6xG7bOB/5NX1oALGZA8x4DZeDJ3Z8=
 			</data>
 		</dict>
 		<key>Modules/BearoundSDK.swiftmodule/arm64-apple-ios-simulator.swiftdoc</key>
@@ -76,28 +76,28 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			xUfNhK6eKp1q7rT6BQgLbg1lxTdJvOKyZgOKJcsYt2M=
+			PGLHs2F3JNQWFG6xG7bOB/5NX1oALGZA8x4DZeDJ3Z8=
 			</data>
 		</dict>
 		<key>Modules/BearoundSDK.swiftmodule/arm64-apple-ios-simulator.swiftmodule</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			ag1xRTK8cdzhG4U5/2PpEUgRYYKcEgg3so29a/AiD3o=
+			oVaHZI2bFD2j5U+pvBcEJWOVEZdwwcYMVGm4xMFTNJM=
 			</data>
 		</dict>
 		<key>Modules/BearoundSDK.swiftmodule/x86_64-apple-ios-simulator.abi.json</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			xeUsre+Nwa8jq2N+cO0/65isi+X23OTRILtCNPQ280E=
+			c5PFNd5fFtJLoertbSlOVZkMMl0QITvJcwpL1iPn5VM=
 			</data>
 		</dict>
 		<key>Modules/BearoundSDK.swiftmodule/x86_64-apple-ios-simulator.private.swiftinterface</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			7PUAvguKYa6Bjn8Y5RZiecYWHyLerWSe+3t8VArXmwg=
+			OJ4jwb9CkYi1qCC0ZopTVZRGBv8NWN33u3RSLmT0+uY=
 			</data>
 		</dict>
 		<key>Modules/BearoundSDK.swiftmodule/x86_64-apple-ios-simulator.swiftdoc</key>
@@ -111,14 +111,14 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			7PUAvguKYa6Bjn8Y5RZiecYWHyLerWSe+3t8VArXmwg=
+			OJ4jwb9CkYi1qCC0ZopTVZRGBv8NWN33u3RSLmT0+uY=
 			</data>
 		</dict>
 		<key>Modules/BearoundSDK.swiftmodule/x86_64-apple-ios-simulator.swiftmodule</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			P7KkeEUK06U7e7qvl5DDgKyqBU3+mY0Nxlamk4/79Vg=
+			SYps6SNLHfUPGlzJmhSpKrP+rbDgf0W6z7UgyVzwxtE=
 			</data>
 		</dict>
 	</dict>

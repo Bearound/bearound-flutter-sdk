@@ -1,8 +1,8 @@
 export 'src/core/beacon_scanner.dart';
 export 'src/data/models/beacon.dart';
 
+import 'bearound_flutter_sdk.dart';
 import 'src/core/permission_service.dart';
-import 'src/core/beacon_scanner.dart';
 
 /// SDK principal do Bearound para integração com beacons.
 ///
@@ -53,5 +53,5 @@ class BearoundFlutterSdk {
   ///   // Atualize sua interface, salve logs, etc.
   /// });
   /// ```
-  //static Stream<List<Beacon>> get beaconStream => BeaconScanner.beaconStream;
+  static Stream<Beacon> get beaconStream => BeaconScanner.beaconStream;
 }

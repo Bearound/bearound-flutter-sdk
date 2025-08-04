@@ -3,13 +3,17 @@ allprojects {
         google()
         mavenCentral()
         maven {
-            name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/Bearound/bearound-android-sdk")
-            credentials {
-                username = System.getenv("GPR_USER")
-                password = System.getenv("GPR_KEY")
-            }
+            url = uri("http://192.168.10.61:8081/repository/maven-releases/")
+            isAllowInsecureProtocol = true
         }
+//        maven {
+//            name = "GitHubPackages"
+//            url = uri("https://maven.pkg.github.com/Bearound/bearound-android-sdk")
+//            credentials {
+//                username = System.getenv("GPR_USER")
+//                password = System.getenv("GPR_KEY")
+//            }
+//        }
     }
 }
 
