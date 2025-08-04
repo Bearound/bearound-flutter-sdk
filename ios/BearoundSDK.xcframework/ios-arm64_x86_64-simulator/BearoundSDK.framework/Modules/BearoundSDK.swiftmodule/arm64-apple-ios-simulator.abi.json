@@ -1,0 +1,409 @@
+{
+  "ABIRoot": {
+    "kind": "Root",
+    "name": "BearoundSDK",
+    "printedName": "BearoundSDK",
+    "children": [
+      {
+        "kind": "Import",
+        "name": "Foundation",
+        "printedName": "Foundation",
+        "declKind": "Import",
+        "moduleName": "BearoundSDK",
+        "declAttributes": [
+          "RawDocComment"
+        ]
+      },
+      {
+        "kind": "Import",
+        "name": "CoreBluetooth",
+        "printedName": "CoreBluetooth",
+        "declKind": "Import",
+        "moduleName": "BearoundSDK"
+      },
+      {
+        "kind": "TypeDecl",
+        "name": "Beacon",
+        "printedName": "Beacon",
+        "children": [
+          {
+            "kind": "Function",
+            "name": "==",
+            "printedName": "==(_:_:)",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Bool",
+                "printedName": "Swift.Bool",
+                "usr": "s:Sb"
+              },
+              {
+                "kind": "TypeNominal",
+                "name": "Beacon",
+                "printedName": "BearoundSDK.Beacon",
+                "usr": "s:11BearoundSDK6BeaconV"
+              },
+              {
+                "kind": "TypeNominal",
+                "name": "Beacon",
+                "printedName": "BearoundSDK.Beacon",
+                "usr": "s:11BearoundSDK6BeaconV"
+              }
+            ],
+            "declKind": "Func",
+            "usr": "s:11BearoundSDK6BeaconV2eeoiySbAC_ACtFZ",
+            "mangledName": "$s11BearoundSDK6BeaconV2eeoiySbAC_ACtFZ",
+            "moduleName": "BearoundSDK",
+            "static": true,
+            "declAttributes": [
+              "AccessControl"
+            ],
+            "funcSelfKind": "NonMutating"
+          },
+          {
+            "kind": "Constructor",
+            "name": "init",
+            "printedName": "init(from:)",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Beacon",
+                "printedName": "BearoundSDK.Beacon",
+                "usr": "s:11BearoundSDK6BeaconV"
+              },
+              {
+                "kind": "TypeNominal",
+                "name": "Decoder",
+                "printedName": "any Swift.Decoder",
+                "usr": "s:s7DecoderP"
+              }
+            ],
+            "declKind": "Constructor",
+            "usr": "s:11BearoundSDK6BeaconV4fromACs7Decoder_p_tKcfc",
+            "mangledName": "$s11BearoundSDK6BeaconV4fromACs7Decoder_p_tKcfc",
+            "moduleName": "BearoundSDK",
+            "implicit": true,
+            "throwing": true,
+            "init_kind": "Designated"
+          },
+          {
+            "kind": "Function",
+            "name": "encode",
+            "printedName": "encode(to:)",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Void",
+                "printedName": "()"
+              },
+              {
+                "kind": "TypeNominal",
+                "name": "Encoder",
+                "printedName": "any Swift.Encoder",
+                "usr": "s:s7EncoderP"
+              }
+            ],
+            "declKind": "Func",
+            "usr": "s:11BearoundSDK6BeaconV6encode2toys7Encoder_p_tKF",
+            "mangledName": "$s11BearoundSDK6BeaconV6encode2toys7Encoder_p_tKF",
+            "moduleName": "BearoundSDK",
+            "implicit": true,
+            "throwing": true,
+            "funcSelfKind": "NonMutating"
+          }
+        ],
+        "declKind": "Struct",
+        "usr": "s:11BearoundSDK6BeaconV",
+        "mangledName": "$s11BearoundSDK6BeaconV",
+        "moduleName": "BearoundSDK",
+        "declAttributes": [
+          "AccessControl"
+        ],
+        "conformances": [
+          {
+            "kind": "Conformance",
+            "name": "Copyable",
+            "printedName": "Copyable",
+            "usr": "s:s8CopyableP",
+            "mangledName": "$ss8CopyableP"
+          },
+          {
+            "kind": "Conformance",
+            "name": "Escapable",
+            "printedName": "Escapable",
+            "usr": "s:s9EscapableP",
+            "mangledName": "$ss9EscapableP"
+          },
+          {
+            "kind": "Conformance",
+            "name": "Decodable",
+            "printedName": "Decodable",
+            "usr": "s:Se",
+            "mangledName": "$sSe"
+          },
+          {
+            "kind": "Conformance",
+            "name": "Encodable",
+            "printedName": "Encodable",
+            "usr": "s:SE",
+            "mangledName": "$sSE"
+          },
+          {
+            "kind": "Conformance",
+            "name": "Equatable",
+            "printedName": "Equatable",
+            "usr": "s:SQ",
+            "mangledName": "$sSQ"
+          }
+        ]
+      },
+      {
+        "kind": "Import",
+        "name": "Foundation",
+        "printedName": "Foundation",
+        "declKind": "Import",
+        "moduleName": "BearoundSDK",
+        "declAttributes": [
+          "RawDocComment"
+        ]
+      },
+      {
+        "kind": "Import",
+        "name": "Foundation",
+        "printedName": "Foundation",
+        "declKind": "Import",
+        "moduleName": "BearoundSDK",
+        "declAttributes": [
+          "RawDocComment"
+        ]
+      },
+      {
+        "kind": "Import",
+        "name": "CoreBluetooth",
+        "printedName": "CoreBluetooth",
+        "declKind": "Import",
+        "moduleName": "BearoundSDK"
+      },
+      {
+        "kind": "Import",
+        "name": "Foundation",
+        "printedName": "Foundation",
+        "declKind": "Import",
+        "moduleName": "BearoundSDK",
+        "declAttributes": [
+          "RawDocComment"
+        ]
+      },
+      {
+        "kind": "Import",
+        "name": "CoreLocation",
+        "printedName": "CoreLocation",
+        "declKind": "Import",
+        "moduleName": "BearoundSDK"
+      },
+      {
+        "kind": "Import",
+        "name": "Foundation",
+        "printedName": "Foundation",
+        "declKind": "Import",
+        "moduleName": "BearoundSDK",
+        "declAttributes": [
+          "RawDocComment"
+        ]
+      },
+      {
+        "kind": "Import",
+        "name": "Foundation",
+        "printedName": "Foundation",
+        "declKind": "Import",
+        "moduleName": "BearoundSDK",
+        "declAttributes": [
+          "RawDocComment"
+        ]
+      },
+      {
+        "kind": "Import",
+        "name": "Foundation",
+        "printedName": "Foundation",
+        "declKind": "Import",
+        "moduleName": "BearoundSDK",
+        "declAttributes": [
+          "RawDocComment"
+        ]
+      },
+      {
+        "kind": "Import",
+        "name": "Foundation",
+        "printedName": "Foundation",
+        "declKind": "Import",
+        "moduleName": "BearoundSDK",
+        "declAttributes": [
+          "RawDocComment"
+        ]
+      },
+      {
+        "kind": "Import",
+        "name": "UIKit",
+        "printedName": "UIKit",
+        "declKind": "Import",
+        "moduleName": "BearoundSDK"
+      },
+      {
+        "kind": "Import",
+        "name": "AdSupport",
+        "printedName": "AdSupport",
+        "declKind": "Import",
+        "moduleName": "BearoundSDK"
+      },
+      {
+        "kind": "Import",
+        "name": "CoreLocation",
+        "printedName": "CoreLocation",
+        "declKind": "Import",
+        "moduleName": "BearoundSDK"
+      },
+      {
+        "kind": "TypeDecl",
+        "name": "Bearound",
+        "printedName": "Bearound",
+        "children": [
+          {
+            "kind": "Constructor",
+            "name": "init",
+            "printedName": "init(clientToken:isDebugEnable:)",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Bearound",
+                "printedName": "BearoundSDK.Bearound",
+                "usr": "s:11BearoundSDK0A0C"
+              },
+              {
+                "kind": "TypeNominal",
+                "name": "String",
+                "printedName": "Swift.String",
+                "usr": "s:SS"
+              },
+              {
+                "kind": "TypeNominal",
+                "name": "Bool",
+                "printedName": "Swift.Bool",
+                "usr": "s:Sb"
+              }
+            ],
+            "declKind": "Constructor",
+            "usr": "s:11BearoundSDK0A0C11clientToken13isDebugEnableACSS_Sbtcfc",
+            "mangledName": "$s11BearoundSDK0A0C11clientToken13isDebugEnableACSS_Sbtcfc",
+            "moduleName": "BearoundSDK",
+            "declAttributes": [
+              "AccessControl"
+            ],
+            "init_kind": "Designated"
+          },
+          {
+            "kind": "Function",
+            "name": "startServices",
+            "printedName": "startServices()",
+            "children": [
+              {
+                "kind": "TypeNominal",
+                "name": "Void",
+                "printedName": "()"
+              }
+            ],
+            "declKind": "Func",
+            "usr": "s:11BearoundSDK0A0C13startServicesyyF",
+            "mangledName": "$s11BearoundSDK0A0C13startServicesyyF",
+            "moduleName": "BearoundSDK",
+            "declAttributes": [
+              "AccessControl"
+            ],
+            "funcSelfKind": "NonMutating"
+          }
+        ],
+        "declKind": "Class",
+        "usr": "s:11BearoundSDK0A0C",
+        "mangledName": "$s11BearoundSDK0A0C",
+        "moduleName": "BearoundSDK",
+        "declAttributes": [
+          "AccessControl"
+        ],
+        "conformances": [
+          {
+            "kind": "Conformance",
+            "name": "Copyable",
+            "printedName": "Copyable",
+            "usr": "s:s8CopyableP",
+            "mangledName": "$ss8CopyableP"
+          },
+          {
+            "kind": "Conformance",
+            "name": "Escapable",
+            "printedName": "Escapable",
+            "usr": "s:s9EscapableP",
+            "mangledName": "$ss9EscapableP"
+          }
+        ]
+      }
+    ],
+    "json_format_version": 8
+  },
+  "ConstValues": [
+    {
+      "filePath": "\/Users\/felipearaujo\/Empresa\/OpenCircle\/bearound-ios-sdk-framework\/BearoundSDK\/BearoundSDK\/BeAround\/BeaconSource\/Beacon.swift",
+      "kind": "StringLiteral",
+      "offset": 202,
+      "length": 38,
+      "value": "\"E25B8D3C-947A-452F-A13F-589CB706D2E5\""
+    },
+    {
+      "filePath": "\/Users\/felipearaujo\/Empresa\/OpenCircle\/bearound-ios-sdk-framework\/BearoundSDK\/BearoundSDK\/BeAround\/BeaconSource\/BeaconParser.swift",
+      "kind": "IntegerLiteral",
+      "offset": 1081,
+      "length": 3,
+      "value": "-59"
+    },
+    {
+      "filePath": "\/Users\/felipearaujo\/Empresa\/OpenCircle\/bearound-ios-sdk-framework\/BearoundSDK\/BearoundSDK\/BeAround\/Utils\/Constants.swift",
+      "kind": "StringLiteral",
+      "offset": 172,
+      "length": 26,
+      "value": "\"Beacon registrado na API\""
+    },
+    {
+      "filePath": "\/Users\/felipearaujo\/Empresa\/OpenCircle\/bearound-ios-sdk-framework\/BearoundSDK\/BearoundSDK\/BeAround\/Utils\/Constants.swift",
+      "kind": "StringLiteral",
+      "offset": 231,
+      "length": 34,
+      "value": "\"Beacon removido e enviado à API\""
+    },
+    {
+      "filePath": "\/Users\/felipearaujo\/Empresa\/OpenCircle\/bearound-ios-sdk-framework\/BearoundSDK\/BearoundSDK\/BeAround\/Utils\/Constants.swift",
+      "kind": "StringLiteral",
+      "offset": 302,
+      "length": 32,
+      "value": "\"Beacons perdidos salvos na API\""
+    },
+    {
+      "filePath": "\/Users\/felipearaujo\/Empresa\/OpenCircle\/bearound-ios-sdk-framework\/BearoundSDK\/BearoundSDK\/BearoundSDK.swift",
+      "kind": "StringLiteral",
+      "offset": 216,
+      "length": 7,
+      "value": "\"enter\""
+    },
+    {
+      "filePath": "\/Users\/felipearaujo\/Empresa\/OpenCircle\/bearound-ios-sdk-framework\/BearoundSDK\/BearoundSDK\/BearoundSDK.swift",
+      "kind": "StringLiteral",
+      "offset": 240,
+      "length": 6,
+      "value": "\"exit\""
+    },
+    {
+      "filePath": "\/Users\/felipearaujo\/Empresa\/OpenCircle\/bearound-ios-sdk-framework\/BearoundSDK\/BearoundSDK\/BearoundSDK.swift",
+      "kind": "StringLiteral",
+      "offset": 263,
+      "length": 6,
+      "value": "\"lost\""
+    }
+  ]
+}

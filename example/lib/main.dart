@@ -1,61 +1,105 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-
-import 'package:flutter/services.dart';
 import 'package:bearound_flutter_sdk/bearound_flutter_sdk.dart';
 
 void main() {
   runApp(const MyApp());
 }
 
-class MyApp extends StatefulWidget {
+class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
-  State<MyApp> createState() => _MyAppState();
+  Widget build(BuildContext context) {
+    return const MaterialApp(
+      home: BeaconHomePage(),
+      debugShowCheckedModeBanner: false,
+    );
+  }
 }
 
-class _MyAppState extends State<MyApp> {
-  String _platformVersion = 'Unknown';
-  final _bearoundFlutterSdkPlugin = BearoundFlutterSdk();
+class BeaconHomePage extends StatefulWidget {
+  const BeaconHomePage({super.key});
+
+  @override
+  State<BeaconHomePage> createState() => _BeaconHomePageState();
+}
+
+class _BeaconHomePageState extends State<BeaconHomePage> {
+  bool _hasPermission = false;
+  bool _isScanning = false;
+  String _status = "Parado";
 
   @override
   void initState() {
     super.initState();
-    initPlatformState();
+    _checkAndRequestPermission();
   }
 
-  // Platform messages are asynchronous, so we initialize in an async method.
-  Future<void> initPlatformState() async {
-    String platformVersion;
-    // Platform messages may fail, so we use a try/catch PlatformException.
-    // We also handle the message potentially returning null.
-    try {
-      platformVersion =
-          await _bearoundFlutterSdkPlugin.getPlatformVersion() ?? 'Unknown platform version';
-    } on PlatformException {
-      platformVersion = 'Failed to get platform version.';
-    }
-
-    // If the widget was removed from the tree while the asynchronous platform
-    // message was in flight, we want to discard the reply rather than calling
-    // setState to update our non-existent appearance.
-    if (!mounted) return;
-
+  Future<void> _checkAndRequestPermission() async {
+    final granted = await BearoundFlutterSdk.requestPermissions();
     setState(() {
-      _platformVersion = platformVersion;
+      _hasPermission = granted;
+      _status = granted ? "Permissões OK" : "Permissões necessárias!";
+    });
+  }
+
+  Future<void> _startScan() async {
+    await BearoundFlutterSdk.startScan(debug: true);
+    setState(() {
+      _isScanning = true;
+      _status = "Scanning…";
+    });
+  }
+
+  Future<void> _stopScan() async {
+    await BearoundFlutterSdk.stopScan();
+    setState(() {
+      _isScanning = false;
+      _status = "Parado";
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      home: Scaffold(
-        appBar: AppBar(
-          title: const Text('Plugin example app'),
-        ),
-        body: Center(
-          child: Text('Running on: $_platformVersion\n'),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Bearound Flutter SDK Example'),
+      ),
+      body: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              _isScanning ? Icons.wifi_tethering : Icons.wifi_off,
+              size: 60,
+              color: _isScanning ? Colors.green : Colors.red,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              "Status: $_status",
+              style: const TextStyle(fontSize: 18),
+            ),
+            const SizedBox(height: 24),
+            if (!_hasPermission)
+              ElevatedButton(
+                onPressed: _checkAndRequestPermission,
+                child: const Text("Solicitar Permissões"),
+              ),
+            if (_hasPermission && !_isScanning)
+              ElevatedButton(
+                onPressed: _startScan,
+                child: const Text("Iniciar Beacon Scan"),
+              ),
+            if (_isScanning)
+              ElevatedButton(
+                onPressed: _stopScan,
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                child: const Text("Parar Beacon Scan"),
+              ),
+          ],
         ),
       ),
     );
