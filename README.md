@@ -25,6 +25,13 @@ flutter pub get
 
 ---
 
+## ⚙️ Requirements
+
+- **Minimum SDK**: 21 (Android 5.0 Lollipop)
+- **Bluetooth LE** must be enabled on the device
+
+- **Minimun iOS 13
+
 ### ⚙️ Required Permissions
 
 **Android** (add to `android/app/src/main/AndroidManifest.xml`):
