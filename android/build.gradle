@@ -81,8 +81,8 @@ dependencies {
     //implementation("org.bearound:android-beacon-sdk:0.7-alpha")
     //implementation(name: 'sdk-release', ext: 'aar')
     //implementation(name: 'sdk-release', ext: 'aar', group: 'org.bearound', version: '0.1.1-alpha')
-   //implementation fileTree(dir: '/Users/felipearaujo/Empresa/OpenCircle/bearound_flutter_sdk/android/libs', include: ['*.aar', '*.jar'], exclude: [])
-    //implementation 'org.altbeacon:android-beacon-library:2.21.1'
+//    implementation fileTree(dir: '/Users/felipearaujo/Empresa/OpenCircle/bearound_flutter_sdk/android/libs', include: ['*.aar', '*.jar'], exclude: [])
+//    implementation 'org.altbeacon:android-beacon-library:2.21.1'
 //    implementation fileTree(dir: 'libs', include: ['*.aar', '*.jar'])
 //    api 'org.altbeacon:android-beacon-library:2.21.1'
 //    implementation 'com.google.android.gms:play-services-ads-identifier:18.2.0'

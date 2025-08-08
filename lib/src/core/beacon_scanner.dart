@@ -5,7 +5,6 @@ import 'package:bearound_flutter_sdk/src/core/permission_service.dart';
 
 class BeaconScanner {
   static final BeaconScanner _instance = BeaconScanner._internal();
-  static Stream<List<Beacon>>? _beaconStream;
 
   BeaconScanner._internal();
 
