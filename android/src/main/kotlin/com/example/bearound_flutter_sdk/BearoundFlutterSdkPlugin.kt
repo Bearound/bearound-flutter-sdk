@@ -39,26 +39,27 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, EventChannel.
     when (call.method) {
       "initialize" -> {
         val debug = call.argument<Boolean>("debug") ?: false
-        beAround = BeAround(context)
-        beAround?.setListener(object : BeAround.Listener {
-          override fun onBeaconDetected(beacon: org.altbeacon.beacon.Beacon) {
-            val beaconMap = mapOf(
-              "uuid" to beacon.id1.toString(),
-              "major" to beacon.id2.toString(),
-              "minor" to beacon.id3.toString(),
-              "rssi" to beacon.rssi,
-              "bluetoothName" to beacon.bluetoothName,
-              "bluetoothAddress" to beacon.bluetoothAddress,
-              "distanceMeters" to beacon.distance
-            )
-            eventSink?.success(mapOf("beacon" to beaconMap))
-          }
-
-          override fun onMonitoringStopped() {
-            eventSink?.endOfStream()
-          }
-        })
-        beAround?.initialize("", debug)
+        val clientToken = call.argument<String>("clientToken") ?: ""
+        beAround = BeAround(context).apply {
+          setListener(object : BeAround.Listener {
+            override fun onBeaconDetected(beacon: org.altbeacon.beacon.Beacon) {
+              val beaconMap = mapOf(
+                "uuid" to beacon.id1.toString(),
+                "major" to beacon.id2.toString(),
+                "minor" to beacon.id3.toString(),
+                "rssi" to beacon.rssi,
+                "bluetoothName" to beacon.bluetoothName,
+                "bluetoothAddress" to beacon.bluetoothAddress,
+                "distanceMeters" to beacon.distance
+              )
+              eventSink?.success(mapOf("beacon" to beaconMap))
+            }
+            override fun onMonitoringStopped() {
+              eventSink?.endOfStream()
+            }
+          })
+          initialize(clientToken, debug = debug)
+        }
         result.success(null)
       }
       "stop" -> {

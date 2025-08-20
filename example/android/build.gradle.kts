@@ -3,7 +3,7 @@ allprojects {
         google()
         mavenCentral()
         maven {
-            url = uri("http://192.168.10.61:8081/repository/maven-releases/")
+            url = uri("http://192.168.10.96:8081/repository/maven-releases/")
             isAllowInsecureProtocol = true
         }
 //        maven {

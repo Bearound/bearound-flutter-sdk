@@ -4,6 +4,10 @@ version = "1.0-SNAPSHOT"
 buildscript {
     ext.kotlin_version = "2.1.0"
     repositories {
+        maven {
+            url = uri("http://192.168.10.96:8081/repository/maven-releases/")
+            setAllowInsecureProtocol(true)
+        }
         google()
         mavenCentral()
     }
@@ -19,7 +23,7 @@ allprojects {
         google()
         mavenCentral()
         maven {
-            url = uri("http://192.168.10.61:8081/repository/maven-releases/")
+            url = uri("http://192.168.10.96:8081/repository/maven-releases/")
             setAllowInsecureProtocol(true)
         }
 //        maven {
@@ -78,7 +82,7 @@ android {
 }
 
 dependencies {
-    //implementation("org.bearound:android-beacon-sdk:0.7-alpha")
+    //implementation("org.bearound:android-beacon-sdk:0.1.0-alpha")
     //implementation(name: 'sdk-release', ext: 'aar')
     //implementation(name: 'sdk-release', ext: 'aar', group: 'org.bearound', version: '0.1.1-alpha')
 //    implementation fileTree(dir: '/Users/felipearaujo/Empresa/OpenCircle/bearound_flutter_sdk/android/libs', include: ['*.aar', '*.jar'], exclude: [])
@@ -89,5 +93,5 @@ dependencies {
 //    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2"
 //    implementation 'androidx.lifecycle:lifecycle-process:2.9.2'
     //implementation 'org.bearound:android-beacon-sdk:0.7-alpha'
-    implementation 'org.bearound:android-beacon-sdk:0.1.4-alpha'
+    implementation 'org.bearound:android-beacon-sdk:0.1.1-alpha'
 }
