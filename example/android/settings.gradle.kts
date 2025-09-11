@@ -23,3 +23,5 @@ plugins {
 }
 
 include(":app")
+include(":bearound-aar")
+project(":bearound-aar").projectDir = File(rootProject.projectDir, "../../android/bearound-aar")
