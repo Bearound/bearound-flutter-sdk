@@ -110,7 +110,7 @@ jobs:
 
     - name: Build for iOS (dry run)
       if: matrix.target == 'ios'
-      run: flutter build ios --debug --no-codesign
+      run: flutter build ios --no-codesign
 
   # Job para validação de dependências e segurança
   dependency_validation:
