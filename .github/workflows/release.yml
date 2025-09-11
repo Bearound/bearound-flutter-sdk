@@ -1,0 +1,168 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 1.0.0)'
+        required: true
+        type: string
+
+jobs:
+  # Job para validar que tudo está pronto para release
+  pre_release_validation:
+    name: Pre-Release Validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.35.2'
+        channel: 'stable'
+        cache: true
+
+    - name: Get version
+      id: get_version
+      run: |
+        if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+          echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+        else
+          echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Get dependencies
+      run: flutter pub get
+
+    - name: Run all tests
+      run: flutter test --coverage
+
+    - name: Run analysis
+      run: flutter analyze --fatal-infos
+
+    - name: Validate pub.dev readiness
+      run: flutter pub publish --dry-run
+
+    - name: Verify changelog
+      run: |
+        if [ ! -f CHANGELOG.md ]; then
+          echo "❌ CHANGELOG.md not found"
+          exit 1
+        fi
+        if ! grep -q "## \[${{ steps.get_version.outputs.version }}\]" CHANGELOG.md; then
+          echo "❌ Version ${{ steps.get_version.outputs.version }} not found in CHANGELOG.md"
+          exit 1
+        fi
+        echo "✅ CHANGELOG.md is up to date"
+
+  # Job para criar o release no GitHub
+  create_github_release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: pre_release_validation
+    timeout-minutes: 10
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Extract changelog
+      id: changelog
+      run: |
+        VERSION="${{ needs.pre_release_validation.outputs.version }}"
+        
+        # Extract changelog for this version
+        if [ -f CHANGELOG.md ]; then
+          # Get content between current version and next version/end of file
+          CHANGELOG_CONTENT=$(sed -n "/## \[${VERSION}\]/,/## \[/p" CHANGELOG.md | head -n -1 | tail -n +2)
+          if [ -z "$CHANGELOG_CONTENT" ]; then
+            CHANGELOG_CONTENT="Release version ${VERSION}"
+          fi
+        else
+          CHANGELOG_CONTENT="Release version ${VERSION}"
+        fi
+        
+        # Save changelog to file for multiline output
+        echo "$CHANGELOG_CONTENT" > changelog_current.md
+        echo "changelog_file=changelog_current.md" >> $GITHUB_OUTPUT
+
+    - name: Create Release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: v${{ needs.pre_release_validation.outputs.version }}
+        release_name: Release v${{ needs.pre_release_validation.outputs.version }}
+        body_path: ${{ steps.changelog.outputs.changelog_file }}
+        draft: false
+        prerelease: ${{ contains(needs.pre_release_validation.outputs.version, '-') }}
+
+  # Job para publicar no pub.dev (se configurado)
+  publish_to_pubdev:
+    name: Publish to pub.dev
+    runs-on: ubuntu-latest
+    needs: [pre_release_validation, create_github_release]
+    timeout-minutes: 10
+    if: ${{ vars.ENABLE_PUBDEV_PUBLISH == 'true' }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.35.2'
+        channel: 'stable'
+        cache: true
+
+    - name: Get dependencies
+      run: flutter pub get
+
+    - name: Setup pub.dev credentials
+      env:
+        PUB_DEV_PUBLISH_ACCESS_TOKEN: ${{ secrets.PUB_DEV_PUBLISH_ACCESS_TOKEN }}
+        PUB_DEV_PUBLISH_REFRESH_TOKEN: ${{ secrets.PUB_DEV_PUBLISH_REFRESH_TOKEN }}
+        PUB_DEV_PUBLISH_ID_TOKEN: ${{ secrets.PUB_DEV_PUBLISH_ID_TOKEN }}
+        PUB_DEV_PUBLISH_TOKEN_ENDPOINT: ${{ secrets.PUB_DEV_PUBLISH_TOKEN_ENDPOINT }}
+      run: |
+        mkdir -p ~/.pub-cache
+        cat <<EOF > ~/.pub-cache/pub-credentials.json
+        {
+          "accessToken": "$PUB_DEV_PUBLISH_ACCESS_TOKEN",
+          "refreshToken": "$PUB_DEV_PUBLISH_REFRESH_TOKEN", 
+          "idToken": "$PUB_DEV_PUBLISH_ID_TOKEN",
+          "tokenEndpoint": "$PUB_DEV_PUBLISH_TOKEN_ENDPOINT"
+        }
+        EOF
+
+    - name: Publish to pub.dev
+      run: flutter pub publish --force
+
+  # Job de notificação de sucesso
+  release_success:
+    name: Release Success Notification
+    runs-on: ubuntu-latest
+    needs: [pre_release_validation, create_github_release]
+    if: always() && needs.create_github_release.result == 'success'
+
+    steps:
+    - name: Release completed successfully
+      run: |
+        echo "🎉 Release v${{ needs.pre_release_validation.outputs.version }} completed successfully!"
+        echo "📦 GitHub Release: Created"
+        echo "🚀 pub.dev: ${{ needs.publish_to_pubdev.result == 'success' && 'Published' || 'Skipped or Failed' }}"

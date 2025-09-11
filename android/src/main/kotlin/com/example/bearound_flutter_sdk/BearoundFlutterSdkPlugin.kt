@@ -1,7 +1,6 @@
 package com.example.bearound_flutter_sdk
 
 import android.content.Context
-import com.example.sdk.BeAround
 import io.flutter.Log
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.EventChannel
@@ -9,6 +8,7 @@ import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
+import org.bearound.sdk.BeAround
 
 class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, EventChannel.StreamHandler {
   private lateinit var methodChannel: MethodChannel
@@ -32,8 +32,17 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, EventChannel.
       "initialize" -> {
         val iconRes = context.applicationInfo.icon
         val debug = call.argument<Boolean>("debug") ?: false
-        beAround = BeAround(context);
-        beAround?.initialize(iconRes, debug)
+        val clientToken = call.argument<String>("clientToken")?.trim().orEmpty()
+        if (clientToken.isEmpty()) {
+            result.error("INIT_ERROR", "clientToken must not be empty", null)
+            return
+        }
+        beAround = BeAround.getInstance(context);
+          beAround?.initialize(
+            iconRes,
+            clientToken,
+            debug
+          )
         result.success(null)
       }
       "stop" -> {

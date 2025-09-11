@@ -6,8 +6,11 @@ class MethodChannelBearoundFlutterSdk extends BearoundFlutterSdkPlatform {
   static const MethodChannel _channel = MethodChannel('bearound_flutter_sdk');
 
   @override
-  Future<void> initialize({bool debug = false}) async {
-    await _channel.invokeMethod('initialize', {'debug': debug});
+  Future<void> initialize(String clientToken, {bool debug = false}) async {
+    await _channel.invokeMethod('initialize', {
+      'debug': debug,
+      'clientToken': clientToken,
+    });
   }
 
   @override

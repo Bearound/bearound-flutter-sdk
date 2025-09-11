@@ -45,7 +45,7 @@ class _BeaconHomePageState extends State<BeaconHomePage> {
   }
 
   Future<void> _startScan() async {
-    await BearoundFlutterSdk.startScan(debug: true);
+    await BearoundFlutterSdk.startScan("CLIENT_TOKEN", debug: true);
     setState(() {
       _isScanning = true;
       _status = "Scanning…";
@@ -63,9 +63,7 @@ class _BeaconHomePageState extends State<BeaconHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Bearound Flutter SDK Example'),
-      ),
+      appBar: AppBar(title: const Text('Bearound Flutter SDK Example')),
       body: Container(
         width: double.infinity,
         padding: const EdgeInsets.all(24),
@@ -78,10 +76,7 @@ class _BeaconHomePageState extends State<BeaconHomePage> {
               color: _isScanning ? Colors.green : Colors.red,
             ),
             const SizedBox(height: 16),
-            Text(
-              "Status: $_status",
-              style: const TextStyle(fontSize: 18),
-            ),
+            Text("Status: $_status", style: const TextStyle(fontSize: 18)),
             const SizedBox(height: 24),
             if (!_hasPermission)
               ElevatedButton(

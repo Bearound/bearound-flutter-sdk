@@ -1,0 +1,49 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Source code
+*.dart text diff=dart
+*.yaml text
+*.yml text
+*.json text
+*.md text
+*.txt text
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+
+# Flutter/Dart specific
+*.g.dart linguist-generated=true
+*.freezed.dart linguist-generated=true
+*.mocks.dart linguist-generated=true
+
+# Android specific
+*.jar binary
+*.aar binary
+*.apk binary
+*.aab binary
+
+# iOS specific
+*.xcframework/** binary
+*.framework/** binary
+*.a binary
+
+# Archive files
+*.zip binary
+*.tar.gz binary
+*.rar binary
+*.7z binary
+
+# Documentation
+*.md text
+CHANGELOG* text
+README* text
+LICENSE* text
+
+# CI/CD
+.github/** text

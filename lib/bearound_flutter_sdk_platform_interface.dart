@@ -6,7 +6,8 @@ abstract class BearoundFlutterSdkPlatform extends PlatformInterface {
 
   static final Object _token = Object();
 
-  static BearoundFlutterSdkPlatform _instance = MethodChannelBearoundFlutterSdk();
+  static BearoundFlutterSdkPlatform _instance =
+      MethodChannelBearoundFlutterSdk();
 
   static BearoundFlutterSdkPlatform get instance => _instance;
 
@@ -15,7 +16,7 @@ abstract class BearoundFlutterSdkPlatform extends PlatformInterface {
     _instance = instance;
   }
 
-  Future<void> initialize({bool debug = false}) async {
+  Future<void> initialize(String clientToken, {bool debug = false}) async {
     throw UnimplementedError('getAdvertisingId() has not been implemented.');
   }
 
