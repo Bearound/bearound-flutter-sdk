@@ -73,6 +73,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: [code_quality, unit_tests]
+    defaults:
+      run:
+        working-directory: example
 
     strategy:
       matrix:
@@ -102,7 +105,6 @@ jobs:
     - name: Build for Android
       if: matrix.target == 'android'
       run: |
-        cd example
         flutter build apk --debug
         flutter build appbundle --debug
 
