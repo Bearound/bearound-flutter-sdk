@@ -7,7 +7,10 @@ class BeaconScanner {
 
   BeaconScanner._internal();
 
-  static Future<void> startScan(String clientToken, {bool debug = false}) async {
+  static Future<void> startScan(
+    String clientToken, {
+    bool debug = false,
+  }) async {
     try {
       bool isGranted = await PermissionService.instance.requestPermissions();
       if (!isGranted) {
@@ -24,8 +27,11 @@ class BeaconScanner {
     await _instance._stopScan();
   }
 
-  Future<void> _startScan(String clientToken ,{bool debug = false}) async {
-    await MethodChannelBearoundFlutterSdk().initialize(clientToken, debug: debug);
+  Future<void> _startScan(String clientToken, {bool debug = false}) async {
+    await MethodChannelBearoundFlutterSdk().initialize(
+      clientToken,
+      debug: debug,
+    );
   }
 
   Future<void> _stopScan() async {

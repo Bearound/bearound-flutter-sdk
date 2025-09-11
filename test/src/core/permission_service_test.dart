@@ -1,7 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:bearound_flutter_sdk/src/core/permission_service.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:location/location.dart' as loc;
 
 void main() {
   group('PermissionService', () {
@@ -22,7 +20,7 @@ void main() {
       testWidgets('should handle iOS permissions', (tester) async {
         // Note: This test is simplified since we can't easily mock Platform.isIOS
         // In a real scenario, you might want to inject the platform dependency
-        
+
         // For now, we'll test the basic structure
         expect(permissionService.requestPermissions, isA<Function>());
       });

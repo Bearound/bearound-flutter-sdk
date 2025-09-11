@@ -8,7 +8,6 @@ class PermissionService {
   static final PermissionService instance = PermissionService._();
 
   Future<bool> requestPermissions() async {
-    print("[BearoundFlutterSdk] Solicitando permissões para o beacon scanning...");
     try {
       if (Platform.isIOS) {
         final location = loc.Location();
@@ -18,10 +17,8 @@ class PermissionService {
         }
         if (permissionGranted != loc.PermissionStatus.granted &&
             permissionGranted != loc.PermissionStatus.grantedLimited) {
-          print("[BearoundFlutterSdk] Permissão de localização NÃO concedida (iOS).");
           return false;
         }
-        print("[BearoundFlutterSdk] Permissão de localização concedida (iOS).");
         return true;
       } else {
         if (!await Permission.location.isGranted) {
@@ -45,11 +42,9 @@ class PermissionService {
             if (!status.isGranted) return false;
           }
         }
-        print("[BearoundFlutterSdk] Todas permissões Android concedidas.");
         return true;
       }
     } catch (e) {
-      print("[BearoundFlutterSdk] Erro ao solicitar permissões: $e");
       return false;
     }
   }

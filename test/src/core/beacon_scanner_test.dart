@@ -1,7 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:bearound_flutter_sdk/src/core/beacon_scanner.dart';
-import 'package:bearound_flutter_sdk/bearound_flutter_sdk_method_channel.dart';
-import 'package:bearound_flutter_sdk/src/core/permission_service.dart';
 import 'package:flutter/services.dart';
 
 void main() {
@@ -15,17 +13,17 @@ void main() {
       methodCalls.clear();
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
-        methodCalls.add(methodCall);
-        
-        switch (methodCall.method) {
-          case 'initialize':
-            return null;
-          case 'stop':
-            return null;
-          default:
-            throw MissingPluginException();
-        }
-      });
+            methodCalls.add(methodCall);
+
+            switch (methodCall.method) {
+              case 'initialize':
+                return null;
+              case 'stop':
+                return null;
+              default:
+                throw MissingPluginException();
+            }
+          });
     });
 
     tearDown(() {

@@ -13,17 +13,17 @@ void main() {
       methodCalls.clear();
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
-        methodCalls.add(methodCall);
-        
-        switch (methodCall.method) {
-          case 'initialize':
-            return null;
-          case 'stop':
-            return null;
-          default:
-            throw MissingPluginException();
-        }
-      });
+            methodCalls.add(methodCall);
+
+            switch (methodCall.method) {
+              case 'initialize':
+                return null;
+              case 'stop':
+                return null;
+              default:
+                throw MissingPluginException();
+            }
+          });
     });
 
     tearDown(() {
@@ -38,30 +38,36 @@ void main() {
     });
 
     group('startScan', () {
-      test('should call BeaconScanner startScan with correct parameters', () async {
-        const clientToken = 'test-token';
-        const debug = true;
+      test(
+        'should call BeaconScanner startScan with correct parameters',
+        () async {
+          const clientToken = 'test-token';
+          const debug = true;
 
-        try {
-          await BearoundFlutterSdk.startScan(clientToken, debug: debug);
-        } catch (e) {
-          // Expected to fail due to permission requirements in test environment
-        }
+          try {
+            await BearoundFlutterSdk.startScan(clientToken, debug: debug);
+          } catch (e) {
+            // Expected to fail due to permission requirements in test environment
+          }
 
-        expect(BearoundFlutterSdk.startScan, isA<Function>());
-      });
+          expect(BearoundFlutterSdk.startScan, isA<Function>());
+        },
+      );
 
-      test('should call BeaconScanner startScan with default debug false', () async {
-        const clientToken = 'test-token';
+      test(
+        'should call BeaconScanner startScan with default debug false',
+        () async {
+          const clientToken = 'test-token';
 
-        try {
-          await BearoundFlutterSdk.startScan(clientToken);
-        } catch (e) {
-          // Expected to fail due to permission requirements in test environment
-        }
+          try {
+            await BearoundFlutterSdk.startScan(clientToken);
+          } catch (e) {
+            // Expected to fail due to permission requirements in test environment
+          }
 
-        expect(BearoundFlutterSdk.startScan, isA<Function>());
-      });
+          expect(BearoundFlutterSdk.startScan, isA<Function>());
+        },
+      );
     });
 
     group('stopScan', () {

@@ -1,7 +1,10 @@
 name: bearound_flutter_sdk
 description: "Bearound Flutter SDK"
 version: 1.0.0
+repository: https://github.com/Bearound/bearound-flutter-sdk
+issue_tracker: https://github.com/Bearound/bearound-flutter-sdk/issues
 homepage:
+topics: [bluetooth, beacons, proximity, background, location]
 
 environment:
   sdk: ^3.8.1

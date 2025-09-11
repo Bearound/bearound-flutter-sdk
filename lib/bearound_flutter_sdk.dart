@@ -20,7 +20,8 @@ class BearoundFlutterSdk {
   /// }
   /// ```
   /// Retorna `true` se todas as permissões foram concedidas, ou `false` caso contrário.
-  static Future<bool> requestPermissions() => PermissionService.instance.requestPermissions();
+  static Future<bool> requestPermissions() =>
+      PermissionService.instance.requestPermissions();
 
   /// Inicia o scanner de beacons e sincronização automática com a API.
   ///
@@ -33,7 +34,10 @@ class BearoundFlutterSdk {
   /// ```
   ///
   /// Importante: Não precisa se preocupar em passar IDFA, estado do app ou deviceType, pois tudo é obtido automaticamente pelo SDK.
-  static Future<void> startScan(String clientToken, {bool debug = false}) async => await BeaconScanner.startScan(clientToken, debug: debug);
+  static Future<void> startScan(
+    String clientToken, {
+    bool debug = false,
+  }) async => await BeaconScanner.startScan(clientToken, debug: debug);
 
   /// Para completamente o scanner e a sincronização dos beacons.
   ///

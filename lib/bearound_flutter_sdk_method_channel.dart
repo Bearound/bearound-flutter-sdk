@@ -7,7 +7,10 @@ class MethodChannelBearoundFlutterSdk extends BearoundFlutterSdkPlatform {
 
   @override
   Future<void> initialize(String clientToken, {bool debug = false}) async {
-    await _channel.invokeMethod('initialize', {'debug': debug, 'clientToken': clientToken});
+    await _channel.invokeMethod('initialize', {
+      'debug': debug,
+      'clientToken': clientToken,
+    });
   }
 
   @override

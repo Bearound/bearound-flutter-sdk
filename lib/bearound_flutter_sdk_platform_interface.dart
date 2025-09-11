@@ -6,7 +6,8 @@ abstract class BearoundFlutterSdkPlatform extends PlatformInterface {
 
   static final Object _token = Object();
 
-  static BearoundFlutterSdkPlatform _instance = MethodChannelBearoundFlutterSdk();
+  static BearoundFlutterSdkPlatform _instance =
+      MethodChannelBearoundFlutterSdk();
 
   static BearoundFlutterSdkPlatform get instance => _instance;
 
