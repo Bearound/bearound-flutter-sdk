@@ -75,7 +75,7 @@ void main() {
 
     test('should have private constructor', () {
       // Test that the class cannot be instantiated
-      expect(() => BearoundFlutterSdk, isA<Type>());
+      expect(BearoundFlutterSdk, isA<Type>());
     });
   });
 }
