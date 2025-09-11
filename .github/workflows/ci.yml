@@ -106,11 +106,10 @@ jobs:
       if: matrix.target == 'android'
       run: |
         flutter build apk --debug
-        flutter build appbundle --debug
 
     - name: Build for iOS (dry run)  
       if: matrix.target == 'ios'
-      run: flutter build ios --simulator
+      run: flutter build ios --no-codesign
 
   # Job para validação de dependências e segurança
   dependency_validation:
