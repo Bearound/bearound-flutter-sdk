@@ -45,7 +45,7 @@ class _BeaconHomePageState extends State<BeaconHomePage> {
   }
 
   Future<void> _startScan() async {
-    await BearoundFlutterSdk.startScan(debug: true);
+    await BearoundFlutterSdk.startScan("CLIENT_TOKEN", debug: true);
     setState(() {
       _isScanning = true;
       _status = "Scanning…";

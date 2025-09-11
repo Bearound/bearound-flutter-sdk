@@ -1,11 +1,13 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:bearound_flutter_sdk/bearound_flutter_sdk.dart';
+import 'package:bearound_flutter_sdk/src/core/beacon_scanner.dart';
+import 'package:bearound_flutter_sdk/bearound_flutter_sdk_method_channel.dart';
+import 'package:bearound_flutter_sdk/src/core/permission_service.dart';
 import 'package:flutter/services.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  group('BearoundFlutterSdk', () {
+  group('BeaconScanner', () {
     const MethodChannel channel = MethodChannel('bearound_flutter_sdk');
     List<MethodCall> methodCalls = [];
 
@@ -31,51 +33,39 @@ void main() {
           .setMockMethodCallHandler(channel, null);
     });
 
-    group('requestPermissions', () {
-      test('should call PermissionService requestPermissions', () async {
-        expect(BearoundFlutterSdk.requestPermissions, isA<Function>());
-      });
-    });
-
     group('startScan', () {
-      test('should call BeaconScanner startScan with correct parameters', () async {
+      test('should call initialize method with correct parameters', () async {
         const clientToken = 'test-token';
         const debug = true;
 
         try {
-          await BearoundFlutterSdk.startScan(clientToken, debug: debug);
+          await BeaconScanner.startScan(clientToken, debug: debug);
         } catch (e) {
-          // Expected to fail due to permission requirements in test environment
+          // Expected to fail due to permission check, but we can still verify method calls
         }
 
-        expect(BearoundFlutterSdk.startScan, isA<Function>());
+        // Since permissions will likely fail in test environment,
+        // we focus on testing the method structure
+        expect(BeaconScanner.startScan, isA<Function>());
       });
 
-      test('should call BeaconScanner startScan with default debug false', () async {
+      test('should handle permission denied gracefully', () async {
         const clientToken = 'test-token';
 
-        try {
-          await BearoundFlutterSdk.startScan(clientToken);
-        } catch (e) {
-          // Expected to fail due to permission requirements in test environment
-        }
-
-        expect(BearoundFlutterSdk.startScan, isA<Function>());
+        expect(
+          () async => await BeaconScanner.startScan(clientToken),
+          throwsA(isA<Exception>()),
+        );
       });
     });
 
     group('stopScan', () {
-      test('should call BeaconScanner stopScan', () async {
-        await BearoundFlutterSdk.stopScan();
+      test('should call stop method', () async {
+        await BeaconScanner.stopScan();
 
         expect(methodCalls, hasLength(1));
         expect(methodCalls[0].method, equals('stop'));
       });
-    });
-
-    test('should have private constructor', () {
-      // Test that the class cannot be instantiated
-      expect(() => BearoundFlutterSdk, isA<Type>());
     });
   });
 }

@@ -15,7 +15,7 @@ abstract class BearoundFlutterSdkPlatform extends PlatformInterface {
     _instance = instance;
   }
 
-  Future<void> initialize({bool debug = false}) async {
+  Future<void> initialize(String clientToken, {bool debug = false}) async {
     throw UnimplementedError('getAdvertisingId() has not been implemented.');
   }
 
