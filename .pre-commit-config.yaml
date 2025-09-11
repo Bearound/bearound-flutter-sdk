@@ -1,0 +1,110 @@
+# Pre-commit hooks for Bearound Flutter SDK
+# See https://pre-commit.com for more information
+
+repos:
+  # General file checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: '\.md$'
+      - id: end-of-file-fixer
+        exclude: '\.md$'
+      - id: check-yaml
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
+      - id: mixed-line-ending
+        args: ['--fix=lf']
+
+  # Dart/Flutter specific checks
+  - repo: local
+    hooks:
+      # Dart format check
+      - id: dart-format
+        name: Dart Format
+        description: Format Dart code
+        entry: dart format
+        args: ['--set-exit-if-changed', '.']
+        language: system
+        files: '\.dart$'
+        pass_filenames: false
+
+      # Flutter analyze
+      - id: flutter-analyze
+        name: Flutter Analyze
+        description: Analyze Flutter code
+        entry: flutter analyze
+        args: ['--fatal-infos']
+        language: system
+        files: '\.dart$'
+        pass_filenames: false
+
+      # Run tests
+      - id: flutter-test
+        name: Flutter Test
+        description: Run Flutter tests
+        entry: flutter test
+        language: system
+        files: '\.dart$'
+        pass_filenames: false
+
+      # Dart fix suggestions
+      - id: dart-fix-dry-run
+        name: Dart Fix (Dry Run)
+        description: Check for available Dart fixes
+        entry: dart fix
+        args: ['--dry-run']
+        language: system
+        files: '\.dart$'
+        pass_filenames: false
+
+      # Dependency check
+      - id: flutter-pub-deps
+        name: Flutter Pub Dependencies
+        description: Check Flutter dependencies
+        entry: flutter pub deps
+        language: system
+        files: 'pubspec\.yaml$'
+        pass_filenames: false
+
+      # Pub dry-run check (only if pubspec.yaml changed)
+      - id: flutter-pub-publish-dry-run
+        name: Flutter Pub Publish (Dry Run)
+        description: Validate package for pub.dev
+        entry: flutter pub publish
+        args: ['--dry-run']
+        language: system
+        files: 'pubspec\.yaml$|lib/.*\.dart$|README\.md$|CHANGELOG\.md$'
+        pass_filenames: false
+
+  # Security checks
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
+        args: ['--baseline', '.secrets.baseline']
+        exclude: '\.lock$|\.g\.dart$'
+
+  # Commit message format check
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v3.0.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+        args: [optional-scope]
+
+# Configuration for specific hooks
+ci:
+  autofix_commit_msg: |
+    [pre-commit.ci] auto fixes from pre-commit hooks
+
+    for more information, see https://pre-commit.ci
+  autofix_prs: true
+  autoupdate_branch: ''
+  autoupdate_commit_msg: '[pre-commit.ci] pre-commit autoupdate'
+  autoupdate_schedule: weekly
+  skip: []
+  submodules: false

@@ -34,6 +34,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Updated Flutter version to 3.35.2 in CI/CD pipelines
+- Enhanced pre-commit hooks configuration
+
 ### Planned
 - Real-time beacon event streams
 - Advanced beacon filtering options

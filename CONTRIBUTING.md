@@ -25,7 +25,19 @@ We welcome contributions to the Bearound Flutter SDK! This document provides gui
    flutter pub get
    ```
 
-4. **Create a feature branch**:
+4. **Setup pre-commit hooks** (recommended):
+   ```bash
+   ./setup-precommit.sh
+   ```
+   
+   Or manually:
+   ```bash
+   pip3 install pre-commit detect-secrets
+   pre-commit install
+   pre-commit install --hook-type commit-msg
+   ```
+
+5. **Create a feature branch**:
    ```bash
    git checkout -b feature/your-feature-name
    ```
@@ -38,6 +50,7 @@ We welcome contributions to the Bearound Flutter SDK! This document provides gui
 - Use `dart format .` to format your code
 - Run `flutter analyze` to check for issues
 - Ensure your code passes all linting rules
+- **Pre-commit hooks** will automatically enforce code style and quality
 
 ### Testing
 
@@ -208,12 +221,91 @@ bearound_flutter_sdk/
 └── ...
 ```
 
+## 🔧 Pre-commit Hooks
+
+This project uses pre-commit hooks to maintain code quality and consistency.
+
+### What Pre-commit Hooks Do
+
+- **Format code** with `dart format`
+- **Analyze code** with `flutter analyze`
+- **Run tests** with `flutter test`
+- **Check dependencies** with `flutter pub deps`
+- **Validate pub.dev readiness** with `flutter pub publish --dry-run`
+- **Detect secrets** to prevent accidental commits of sensitive data
+- **Validate commit messages** using conventional commit format
+- **Check file formatting** (trailing whitespace, line endings, etc.)
+
+### Setup
+
+Run the setup script:
+```bash
+./setup-precommit.sh
+```
+
+Or install manually:
+```bash
+pip3 install pre-commit detect-secrets
+pre-commit install
+pre-commit install --hook-type commit-msg
+```
+
+### Usage
+
+Pre-commit hooks run automatically on `git commit`. To run manually:
+
+```bash
+# Run on all files
+pre-commit run --all-files
+
+# Run on staged files only
+pre-commit run
+
+# Update hooks to latest versions
+pre-commit autoupdate
+
+# Skip hooks (not recommended)
+git commit --no-verify
+```
+
+### Commit Message Format
+
+Use [Conventional Commits](https://www.conventionalcommits.org/):
+
+```
+type(scope): description
+
+[optional body]
+
+[optional footer]
+```
+
+**Types:**
+- `feat`: New feature
+- `fix`: Bug fix
+- `docs`: Documentation changes
+- `style`: Code style changes
+- `refactor`: Code refactoring
+- `test`: Test changes
+- `chore`: Build/tool changes
+
+**Examples:**
+```
+feat(scanner): add background scanning support
+fix(permissions): handle Android 12+ permissions correctly
+docs(readme): update installation instructions
+test(beacon): add unit tests for beacon model
+chore(deps): update Flutter to 3.35.2
+```
+
 ## 📚 Resources
 
 - [Flutter Plugin Development](https://docs.flutter.dev/development/packages-and-plugins/developing-packages)
 - [Dart Documentation](https://dart.dev/guides)
 - [Platform Channels](https://docs.flutter.dev/development/platform-integration/platform-channels)
 - [Method Channels](https://api.flutter.dev/flutter/services/MethodChannel-class.html)
+- [Pre-commit Hooks](https://pre-commit.com/)
+- [Conventional Commits](https://www.conventionalcommits.org/)
 
 ## 🤝 Code of Conduct
 
