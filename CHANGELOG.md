@@ -32,11 +32,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CI pipeline validation
 - Code coverage reporting
 
-## [Unreleased]
+## [1.0.1] - 2024-09-11
 
-### Changed
+### Added
+- Comprehensive pre-commit hooks configuration
+- Automated code quality enforcement (format, analyze, test)
+- Security checks with detect-secrets
+- Conventional commit message validation
+- Setup script for easy pre-commit installation
+
+### Changed  
 - Updated Flutter version to 3.35.2 in CI/CD pipelines
-- Enhanced pre-commit hooks configuration
+- Enhanced documentation with pre-commit hooks guide
+- Improved developer workflow with quality automation
+
+### Fixed
+- Removed references to unimplemented stream functionality from README
+- Corrected API documentation to match actual implementation
+
+## [Unreleased]
 
 ### Planned
 - Real-time beacon event streams
