@@ -100,18 +100,6 @@ jobs:
         echo "$CHANGELOG_CONTENT" > changelog_current.md
         echo "changelog_file=changelog_current.md" >> $GITHUB_OUTPUT
 
-    - name: Create Release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: v${{ needs.pre_release_validation.outputs.version }}
-        release_name: Release v${{ needs.pre_release_validation.outputs.version }}
-        body_path: ${{ steps.changelog.outputs.changelog_file }}
-        draft: false
-        prerelease: ${{ contains(needs.pre_release_validation.outputs.version, '-') }}
-
-  # Job para publicar no pub.dev (se configurado)
   publish_to_pubdev:
     name: Publish to pub.dev
     runs-on: ubuntu-latest
