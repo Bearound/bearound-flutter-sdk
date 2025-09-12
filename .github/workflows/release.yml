@@ -12,7 +12,6 @@ on:
         type: string
 
 jobs:
-  # Job para validar que tudo está pronto para release
   pre_release_validation:
     name: Pre-Release Validation
     runs-on: ubuntu-latest
@@ -22,55 +21,51 @@ jobs:
       version: ${{ steps.get_version.outputs.version }}
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-    - name: Setup Flutter
-      uses: subosito/flutter-action@v2
-      with:
-        flutter-version: '3.35.2'
-        channel: 'stable'
-        cache: true
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.35.2'
+          channel: 'stable'
+          cache: true
 
-    - name: Get version
-      id: get_version
-      run: |
-        if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-          echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
-        else
-          echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-        fi
+      - name: Get version
+        id: get_version
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          fi
 
-    - name: Get dependencies
-      run: flutter pub get
+      - name: Get dependencies
+        run: flutter pub get
 
-    - name: Run all tests
-      run: flutter test --coverage
+      - name: Run all tests
+        run: flutter test --coverage
 
-    - name: Run analysis
-      run: flutter analyze --fatal-infos
+      - name: Run analysis
+        run: flutter analyze --fatal-infos
 
-    - name: Format code
-      run: dart format --fix .
+      - name: Validate pub.dev readiness
+        run: flutter pub publish --dry-run
 
-    - name: Validate pub.dev readiness
-      run: flutter pub publish --dry-run
+      - name: Verify changelog
+        run: |
+          if [ ! -f CHANGELOG.md ]; then
+            echo "❌ CHANGELOG.md not found"
+            exit 1
+          fi
+          if ! grep -q "## \[${{ steps.get_version.outputs.version }}\]" CHANGELOG.md; then
+            echo "❌ Version ${{ steps.get_version.outputs.version }} not found in CHANGELOG.md"
+            exit 1
+          fi
+          echo "✅ CHANGELOG.md is up to date"
 
-    - name: Verify changelog
-      run: |
-        if [ ! -f CHANGELOG.md ]; then
-          echo "❌ CHANGELOG.md not found"
-          exit 1
-        fi
-        if ! grep -q "## \[${{ steps.get_version.outputs.version }}\]" CHANGELOG.md; then
-          echo "❌ Version ${{ steps.get_version.outputs.version }} not found in CHANGELOG.md"
-          exit 1
-        fi
-        echo "✅ CHANGELOG.md is up to date"
-
-  # Job para publicar no pub.dev
   publish_to_pubdev:
     name: Publish to pub.dev
     runs-on: ubuntu-latest
@@ -78,27 +73,26 @@ jobs:
     timeout-minutes: 10
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Setup Flutter
-      uses: subosito/flutter-action@v2
-      with:
-        flutter-version: '3.35.2'
-        channel: 'stable'
-        cache: true
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.35.2'
+          channel: 'stable'
+          cache: true
 
-    - name: Get dependencies
-      run: flutter pub get
+      - name: Get dependencies
+        run: flutter pub get
 
-    - name: Publish to pub.dev
-      uses: k-paxian/dart-package-publisher@v1.5.1
-      with:
-        credentialJson: ${{ secrets.PUB_CREDENTIALS }}
-        flutter: true
-        skipTests: true
+      - name: Publish to pub.dev
+        uses: k-paxian/dart-package-publisher@v1.5.1
+        with:
+          credentialJson: ${{ secrets.PUB_CREDENTIALS }}
+          flutter: true
+          skipTests: true
 
-  # Job de notificação de sucesso
   release_success:
     name: Release Success Notification
     runs-on: ubuntu-latest
@@ -106,7 +100,7 @@ jobs:
     if: always() && needs.publish_to_pubdev.result == 'success'
 
     steps:
-    - name: Release completed successfully
-      run: |
-        echo "🎉 Release v${{ needs.pre_release_validation.outputs.version }} completed successfully!"
-        echo "🚀 pub.dev: Published"
+      - name: Release completed successfully
+        run: |
+          echo "🎉 Release v${{ needs.pre_release_validation.outputs.version }} completed successfully!"
+          echo "🚀 pub.dev: Published"
