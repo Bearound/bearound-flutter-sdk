@@ -12,7 +12,6 @@ on:
         type: string
 
 jobs:
-  # Job para validar que tudo está pronto para release
   pre_release_validation:
     name: Pre-Release Validation
     runs-on: ubuntu-latest
@@ -67,45 +66,12 @@ jobs:
         fi
         echo "✅ CHANGELOG.md is up to date"
 
-  # Job para criar o release no GitHub
-  create_github_release:
-    name: Create GitHub Release
-    runs-on: ubuntu-latest
-    needs: pre_release_validation
-    timeout-minutes: 10
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-
-    - name: Extract changelog
-      id: changelog
-      run: |
-        VERSION="${{ needs.pre_release_validation.outputs.version }}"
-        
-        # Extract changelog for this version
-        if [ -f CHANGELOG.md ]; then
-          # Get content between current version and next version/end of file
-          CHANGELOG_CONTENT=$(sed -n "/## \[${VERSION}\]/,/## \[/p" CHANGELOG.md | head -n -1 | tail -n +2)
-          if [ -z "$CHANGELOG_CONTENT" ]; then
-            CHANGELOG_CONTENT="Release version ${VERSION}"
-          fi
-        else
-          CHANGELOG_CONTENT="Release version ${VERSION}"
-        fi
-        
-        # Save changelog to file for multiline output
-        echo "$CHANGELOG_CONTENT" > changelog_current.md
-        echo "changelog_file=changelog_current.md" >> $GITHUB_OUTPUT
 
   publish_to_pubdev:
     name: Publish to pub.dev
     runs-on: ubuntu-latest
     needs: [pre_release_validation, create_github_release]
     timeout-minutes: 10
-    if: ${{ vars.ENABLE_PUBDEV_PUBLISH == 'true' }}
 
     steps:
     - name: Checkout code
@@ -123,29 +89,18 @@ jobs:
 
     - name: Setup pub.dev credentials
       env:
-        PUB_DEV_PUBLISH_ACCESS_TOKEN: ${{ secrets.PUB_DEV_PUBLISH_ACCESS_TOKEN }}
-        PUB_DEV_PUBLISH_REFRESH_TOKEN: ${{ secrets.PUB_DEV_PUBLISH_REFRESH_TOKEN }}
-        PUB_DEV_PUBLISH_ID_TOKEN: ${{ secrets.PUB_DEV_PUBLISH_ID_TOKEN }}
-        PUB_DEV_PUBLISH_TOKEN_ENDPOINT: ${{ secrets.PUB_DEV_PUBLISH_TOKEN_ENDPOINT }}
+        PUB_CREDENTIALS: ${{ secrets.PUB_CREDENTIALS }}
       run: |
         mkdir -p ~/.pub-cache
-        cat <<EOF > ~/.pub-cache/pub-credentials.json
-        {
-          "accessToken": "$PUB_DEV_PUBLISH_ACCESS_TOKEN",
-          "refreshToken": "$PUB_DEV_PUBLISH_REFRESH_TOKEN", 
-          "idToken": "$PUB_DEV_PUBLISH_ID_TOKEN",
-          "tokenEndpoint": "$PUB_DEV_PUBLISH_TOKEN_ENDPOINT"
-        }
-        EOF
+        echo "$PUB_CREDENTIALS" > ~/.pub-cache/pub-credentials.json
 
     - name: Publish to pub.dev
       run: flutter pub publish --force
 
-  # Job de notificação de sucesso
   release_success:
     name: Release Success Notification
     runs-on: ubuntu-latest
-    needs: [pre_release_validation, create_github_release]
+    needs: [pre_release_validation, create_github_release, publish_to_pubdev]
     if: always() && needs.create_github_release.result == 'success'
 
     steps:
@@ -153,4 +108,4 @@ jobs:
       run: |
         echo "🎉 Release v${{ needs.pre_release_validation.outputs.version }} completed successfully!"
         echo "📦 GitHub Release: Created"
-        echo "🚀 pub.dev: ${{ needs.publish_to_pubdev.result == 'success' && 'Published' || 'Skipped or Failed' }}"
+        echo "🚀 pub.dev: ${{ needs.publish_to_pubdev.result == 'success' && 'Published' || 'Failed' }}"
