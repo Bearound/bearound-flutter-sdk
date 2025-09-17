@@ -1,6 +1,6 @@
 import Flutter
 import UIKit
-import BearoundSDK
+import BeAround
 
 public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin {
     var detector: Bearound?

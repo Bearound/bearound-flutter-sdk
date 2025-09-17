@@ -18,6 +18,7 @@ allprojects {
     repositories {
         google()
         mavenCentral()
+        maven { url 'https://jitpack.io' }
     }
 }
 
@@ -66,11 +67,5 @@ android {
 }
 
 dependencies {
-    //implementation 'io.bearound:android-beacon-sdk:1.0.0'
-    implementation 'org.altbeacon:android-beacon-library:2.21.1'
-    implementation project(':bearound-aar')
-    api 'org.altbeacon:android-beacon-library:2.21.1'
-    implementation 'com.google.android.gms:play-services-ads-identifier:18.2.0'
-    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2"
-    implementation 'androidx.lifecycle:lifecycle-process:2.9.3'
+    implementation 'com.github.Bearound:bearound-android-sdk:v1.0.3'
 }

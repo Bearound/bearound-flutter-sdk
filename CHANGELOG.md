@@ -50,6 +50,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed references to unimplemented stream functionality from README
 - Corrected API documentation to match actual implementation
 
+## [1.0.3] - 2025-09-17
+
+### Changed
+- Migrated iOS dependency from xcframework to official CocoaPods repository
+- Updated BeAround dependency to use official CocoaPods spec
+- Migrated Android dependency from local .aar files to official JitPack Maven repository
+- Updated Android SDK dependency to use `com.github.Bearound:bearound-android-sdk:v1.0.3`
+- Improved iOS and Android integration with standardized dependency management
+
+### Fixed
+- Resolved iOS build issues related to framework distribution
+- Resolved Android build issues related to local .aar dependencies
+- Enhanced compatibility with standard CocoaPods and Maven workflows
+
 ## [Unreleased]
 
 ### Planned
