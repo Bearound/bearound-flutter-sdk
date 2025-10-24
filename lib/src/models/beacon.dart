@@ -6,6 +6,7 @@ class Beacon {
   final String? bluetoothName;
   final String? bluetoothAddress;
   final double? distanceMeters;
+  final int? lastSeen;
 
   Beacon({
     required this.uuid,
@@ -15,6 +16,7 @@ class Beacon {
     this.bluetoothName,
     this.bluetoothAddress,
     this.distanceMeters,
+    this.lastSeen,
   });
 
   factory Beacon.fromJson(Map<String, dynamic> json) => Beacon(
@@ -25,6 +27,7 @@ class Beacon {
     bluetoothName: json['bluetoothName'] as String?,
     bluetoothAddress: json['bluetoothAddress'] as String?,
     distanceMeters: (json['distanceMeters'] as num?)?.toDouble(),
+    lastSeen: json['lastSeen'] as int?,
   );
 
   Map<String, dynamic> toJson() => {
@@ -35,5 +38,6 @@ class Beacon {
     'bluetoothName': bluetoothName,
     'bluetoothAddress': bluetoothAddress,
     'distanceMeters': distanceMeters,
+    'lastSeen': lastSeen,
   };
 }
