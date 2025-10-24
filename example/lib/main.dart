@@ -13,10 +13,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Bearound SDK Example',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        useMaterial3: true,
-      ),
+      theme: ThemeData(primarySwatch: Colors.blue, useMaterial3: true),
       home: const BeaconHomePage(),
       debugShowCheckedModeBanner: false,
     );
@@ -179,11 +176,7 @@ class _BeaconHomePageState extends State<BeaconHomePage> {
           ],
         ),
         body: TabBarView(
-          children: [
-            _buildBeaconsTab(),
-            _buildSyncTab(),
-            _buildLogsTab(),
-          ],
+          children: [_buildBeaconsTab(), _buildSyncTab(), _buildLogsTab()],
         ),
         bottomNavigationBar: _buildBottomBar(),
       ),
@@ -223,13 +216,17 @@ class _BeaconHomePageState extends State<BeaconHomePage> {
                     final beacon = _detectedBeacons[index];
                     return Card(
                       margin: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
                       child: ListTile(
                         leading: CircleAvatar(
                           backgroundColor: Colors.blue,
                           child: Text('${index + 1}'),
                         ),
-                        title: Text('Major: ${beacon.major} | Minor: ${beacon.minor}'),
+                        title: Text(
+                          'Major: ${beacon.major} | Minor: ${beacon.minor}',
+                        ),
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -239,7 +236,8 @@ class _BeaconHomePageState extends State<BeaconHomePage> {
                               Text('Nome: ${beacon.bluetoothName}'),
                             if (beacon.distanceMeters != null)
                               Text(
-                                  'Distância: ${beacon.distanceMeters!.toStringAsFixed(2)}m'),
+                                'Distância: ${beacon.distanceMeters!.toStringAsFixed(2)}m',
+                              ),
                           ],
                         ),
                         isThreeLine: true,
@@ -283,7 +281,9 @@ class _BeaconHomePageState extends State<BeaconHomePage> {
                       const Text(
                         'Último Status',
                         style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold),
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ],
                   ),
@@ -345,7 +345,9 @@ class _BeaconHomePageState extends State<BeaconHomePage> {
                   itemBuilder: (context, index) {
                     return Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
                       decoration: BoxDecoration(
                         border: Border(
                           bottom: BorderSide(color: Colors.grey.shade300),
@@ -354,7 +356,9 @@ class _BeaconHomePageState extends State<BeaconHomePage> {
                       child: Text(
                         _logs[index],
                         style: const TextStyle(
-                            fontFamily: 'monospace', fontSize: 12),
+                          fontFamily: 'monospace',
+                          fontSize: 12,
+                        ),
                       ),
                     );
                   },

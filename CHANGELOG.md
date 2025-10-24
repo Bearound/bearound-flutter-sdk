@@ -64,11 +64,57 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Resolved Android build issues related to local .aar dependencies
 - Enhanced compatibility with standard CocoaPods and Maven workflows
 
+## [1.1.0] - 2025-10-24
+
+### Added
+- **Event Listeners System**: Comprehensive event listener architecture aligned with native iOS and Android SDKs
+  - `BeaconListener` - Real-time beacon detection callbacks with event types (enter/exit/failed)
+  - `SyncListener` - API synchronization status monitoring (success/error events)
+  - `RegionListener` - Beacon region entry/exit notifications
+- **EventChannel Streams**: Three dedicated EventChannels for real-time event streaming
+  - `beaconsStream` - Stream of detected beacons with event types
+  - `syncStream` - Stream of API sync success/error events
+  - `regionStream` - Stream of region enter/exit events
+- **Enhanced Beacon Model**: Added `lastSeen` field (timestamp in milliseconds)
+- **Detailed Debug Logging**: Added comprehensive logging in Android plugin for easier troubleshooting
+- **Redesigned Example App**: New tabbed interface with three sections:
+  - Beacons tab: Real-time beacon list with region status
+  - Sync tab: API synchronization status display
+  - Logs tab: Console with timestamped event logs (max 50 entries)
+
+### Changed
+- **Region Events Structure**: `BeaconRegionEnterEvent` and `BeaconRegionExitEvent` now use `regionName` instead of beacon list
+- **Sync Events Enhancement**:
+  - `SyncSuccessEvent` now includes `message` field with server response
+  - `SyncErrorEvent` now includes optional `errorCode` field
+- **Android Permission Handling**: More flexible permission logic - requires location OR bluetooth (not both)
+- **Android SDK Manifest**: Declared all required permissions in SDK manifest for proper merge
+- **iOS Beacon Parsing**: Implemented Mirror-based reflection to safely access internal Beacon properties
+- **Type Casting**: Improved type safety with explicit `Map<String, dynamic>.from()` conversions
+
+### Fixed
+- **iOS UUID Conversion**: Fixed UUID type casting by converting `Foundation.UUID` to `String` using `.uuidString`
+- **iOS Distance Conversion**: Fixed `Optional<Float>` to `Double` conversion for `distanceMeters`
+- **iOS Major/Minor Types**: Handle both `String` and `Int` types from native SDK
+- **Android Bluetooth Permissions**: Added missing `BLUETOOTH` and `BLUETOOTH_ADMIN` permissions to SDK manifest
+- **Android Beacon Scanning**: Removed `neverForLocation` flag that was blocking beacon detection
+- **Android Permission Inspector Errors**: Resolved all permission-related warnings in beacon scanning
+- **Type Cast Errors**: Fixed `Map<Object?, Object?>` to `Map<String, dynamic>` casting issues in event streams
+
+### Infrastructure
+- **Git Cleanup**: Removed `.idea/` directories from repository and added to `.gitignore`
+- **Android Gitignore**: Updated to ignore entire `.idea/` directory instead of individual files
+- **Root Gitignore**: Added comprehensive IDE exclusions (IntelliJ IDEA, VSCode)
+
+### Documentation
+- **API Documentation**: Added comprehensive documentation for all new stream getters
+- **Usage Examples**: Included examples for all three listener types in code comments
+- **BeaconData Model**: Documented all fields including new `lastSeen` timestamp
+
 ## [Unreleased]
 
 ### Planned
-- Real-time beacon event streams
 - Advanced beacon filtering options
 - Enhanced background scanning capabilities
-- Improved error handling and logging
 - Performance optimizations
+- Battery optimization strategies
