@@ -39,14 +39,19 @@ flutter pub get
 
 #### 1. Project Settings
 
-**Important:** Add the following to your `android/settings.gradle.kts` file:
+**Important:** Add the JitPack repository to your `android/settings.gradle.kts` file:
 
 ```kotlin
-include(":bearound-aar")
-project(":bearound-aar").projectDir = File(rootProject.projectDir, "../.pub-cache/hosted/pub.dev/bearound_flutter_sdk-<version>/android/bearound-aar")
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+        maven { url = uri("https://jitpack.io") }
+    }
+}
 ```
 
-> Replace `<version>` with your installed SDK version (e.g., `1.0.1`). This configuration is required for the SDK's native Android dependencies to work properly during APK builds.
+> This configuration is required for the SDK's native Android dependencies to work properly during APK builds.
 
 #### 2. Permissions
 
