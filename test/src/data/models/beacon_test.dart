@@ -1,5 +1,5 @@
+import 'package:bearound_flutter_sdk/bearound_flutter_sdk.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:bearound_flutter_sdk/src/data/models/beacon.dart';
 
 void main() {
   group('Beacon', () {

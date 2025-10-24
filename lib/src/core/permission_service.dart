@@ -21,30 +21,40 @@ class PermissionService {
         }
         return true;
       } else {
-        if (!await Permission.location.isGranted) {
-          final status = await Permission.location.request();
-          if (!status.isGranted) return false;
+        // Android permissions - more flexible approach
+        bool hasLocationPermission = false;
+        bool hasBluetoothPermission = false;
+
+        // Request location permission (essential)
+        final locationStatus = await Permission.location.request();
+        hasLocationPermission = locationStatus.isGranted;
+
+        // Request background location if Android >= 10 (optional but recommended)
+        if (hasLocationPermission) {
+          await Permission.locationAlways.request();
         }
-        if (!await Permission.locationAlways.isGranted) {
-          final status = await Permission.locationAlways.request();
-          if (!status.isGranted) return false;
-        }
-        final blePermissions = <Permission>[
-          Permission.bluetooth,
-          Permission.bluetoothScan,
-          Permission.bluetoothConnect,
-          Permission.bluetoothAdvertise,
-          Permission.notification,
-        ];
-        for (final perm in blePermissions) {
-          if (!await perm.isGranted) {
-            final status = await perm.request();
-            if (!status.isGranted) return false;
-          }
-        }
-        return true;
+
+        // Request Bluetooth permissions (essential for beacon scanning)
+        // These permissions may not all be available on all Android versions
+        final bluetoothScanStatus = await Permission.bluetoothScan.request();
+        final bluetoothConnectStatus = await Permission.bluetoothConnect.request();
+
+        // Consider bluetooth granted if either bluetoothScan is granted
+        // or the old bluetooth permission is granted (for older Android versions)
+        hasBluetoothPermission = bluetoothScanStatus.isGranted ||
+                                 bluetoothConnectStatus.isGranted ||
+                                 await Permission.bluetooth.isGranted;
+
+        // Request optional permissions (won't block if denied)
+        await Permission.bluetoothAdvertise.request();
+        await Permission.notification.request();
+
+        // Return true if we have at least location OR bluetooth
+        // The SDK can work with either
+        return hasLocationPermission || hasBluetoothPermission;
       }
     } catch (e) {
+      // Error requesting permissions
       return false;
     }
   }

@@ -5,13 +5,13 @@
 Pod::Spec.new do |s|
   s.name             = 'bearound_flutter_sdk'
   s.version          = '1.0.3'
-  s.summary          = 'A new Flutter plugin project.'
+  s.summary          = 'BearoundSDK secure BLE beacon detection and indoor positioning by Bearound.'
   s.description      = <<-DESC
-A new Flutter plugin project.
+Official SDKs for integrating Bearound's secure BLE beacon detection and indoor location technology across Android, iOS, React Native, and Flutter.
                        DESC
   s.homepage         = 'http://example.com'
   s.license          = { :file => '../LICENSE' }
-  s.author           = { 'Bearound' => 'felipe.araujo@opencircle.com.br' }
+  s.author           = { 'BeAround' => 'felipe.araujo@opencircle.com.br' }
   s.source           = { :path => '.' }
   s.source_files = 'Classes/**/*'
   s.dependency 'Flutter'
@@ -20,7 +20,7 @@ A new Flutter plugin project.
   # Flutter.framework does not contain a i386 slice.
   s.pod_target_xcconfig = { 'DEFINES_MODULE' => 'YES', 'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'i386' }
   s.swift_version = '5.0'
-  s.dependency 'BeAround', '>= 0.0.3'
+  s.dependency 'BearoundSDK', '~> 1.1.0'
 
   # If your plugin requires a privacy manifest, for example if it uses any
   # required reason APIs, update the PrivacyInfo.xcprivacy file to describe your
