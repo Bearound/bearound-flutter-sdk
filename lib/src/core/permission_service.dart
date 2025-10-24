@@ -37,13 +37,15 @@ class PermissionService {
         // Request Bluetooth permissions (essential for beacon scanning)
         // These permissions may not all be available on all Android versions
         final bluetoothScanStatus = await Permission.bluetoothScan.request();
-        final bluetoothConnectStatus = await Permission.bluetoothConnect.request();
+        final bluetoothConnectStatus = await Permission.bluetoothConnect
+            .request();
 
         // Consider bluetooth granted if either bluetoothScan is granted
         // or the old bluetooth permission is granted (for older Android versions)
-        hasBluetoothPermission = bluetoothScanStatus.isGranted ||
-                                 bluetoothConnectStatus.isGranted ||
-                                 await Permission.bluetooth.isGranted;
+        hasBluetoothPermission =
+            bluetoothScanStatus.isGranted ||
+            bluetoothConnectStatus.isGranted ||
+            await Permission.bluetooth.isGranted;
 
         // Request optional permissions (won't block if denied)
         await Permission.bluetoothAdvertise.request();

@@ -46,10 +46,7 @@ class BeaconsDetectedEvent extends BeaconEvent {
   final List<Beacon> beacons;
   final BeaconEventType eventType;
 
-  const BeaconsDetectedEvent({
-    required this.beacons,
-    required this.eventType,
-  });
+  const BeaconsDetectedEvent({required this.beacons, required this.eventType});
 
   factory BeaconsDetectedEvent.fromJson(Map<String, dynamic> json) {
     final beaconsList = (json['beacons'] as List<dynamic>)
@@ -70,9 +67,7 @@ class BeaconRegionEnterEvent extends BeaconEvent {
   const BeaconRegionEnterEvent({required this.regionName});
 
   factory BeaconRegionEnterEvent.fromJson(Map<String, dynamic> json) {
-    return BeaconRegionEnterEvent(
-      regionName: json['regionName'] as String,
-    );
+    return BeaconRegionEnterEvent(regionName: json['regionName'] as String);
   }
 }
 
@@ -83,9 +78,7 @@ class BeaconRegionExitEvent extends BeaconEvent {
   const BeaconRegionExitEvent({required this.regionName});
 
   factory BeaconRegionExitEvent.fromJson(Map<String, dynamic> json) {
-    return BeaconRegionExitEvent(
-      regionName: json['regionName'] as String,
-    );
+    return BeaconRegionExitEvent(regionName: json['regionName'] as String);
   }
 }
 
