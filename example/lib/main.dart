@@ -27,7 +27,8 @@ class BeaconHomePage extends StatefulWidget {
   State<BeaconHomePage> createState() => _BeaconHomePageState();
 }
 
-class _BeaconHomePageState extends State<BeaconHomePage> {
+class _BeaconHomePageState extends State<BeaconHomePage>
+    with WidgetsBindingObserver {
   bool _hasPermission = false;
   bool _isScanning = false;
   String _status = "Parado";
@@ -46,15 +47,60 @@ class _BeaconHomePageState extends State<BeaconHomePage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _checkAndRequestPermission();
+    _syncStateWithNative();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _beaconsSubscription?.cancel();
     _syncSubscription?.cancel();
     _regionSubscription?.cancel();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      // App voltou ao foreground, sincronizar estado
+      _syncStateWithNative();
+    }
+  }
+
+  /// Sincroniza o estado da UI com o estado real do SDK nativo
+  Future<void> _syncStateWithNative() async {
+    final isRunning = await BearoundFlutterSdk.isInitialized();
+    if (isRunning && !_isScanning) {
+      // SDK está rodando mas UI mostra parado - sincronizar
+      // Precisamos re-registrar os listeners nativos que foram removidos ao fechar o app
+      _addLog('🔄 Detectado SDK rodando em background, reconectando...');
+
+      // Primeiro, configurar os listeners do Flutter
+      _startListening();
+
+      // Depois, chamar initialize novamente para re-registrar listeners nativos
+      // O código Android está preparado para lidar com re-inicialização gracefully
+      try {
+        await BearoundFlutterSdk.startScan("test_token", debug: true);
+        setState(() {
+          _isScanning = true;
+          _status = "Scanning…";
+        });
+        _addLog('✅ Reconexão bem-sucedida: eventos nativos restaurados');
+      } catch (e) {
+        _addLog('❌ Erro ao reconectar: $e');
+      }
+    } else if (!isRunning && _isScanning) {
+      // SDK não está rodando mas UI mostra rodando - sincronizar
+      setState(() {
+        _isScanning = false;
+        _status = "Parado";
+      });
+      _addLog('🔄 Estado sincronizado: SDK estava parado');
+    }
   }
 
   Future<void> _checkAndRequestPermission() async {

@@ -35,6 +35,12 @@ class MethodChannelBearoundFlutterSdk extends BearoundFlutterSdkPlatform {
     await _channel.invokeMethod('stop');
   }
 
+  @override
+  Future<bool> isInitialized() async {
+    final result = await _channel.invokeMethod<bool>('isInitialized');
+    return result ?? false;
+  }
+
   /// Stream of beacon detection events
   @override
   Stream<BeaconsDetectedEvent> get beaconsStream {

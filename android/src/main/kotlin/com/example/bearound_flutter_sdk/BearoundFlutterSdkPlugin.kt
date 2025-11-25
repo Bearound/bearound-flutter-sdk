@@ -144,6 +144,24 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler {
         Log.d("BearoundFlutterSdkPlugin", "  - debug: $debug")
         Log.d("BearoundFlutterSdkPlugin", "  - clientToken: ${if (clientToken.isEmpty()) "EMPTY" else "provided"}")
 
+        // Check if already initialized
+        if (BeAround.isInitialized()) {
+          Log.d("BearoundFlutterSdkPlugin", "⚠️ BeAround already initialized, reusing existing instance")
+          beAround = BeAround.getInstance(context)
+
+          // Re-add listeners to ensure they're registered with this plugin instance
+          beAround?.removeBeaconListener(beaconListener)
+          beAround?.removeSyncListener(syncListener)
+          beAround?.removeRegionListener(regionListener)
+          beAround?.addBeaconListener(beaconListener)
+          beAround?.addSyncListener(syncListener)
+          beAround?.addRegionListener(regionListener)
+
+          result.success(null)
+          Log.d("BearoundFlutterSdkPlugin", "✓ Reconnected to existing initialized instance")
+          return
+        }
+
         // Check permissions
         Log.d("BearoundFlutterSdkPlugin", checkPermissions())
 
@@ -189,6 +207,11 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler {
         beAround = null
         result.success(null)
         Log.d("BearoundFlutterSdkPlugin", "✓ Stop completed")
+      }
+      "isInitialized" -> {
+        val isInitialized = BeAround.isInitialized()
+        Log.d("BearoundFlutterSdkPlugin", "isInitialized check: $isInitialized")
+        result.success(isInitialized)
       }
       else -> result.notImplemented()
     }

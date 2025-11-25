@@ -25,6 +25,10 @@ abstract class BearoundFlutterSdkPlatform extends PlatformInterface {
     throw UnimplementedError('stop() has not been implemented.');
   }
 
+  Future<bool> isInitialized() async {
+    throw UnimplementedError('isInitialized() has not been implemented.');
+  }
+
   /// Stream of beacon detection events
   Stream<BeaconsDetectedEvent> get beaconsStream {
     throw UnimplementedError('beaconsStream has not been implemented.');
