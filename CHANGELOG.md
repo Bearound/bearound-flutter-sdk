@@ -111,6 +111,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Usage Examples**: Included examples for all three listener types in code comments
 - **BeaconData Model**: Documented all fields including new `lastSeen` timestamp
 
+## [1.1.1] - 2025-11-24
+
+### Fixed
+- **State Synchronization Bug**: Fixed critical issue where app state became desynchronized with native SDK after closing and reopening the app
+  - Android plugin now checks `BeAround.isInitialized()` before re-initializing, preventing initialization errors
+  - When SDK is already initialized, plugin reuses existing instance and re-registers listeners
+  - Added `isInitialized()` method to query SDK state from Flutter
+  - Example app now implements `WidgetsBindingObserver` to sync UI state when app resumes
+  - Background notification now stays consistent with UI state
+- **Native Listeners Reconnection**: Fixed issue where beacon events stopped being received after reopening the app
+  - Native listeners are now properly re-registered when app detects SDK running in background
+  - `_syncStateWithNative()` calls `startScan()` again to restore native event flow
+  - Both Flutter streams and native listeners are reconnected seamlessly
+
+### Added
+- **State Query Method**: New `BearoundFlutterSdk.isInitialized()` method to check if SDK is currently running
+  - Useful for restoring correct UI state when app is reopened
+  - Example usage in app lifecycle management
+- **Lifecycle Management**: Example app demonstrates proper state synchronization using `WidgetsBindingObserver`
+
+### Changed
+- **Android Initialization Logic**: `initialize` method now handles already-initialized state gracefully
+  - Logs warning when reusing existing instance
+  - Re-registers event listeners to ensure Flutter receives events
+  - No error thrown on re-initialization attempts
+
 ## [Unreleased]
 
 ### Planned

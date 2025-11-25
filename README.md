@@ -10,11 +10,13 @@ Official Flutter plugin for integrating Bearound's secure BLE beacon detection a
 ## ✨ Features
 
 - 🎯 **BLE Beacon Scanning**: High-performance beacon detection for iOS and Android
-- 🔄 **Real-time Scanning**: High-performance beacon detection with distance estimation
+- 🔄 **Real-time Event Streams**: Live beacon detection, sync status, and region monitoring
 - 🛡️ **Cross-platform**: Unified API for iOS and Android with native performance
 - 🔐 **Secure**: Built-in token-based authentication and encrypted communication
 - 🎛️ **Permission Management**: Automatic handling of location and Bluetooth permissions
 - 📱 **Background Support**: Continue scanning even when app is in background
+- 🔁 **State Synchronization**: Automatic UI sync when app reopens (v1.1.1+)
+- 📊 **Distance Estimation**: Real-time distance calculation to nearby beacons
 - 🧪 **Well Tested**: Comprehensive unit test suite with 25+ test cases
 - 📚 **Type Safe**: Full null-safety support and comprehensive documentation
 
@@ -24,7 +26,7 @@ Add to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  bearound_flutter_sdk: ^1.0.1
+  bearound_flutter_sdk: ^1.1.1
 ```
 
 Install the package:
@@ -39,14 +41,19 @@ flutter pub get
 
 #### 1. Project Settings
 
-**Important:** Add the following to your `android/settings.gradle.kts` file:
+**Important:** Add the JitPack repository to your `android/settings.gradle.kts` file:
 
 ```kotlin
-include(":bearound-aar")
-project(":bearound-aar").projectDir = File(rootProject.projectDir, "../.pub-cache/hosted/pub.dev/bearound_flutter_sdk-<version>/android/bearound-aar")
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+        maven { url = uri("https://jitpack.io") }
+    }
+}
 ```
 
-> Replace `<version>` with your installed SDK version (e.g., `1.0.1`). This configuration is required for the SDK's native Android dependencies to work properly during APK builds.
+> This configuration is required for the SDK's native Android dependencies to work properly during APK builds.
 
 #### 2. Permissions
 
@@ -206,6 +213,219 @@ class PermissionManager {
     );
   }
 }
+```
+
+### Real-time Event Streams
+
+The SDK provides three event streams for real-time monitoring of beacon activity:
+
+```dart
+class BeaconMonitor extends StatefulWidget {
+  @override
+  _BeaconMonitorState createState() => _BeaconMonitorState();
+}
+
+class _BeaconMonitorState extends State<BeaconMonitor> {
+  List<Beacon> _beacons = [];
+  String _syncStatus = 'Waiting...';
+  String _regionStatus = 'Outside region';
+
+  StreamSubscription<BeaconsDetectedEvent>? _beaconsSubscription;
+  StreamSubscription<BeaconEvent>? _syncSubscription;
+  StreamSubscription<BeaconEvent>? _regionSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _startListening();
+  }
+
+  void _startListening() {
+    // Listen to beacon detection events
+    _beaconsSubscription = BearoundFlutterSdk.beaconsStream.listen((event) {
+      setState(() {
+        _beacons = event.beacons;
+      });
+      print('Beacons detected (${event.eventType.name}): ${event.beacons.length}');
+      for (var beacon in event.beacons) {
+        print('  - UUID: ${beacon.uuid}, Major: ${beacon.major}, Minor: ${beacon.minor}');
+        print('    RSSI: ${beacon.rssi} dBm, Distance: ${beacon.distanceMeters?.toStringAsFixed(2)}m');
+      }
+    });
+
+    // Listen to API sync events
+    _syncSubscription = BearoundFlutterSdk.syncStream.listen((event) {
+      if (event is SyncSuccessEvent) {
+        setState(() {
+          _syncStatus = 'Success: ${event.beaconsCount} beacons synced';
+        });
+        print('Sync success: ${event.message}');
+      } else if (event is SyncErrorEvent) {
+        setState(() {
+          _syncStatus = 'Error: ${event.errorMessage}';
+        });
+        print('Sync error (${event.errorCode}): ${event.errorMessage}');
+      }
+    });
+
+    // Listen to region enter/exit events
+    _regionSubscription = BearoundFlutterSdk.regionStream.listen((event) {
+      if (event is BeaconRegionEnterEvent) {
+        setState(() {
+          _regionStatus = 'Inside region: ${event.regionName}';
+        });
+        print('Entered beacon region: ${event.regionName}');
+      } else if (event is BeaconRegionExitEvent) {
+        setState(() {
+          _regionStatus = 'Outside region: ${event.regionName}';
+        });
+        print('Exited beacon region: ${event.regionName}');
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _beaconsSubscription?.cancel();
+    _syncSubscription?.cancel();
+    _regionSubscription?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text('Beacon Monitor')),
+      body: Column(
+        children: [
+          ListTile(
+            title: Text('Sync Status'),
+            subtitle: Text(_syncStatus),
+          ),
+          ListTile(
+            title: Text('Region Status'),
+            subtitle: Text(_regionStatus),
+          ),
+          Expanded(
+            child: ListView.builder(
+              itemCount: _beacons.length,
+              itemBuilder: (context, index) {
+                final beacon = _beacons[index];
+                return ListTile(
+                  title: Text('Beacon ${index + 1}'),
+                  subtitle: Text(
+                    'UUID: ${beacon.uuid}\n'
+                    'Major: ${beacon.major}, Minor: ${beacon.minor}\n'
+                    'RSSI: ${beacon.rssi} dBm',
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+```
+
+### Background Scanning & State Synchronization
+
+When your app supports background scanning, the SDK may continue running even after the app is closed. To properly synchronize the UI state when the app reopens, implement lifecycle management:
+
+```dart
+class BackgroundScannerApp extends StatefulWidget {
+  @override
+  _BackgroundScannerAppState createState() => _BackgroundScannerAppState();
+}
+
+class _BackgroundScannerAppState extends State<BackgroundScannerApp>
+    with WidgetsBindingObserver {
+  bool _isScanning = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _syncStateWithNative();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      // App returned to foreground, sync state
+      _syncStateWithNative();
+    }
+  }
+
+  /// Synchronizes UI state with native SDK state
+  Future<void> _syncStateWithNative() async {
+    final isRunning = await BearoundFlutterSdk.isInitialized();
+
+    if (isRunning && !_isScanning) {
+      // SDK is running but UI shows stopped - reconnect
+      print('Detected SDK running in background, reconnecting...');
+
+      // Re-register listeners and update state
+      await BearoundFlutterSdk.startScan('your-token', debug: true);
+      setState(() {
+        _isScanning = true;
+      });
+
+      print('Reconnection successful: events restored');
+    } else if (!isRunning && _isScanning) {
+      // SDK stopped but UI shows running - update state
+      setState(() {
+        _isScanning = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Background Scanner'),
+        actions: [
+          Icon(_isScanning ? Icons.wifi_tethering : Icons.wifi_off),
+        ],
+      ),
+      body: Center(
+        child: ElevatedButton(
+          onPressed: _isScanning ? _stopScanning : _startScanning,
+          child: Text(_isScanning ? 'Stop' : 'Start'),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _startScanning() async {
+    final granted = await BearoundFlutterSdk.requestPermissions();
+    if (!granted) return;
+
+    await BearoundFlutterSdk.startScan('your-token', debug: true);
+    setState(() => _isScanning = true);
+  }
+
+  Future<void> _stopScanning() async {
+    await BearoundFlutterSdk.stopScan();
+    setState(() => _isScanning = false);
+  }
+}
+```
+
+**Key Benefits:**
+- ✅ UI stays in sync with background services
+- ✅ Handles app restarts gracefully
+- ✅ Automatically reconnects event listeners
+- ✅ No initialization errors on app reopen
 
 ## 📋 API Reference
 
@@ -247,6 +467,96 @@ Stops beacon scanning and cleans up resources.
 static Future<void> stopScan()
 ```
 
+##### `isInitialized()` 🆕
+
+Checks if the SDK is currently initialized and running. Useful for state synchronization when app reopens after being closed.
+
+```dart
+static Future<bool> isInitialized()
+```
+
+**Returns:** `true` if SDK is initialized and running, `false` otherwise.
+
+**Example:**
+```dart
+final isRunning = await BearoundFlutterSdk.isInitialized();
+if (isRunning) {
+  print('SDK is already running in background');
+}
+```
+
+#### Event Streams 🆕
+
+##### `beaconsStream`
+
+Stream of real-time beacon detection events.
+
+```dart
+static Stream<BeaconsDetectedEvent> get beaconsStream
+```
+
+**Event Types:**
+- `BeaconEventType.ENTER` - Beacon entered range
+- `BeaconEventType.EXIT` - Beacon exited range
+- `BeaconEventType.FAILED` - Beacon detection failed
+
+**Example:**
+```dart
+BearoundFlutterSdk.beaconsStream.listen((event) {
+  print('Event: ${event.eventType.name}');
+  print('Beacons: ${event.beacons.length}');
+  for (var beacon in event.beacons) {
+    print('  UUID: ${beacon.uuid}, RSSI: ${beacon.rssi}');
+  }
+});
+```
+
+##### `syncStream`
+
+Stream of API synchronization events (success and errors).
+
+```dart
+static Stream<BeaconEvent> get syncStream
+```
+
+**Event Types:**
+- `SyncSuccessEvent` - Sync completed successfully
+- `SyncErrorEvent` - Sync failed with error
+
+**Example:**
+```dart
+BearoundFlutterSdk.syncStream.listen((event) {
+  if (event is SyncSuccessEvent) {
+    print('Synced ${event.beaconsCount} beacons: ${event.message}');
+  } else if (event is SyncErrorEvent) {
+    print('Sync error (${event.errorCode}): ${event.errorMessage}');
+  }
+});
+```
+
+##### `regionStream`
+
+Stream of beacon region entry and exit events.
+
+```dart
+static Stream<BeaconEvent> get regionStream
+```
+
+**Event Types:**
+- `BeaconRegionEnterEvent` - Entered a beacon region
+- `BeaconRegionExitEvent` - Exited a beacon region
+
+**Example:**
+```dart
+BearoundFlutterSdk.regionStream.listen((event) {
+  if (event is BeaconRegionEnterEvent) {
+    print('Entered region: ${event.regionName}');
+  } else if (event is BeaconRegionExitEvent) {
+    print('Exited region: ${event.regionName}');
+  }
+});
+```
+
 ### Beacon Model
 
 Represents a detected beacon with all its properties.
@@ -260,8 +570,19 @@ class Beacon {
   final String? bluetoothName;    // Bluetooth device name (optional)
   final String? bluetoothAddress; // Bluetooth MAC address (optional)
   final double? distanceMeters;   // Estimated distance in meters (optional)
+  final int? lastSeen;            // 🆕 Last detection timestamp in milliseconds
 }
 ```
+
+**Properties:**
+- `uuid`: Universally unique identifier of the beacon
+- `major`: Major value for grouping beacons (e.g., by location)
+- `minor`: Minor value for identifying specific beacons
+- `rssi`: Received Signal Strength Indicator in dBm (higher = closer)
+- `bluetoothName`: Human-readable name of the Bluetooth device
+- `bluetoothAddress`: Physical MAC address of the Bluetooth device
+- `distanceMeters`: Estimated distance from device to beacon in meters
+- `lastSeen`: Unix timestamp (milliseconds) when beacon was last detected
 
 #### Methods
 

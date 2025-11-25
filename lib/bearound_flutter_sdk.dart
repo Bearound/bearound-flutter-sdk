@@ -47,6 +47,23 @@ class BearoundFlutterSdk {
   /// Recomenda-se sempre chamar esse método ao fechar a tela ou app, para evitar uso desnecessário de recursos.
   static Future<void> stopScan() async => await BeaconScanner.stopScan();
 
+  /// Verifica se o SDK já foi inicializado e está rodando.
+  ///
+  /// Este método é útil ao reabrir o app para verificar se o scanner
+  /// em background ainda está ativo.
+  ///
+  /// Exemplo:
+  /// ```dart
+  /// final isRunning = await BearoundFlutterSdk.isInitialized();
+  /// if (isRunning) {
+  ///   // SDK já está rodando, atualizar UI
+  /// }
+  /// ```
+  ///
+  /// Retorna `true` se o SDK está inicializado, ou `false` caso contrário.
+  static Future<bool> isInitialized() async =>
+      await BearoundFlutterSdkPlatform.instance.isInitialized();
+
   /// Stream dos beacons detectados em tempo real.
   ///
   /// Recebe eventos quando beacons são detectados (enter, exit, ou failed).
