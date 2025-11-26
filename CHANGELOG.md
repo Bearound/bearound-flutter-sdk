@@ -137,6 +137,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Re-registers event listeners to ensure Flutter receives events
   - No error thrown on re-initialization attempts
 
+## [1.1.2] - 2025-11-26
+
+### Changed
+- **iOS Native SDK Update**: Updated BearoundSDK iOS dependency from 1.1.0 to 1.1.1
+- **iOS Permission Handling**: Added automatic `requestPermissions()` call during SDK initialization
+  - Permissions are now requested automatically when initializing the SDK on iOS
+  - Improves user experience by ensuring proper permissions setup
+
+### Infrastructure
+- Updated Flutter SDK version to 1.1.2
+- Updated podspec version to align with SDK versioning
+
 ## [Unreleased]
 
 ### Planned
