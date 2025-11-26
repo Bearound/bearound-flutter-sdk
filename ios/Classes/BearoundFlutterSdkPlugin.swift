@@ -70,6 +70,8 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin {
             let isDebugEnable = args["debug"] as? Bool ?? false
 
             detector = Bearound(clientToken: clientToken, isDebugEnable: isDebugEnable)
+            
+            detector?.requestPermissions()
 
             // Setup listeners
             beaconListener = BeaconListenerImpl(streamHandler: beaconsStreamHandler)
