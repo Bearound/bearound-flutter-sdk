@@ -109,6 +109,8 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin {
             regionListener = nil
             result(nil)
 
+        case "isInitialized":
+            result(nil)
         default:
             result(FlutterMethodNotImplemented)
         }
