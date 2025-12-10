@@ -55,7 +55,7 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin {
         regionEventChannel?.setStreamHandler(regionStreamHandler)
     }
 
-    public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+    @MainActor public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         switch call.method {
         case "initialize":
             guard let args = call.arguments as? [String: Any] else {
