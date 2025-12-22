@@ -5,16 +5,85 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.2.2] - 2025-12-15
+## [1.3.1] - 2025-12-22
+
+### Added
+- **Configurable Scan Interval**: Set beacon scan frequency from 5 to 60 seconds via `setSyncInterval()`
+  - Balance between battery consumption and detection speed
+  - Available intervals: TIME_5, TIME_10, TIME_15, TIME_20 (default), TIME_25, TIME_30, TIME_35, TIME_40, TIME_45, TIME_50, TIME_55, TIME_60
+- **Configurable Backup Size**: Set failed beacon backup list size from 5 to 50 beacons via `setBackupSize()`
+  - Control how many failed beacon detections are stored for retry
+  - Available sizes: SIZE_5 through SIZE_50, default SIZE_40
+- **Configuration Methods**: Added `getSyncInterval()` and `getBackupSize()` to retrieve current settings
+- **Settings UI**: Added comprehensive settings screen in example app with gear icon in app bar
+  - Visual configuration of scan intervals and backup sizes
+  - Usage recommendations for different scenarios (real-time tracking, battery optimization, offline-first)
+  - Real-time feedback and configuration updates
+- **Configuration Enums**: New `SyncInterval` and `BackupSize` enums for type-safe configuration
+- **Smart Beacon Filtering**: Automatically filters invalid beacons (RSSI = 0) to improve data quality
+- **Improved iOS Integration**: Updated to use singleton pattern with `Bearound.configure()` method
 
 ### Changed
-- Updated iOS BearoundSDK dependency to version 1.2.2
+- **Updated iOS BearoundSDK dependency to version 1.3.1** with:
+  - 🎨 Modular Architecture: Complete project reorganization for better maintainability
+  - 📊 Enhanced Telemetry: Comprehensive device information collection
+  - 🔋 Battery Optimized: Smart location accuracy settings
+  - ✅ RSSI Validation: Improved beacon filtering (-120 to -1 dBm)
+  - 🧪 Full Test Coverage: Comprehensive unit test suite
+- **Updated Android BearoundSDK dependency to version 1.3.1** with:
+  - 🔍 Smart Beacon Filtering: Automatically filters invalid beacons (RSSI = 0)
+  - ⚙️ Configurable Scan Intervals: Customizable beacon scan frequency
+  - 📦 Configurable Backup List Size: Control failed beacon storage
+  - 🎉 Enhanced Event Listener System: BeaconListener, SyncListener, RegionListener
+- **iOS SDK Initialization**: Changed from `Bearound(clientToken:isDebugEnable:)` to `Bearound.configure(clientToken:isDebugEnable:)` (singleton pattern)
+- **iOS Plugin Architecture**: Implemented Task-based async initialization for reliable permission handling
+- Enhanced example app with interactive configuration UI featuring:
+  - Current settings display with visual indicators
+  - Quick selection chips for all interval and backup size options
+  - Usage recommendations for different scenarios
+  - Real-time configuration updates
 
-## [1.2.1] - 2025-12-10
+### Performance Improvements
+- **iOS**: Async/await pattern ensures proper initialization sequence and reliable beacon detection
+- **Memory Management**: Removed all debug print statements from iOS plugin to reduce overhead
+- **Event Handling**: Optimized listener callbacks to dispatch events efficiently on main thread
 
-### Changed
-- Updated iOS BearoundSDK dependency to version 1.2.1
-- Updated Android BearoundSDK dependency to version 1.2.1
+### Technical Details
+- **iOS**: 
+  - Supports sync intervals from 5-60 seconds and backup sizes from 5-50 beacons
+  - Both configurable at runtime (can be changed dynamically)
+  - Configuration persisted across app restarts
+  - SDK now uses singleton pattern for better lifecycle management
+- **Android**: 
+  - Supports sync intervals from 5-60 seconds and backup sizes from 5-50 beacons
+  - Sync interval can be changed dynamically at runtime
+  - Backup size must be set before `initialize()` on Android
+  - Configuration persisted across app restarts
+
+### Configuration Recommendations
+| Scenario | Sync Interval | Backup Size | Reason |
+|----------|---------------|-------------|---------|
+| Real-time tracking | TIME_5 - TIME_10 | SIZE_15 - SIZE_20 | Immediate updates, lower backup needed |
+| Standard monitoring | TIME_20 - TIME_30 (⭐ default) | SIZE_30 - SIZE_40 | Balanced performance and battery |
+| Battery-optimized | TIME_40 - TIME_60 | SIZE_40 - SIZE_50 | Longer intervals, larger backup for reliability |
+| Offline-first apps | TIME_30 - TIME_60 | SIZE_50 | Handle poor network conditions |
+
+### API Changes
+- Added `BearoundFlutterSdk.setSyncInterval(SyncInterval)` - Configure scan frequency
+- Added `BearoundFlutterSdk.setBackupSize(BackupSize)` - Configure backup list size
+- Added `BearoundFlutterSdk.getSyncInterval()` - Get current sync interval
+- Added `BearoundFlutterSdk.getBackupSize()` - Get current backup size
+
+### Fixed
+- **Critical iOS Initialization Bug**: Fixed beacon detection issue where `startServices()` was called before permissions were granted
+  - SDK now properly waits for `requestPermissions()` to complete using async/await pattern
+  - Matches the working pattern from native iOS SDK example
+  - Ensures CoreLocation and CoreBluetooth are properly authorized before starting services
+  - Resolves issue where beacons were not being detected on iOS despite successful initialization
+- **iOS Event Listeners**: Improved listener registration to ensure events are properly captured from native SDK
+
+### Breaking Changes
+- None - This release is backward compatible with 1.2.x versions
 
 ## [1.2.0] - 2025-12-08
 

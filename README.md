@@ -11,12 +11,16 @@ Official Flutter plugin for integrating Bearound's secure BLE beacon detection a
 
 - 🎯 **BLE Beacon Scanning**: High-performance beacon detection for iOS and Android
 - 🔄 **Real-time Event Streams**: Live beacon detection, sync status, and region monitoring
+- ⚙️ **Configurable Scanning** (v1.3.1+): Adjustable scan intervals (5-60s) and backup sizes (5-50 beacons) for optimal performance
+- 🎛️ **Dynamic Configuration**: Change scan frequency based on battery level or network conditions
 - 🛡️ **Cross-platform**: Unified API for iOS and Android with native performance
 - 🔐 **Secure**: Built-in token-based authentication and encrypted communication
 - 🎛️ **Permission Management**: Automatic handling of location and Bluetooth permissions
 - 📱 **Background Support**: Continue scanning even when app is in background
-- 🔁 **State Synchronization**: Automatic UI sync when app reopens (v1.1.1+)
+- 🔁 **State Synchronization**: Automatic UI sync when app reopens
 - 📊 **Distance Estimation**: Real-time distance calculation to nearby beacons
+- 🔋 **Battery Optimization**: Smart filtering and configurable intervals for extended battery life
+- 🔍 **Smart Filtering**: Automatically filters invalid beacons (RSSI = 0)
 - 🧪 **Well Tested**: Comprehensive unit test suite with 25+ test cases
 - 📚 **Type Safe**: Full null-safety support and comprehensive documentation
 
@@ -26,7 +30,7 @@ Add to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  bearound_flutter_sdk: ^1.1.1
+  bearound_flutter_sdk: ^1.3.1
 ```
 
 Install the package:
@@ -34,6 +38,21 @@ Install the package:
 ```bash
 flutter pub get
 ```
+
+### What's New in v1.3.1
+
+- ⚙️ **Configurable Scan Intervals** (5-60 seconds) - Balance between battery and detection speed
+- 💾 **Configurable Backup Sizes** (5-50 beacons) - Control failed beacon storage
+- 🔧 **Runtime Configuration** - Adjust settings dynamically based on battery or network conditions
+- 🎨 **Settings UI Example** - Complete configuration screen in example app
+- 🔍 **Smart Beacon Filtering** - Automatically filters invalid beacons (RSSI = 0)
+- 🐛 **iOS Bug Fix** - Fixed critical initialization issue preventing beacon detection
+- 🚀 **Improved iOS Architecture** - Async/await pattern for reliable permission handling
+- 📱 **Native SDK Updates** - iOS 1.3.1 and Android 1.3.1 with modular architecture
+
+> **Important iOS Fix:** This version resolves a critical bug where beacons were not being detected on iOS. The SDK now properly waits for permissions before starting services, ensuring reliable beacon detection.
+
+See [CHANGELOG.md](CHANGELOG.md) for complete release notes.
 
 ## ⚙️ Platform Setup
 
@@ -329,6 +348,110 @@ class _BeaconMonitorState extends State<BeaconMonitor> {
 }
 ```
 
+## ⚙️ Configuration (v1.3.1+)
+
+The SDK provides configurable scan intervals and backup sizes to optimize performance and battery usage based on your app's needs.
+
+### Sync Interval (Beacon Scan Frequency)
+
+Configure how often the SDK scans for beacons. Lower intervals provide faster detection but consume more battery.
+
+```dart
+import 'package:bearound_flutter_sdk/bearound_flutter_sdk.dart';
+
+// Set scan interval (5-60 seconds)
+await BearoundFlutterSdk.setSyncInterval(SyncInterval.time20); // 20 seconds (default)
+
+// Get current interval
+final interval = await BearoundFlutterSdk.getSyncInterval();
+print('Current interval: ${interval.seconds} seconds');
+```
+
+**Available Intervals:**
+- `SyncInterval.time5` to `SyncInterval.time60` (5 to 60 seconds)
+- **Default: `SyncInterval.time20` (20 seconds)** - Balanced performance and battery
+
+### Backup Size (Failed Beacon Storage)
+
+Configure how many failed beacon detections are stored for retry when API calls fail.
+
+```dart
+// Set backup size (5-50 beacons)
+await BearoundFlutterSdk.setBackupSize(BackupSize.size40); // 40 beacons (default)
+
+// Get current backup size
+final size = await BearoundFlutterSdk.getBackupSize();
+print('Backup size: ${size.value} beacons');
+```
+
+**Available Sizes:**
+- `BackupSize.size5` to `BackupSize.size50` (5 to 50 beacons)
+- Default: `BackupSize.size40` (40 beacons)
+
+### Configuration Recommendations
+
+| Scenario | Sync Interval | Backup Size | Use Case |
+|----------|--------------|-------------|----------|
+| **Real-time tracking** | `time5` - `time10` | `size15` - `size20` | Immediate updates, lower backup needed |
+| **Standard monitoring** | `time20` - `time30` (⭐ default) | `size30` - `size40` | Balanced performance and battery |
+| **Battery-optimized** | `time40` - `time60` | `size40` - `size50` | Longer intervals, larger backup for reliability |
+| **Offline-first apps** | `time30` - `time60` | `size50` | Handle poor network conditions |
+
+
+### Platform-Specific Notes
+
+- **iOS**: Both settings can be changed at any time (before or after `startScan()`)
+- **Android**: 
+  - `setSyncInterval()` can be changed dynamically at runtime
+  - `setBackupSize()` must be set **before** calling `startScan()`
+
+### Example: Battery-Optimized Configuration
+
+```dart
+class BatteryOptimizedScanner {
+  Future<void> startScanning() async {
+    // Configure for battery optimization
+    await BearoundFlutterSdk.setBackupSize(BackupSize.size50);  // Android: set before startScan
+    await BearoundFlutterSdk.setSyncInterval(SyncInterval.time60);
+    
+    // Request permissions
+    final granted = await BearoundFlutterSdk.requestPermissions();
+    if (!granted) return;
+    
+    // Start scanning
+    await BearoundFlutterSdk.startScan('your-token', debug: false);
+  }
+}
+```
+
+### Example: Real-time Tracking Configuration
+
+```dart
+class RealtimeTracker {
+  Future<void> startTracking() async {
+    // Configure for real-time tracking
+    await BearoundFlutterSdk.setBackupSize(BackupSize.size20);  // Android: set before startScan
+    await BearoundFlutterSdk.setSyncInterval(SyncInterval.time5);
+    
+    final granted = await BearoundFlutterSdk.requestPermissions();
+    if (!granted) return;
+    
+    await BearoundFlutterSdk.startScan('your-token', debug: true);
+  }
+  
+  Future<void> adjustForBatteryLevel(int batteryLevel) async {
+    // Dynamically adjust based on battery (iOS and Android)
+    if (batteryLevel < 20) {
+      await BearoundFlutterSdk.setSyncInterval(SyncInterval.time60);
+    } else if (batteryLevel < 50) {
+      await BearoundFlutterSdk.setSyncInterval(SyncInterval.time30);
+    } else {
+      await BearoundFlutterSdk.setSyncInterval(SyncInterval.time10);
+    }
+  }
+}
+```
+
 ### Background Scanning & State Synchronization
 
 When your app supports background scanning, the SDK may continue running even after the app is closed. To properly synchronize the UI state when the app reopens, implement lifecycle management:
@@ -610,6 +733,75 @@ try {
   print('Error starting beacon scan: $e');
   // Handle the error appropriately
 }
+```
+
+## 🔧 Troubleshooting
+
+### iOS: Beacons Not Detected
+
+**Problem:** SDK initializes successfully but no beacons are detected.
+
+**Solution (Fixed in v1.3.1):**
+- ✅ Ensure you're using v1.3.1 or later (critical fix for iOS beacon detection)
+- ✅ Check that Location permission is set to "Always" (not just "When In Use")
+- ✅ Verify Bluetooth is enabled on the device
+- ✅ Confirm beacons are broadcasting with UUID: `E25B8D3C-947A-452F-A13F-589CB706D2E5`
+- ✅ Test with physical beacons (simulators don't support BLE properly)
+
+**Debugging:**
+```dart
+// Enable debug mode to see detailed logs
+await BearoundFlutterSdk.startScan('your-token', debug: true);
+
+// Check if SDK is initialized
+final isRunning = await BearoundFlutterSdk.isInitialized();
+print('SDK running: $isRunning');
+```
+
+### Android: Permission Issues
+
+**Problem:** App crashes or beacons not detected on Android 12+.
+
+**Solution:**
+- ✅ Add all required permissions to `AndroidManifest.xml` (see Platform Setup)
+- ✅ Request runtime permissions before starting scan
+- ✅ For Android 12+, ensure `BLUETOOTH_SCAN` and `BLUETOOTH_CONNECT` are granted
+- ✅ Add JitPack repository to `settings.gradle.kts`
+
+### State Synchronization Issues
+
+**Problem:** UI shows incorrect state after app reopens from background.
+
+**Solution (Available in v1.1.1+):**
+```dart
+class MyApp extends StatefulWidget with WidgetsBindingObserver {
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _syncStateWithNative(); // Sync with native SDK state
+    }
+  }
+  
+  Future<void> _syncStateWithNative() async {
+    final isRunning = await BearoundFlutterSdk.isInitialized();
+    // Update UI based on actual SDK state
+  }
+}
+```
+
+### Configuration Not Applied
+
+**Problem:** Scan interval or backup size changes don't take effect.
+
+**Solution:**
+- **iOS**: Both settings can be changed at any time
+- **Android**: `setBackupSize()` must be called **before** `startScan()`
+
+```dart
+// Correct order for Android
+await BearoundFlutterSdk.setBackupSize(BackupSize.size40);
+await BearoundFlutterSdk.setSyncInterval(SyncInterval.time20);
+await BearoundFlutterSdk.startScan('your-token');
 ```
 
 ## 🧪 Testing

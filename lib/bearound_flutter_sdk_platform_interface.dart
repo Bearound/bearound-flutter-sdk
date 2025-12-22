@@ -43,4 +43,24 @@ abstract class BearoundFlutterSdkPlatform extends PlatformInterface {
   Stream<BeaconEvent> get regionStream {
     throw UnimplementedError('regionStream has not been implemented.');
   }
+
+  /// Set the sync interval (beacon scan frequency)
+  Future<void> setSyncInterval(SyncInterval interval) async {
+    throw UnimplementedError('setSyncInterval() has not been implemented.');
+  }
+
+  /// Set the backup size for failed beacons
+  Future<void> setBackupSize(BackupSize size) async {
+    throw UnimplementedError('setBackupSize() has not been implemented.');
+  }
+
+  /// Get the current sync interval
+  Future<SyncInterval> getSyncInterval() async {
+    throw UnimplementedError('getSyncInterval() has not been implemented.');
+  }
+
+  /// Get the current backup size
+  Future<BackupSize> getBackupSize() async {
+    throw UnimplementedError('getBackupSize() has not been implemented.');
+  }
 }

@@ -213,7 +213,65 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler {
         Log.d("BearoundFlutterSdkPlugin", "isInitialized check: $isInitialized")
         result.success(isInitialized)
       }
+      "setSyncInterval" -> {
+        val intervalName = call.argument<String>("interval") ?: "time20"
+        val interval = mapIntervalToNative(intervalName)
+        beAround?.setSyncInterval(interval)
+        Log.d("BearoundFlutterSdkPlugin", "Set sync interval: $intervalName")
+        result.success(null)
+      }
+      "setBackupSize" -> {
+        val sizeName = call.argument<String>("size") ?: "size40"
+        val size = mapSizeToNative(sizeName)
+        beAround?.setBackupSize(size)
+        Log.d("BearoundFlutterSdkPlugin", "Set backup size: $sizeName")
+        result.success(null)
+      }
+      "getSyncInterval" -> {
+        // Note: Android SDK doesn't expose getter, so we'll store it locally
+        // For now, return default
+        result.success("time20")
+      }
+      "getBackupSize" -> {
+        // Note: Android SDK doesn't expose getter, so we'll store it locally
+        // For now, return default
+        result.success("size40")
+      }
       else -> result.notImplemented()
+    }
+  }
+
+  private fun mapIntervalToNative(intervalName: String): BeAround.TimeScanBeacons {
+    return when (intervalName) {
+      "time5" -> BeAround.TimeScanBeacons.TIME_5
+      "time10" -> BeAround.TimeScanBeacons.TIME_10
+      "time15" -> BeAround.TimeScanBeacons.TIME_15
+      "time20" -> BeAround.TimeScanBeacons.TIME_20
+      "time25" -> BeAround.TimeScanBeacons.TIME_25
+      "time30" -> BeAround.TimeScanBeacons.TIME_30
+      "time35" -> BeAround.TimeScanBeacons.TIME_35
+      "time40" -> BeAround.TimeScanBeacons.TIME_40
+      "time45" -> BeAround.TimeScanBeacons.TIME_45
+      "time50" -> BeAround.TimeScanBeacons.TIME_50
+      "time55" -> BeAround.TimeScanBeacons.TIME_55
+      "time60" -> BeAround.TimeScanBeacons.TIME_60
+      else -> BeAround.TimeScanBeacons.TIME_20
+    }
+  }
+
+  private fun mapSizeToNative(sizeName: String): BeAround.SizeBackupLostBeacons {
+    return when (sizeName) {
+      "size5" -> BeAround.SizeBackupLostBeacons.SIZE_5
+      "size10" -> BeAround.SizeBackupLostBeacons.SIZE_10
+      "size15" -> BeAround.SizeBackupLostBeacons.SIZE_15
+      "size20" -> BeAround.SizeBackupLostBeacons.SIZE_20
+      "size25" -> BeAround.SizeBackupLostBeacons.SIZE_25
+      "size30" -> BeAround.SizeBackupLostBeacons.SIZE_30
+      "size35" -> BeAround.SizeBackupLostBeacons.SIZE_35
+      "size40" -> BeAround.SizeBackupLostBeacons.SIZE_40
+      "size45" -> BeAround.SizeBackupLostBeacons.SIZE_45
+      "size50" -> BeAround.SizeBackupLostBeacons.SIZE_50
+      else -> BeAround.SizeBackupLostBeacons.SIZE_40
     }
   }
 

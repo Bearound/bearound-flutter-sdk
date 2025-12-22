@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:bearound_flutter_sdk/bearound_flutter_sdk.dart';
+import 'settings_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -204,6 +205,16 @@ class _BeaconHomePageState extends State<BeaconHomePage>
             ],
           ),
           actions: [
+            IconButton(
+              icon: const Icon(Icons.settings),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const SettingsPage()),
+                );
+              },
+              tooltip: 'Configurações',
+            ),
             Container(
               margin: const EdgeInsets.only(right: 16),
               child: Center(
