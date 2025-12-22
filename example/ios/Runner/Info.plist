@@ -9,12 +9,14 @@
 	</array>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>Usamos sua localização para detectar beacons mesmo em segundo plano.</string>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Este app usa Bluetooth para detectar beacons Bearound próximos.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Precisamos da sua localização para identificar beacons próximos.</string>
 	<key>NSLocationAlwaysUsageDescription</key>
 	<string>Precisamos da sua localização para identificar beacons próximos.</string>
 	<key>NSUserTrackingUsageDescription</key>
-    <string>Precisamos dessa permissão</string>
+	<string>Precisamos dessa permissão</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>

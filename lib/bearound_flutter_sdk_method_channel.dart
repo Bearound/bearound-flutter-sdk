@@ -76,4 +76,26 @@ class MethodChannelBearoundFlutterSdk extends BearoundFlutterSdkPlatform {
     });
     return _regionStream!;
   }
+
+  @override
+  Future<void> setSyncInterval(SyncInterval interval) async {
+    await _channel.invokeMethod('setSyncInterval', {'interval': interval.name});
+  }
+
+  @override
+  Future<void> setBackupSize(BackupSize size) async {
+    await _channel.invokeMethod('setBackupSize', {'size': size.name});
+  }
+
+  @override
+  Future<SyncInterval> getSyncInterval() async {
+    final result = await _channel.invokeMethod<String>('getSyncInterval');
+    return SyncInterval.fromString(result ?? 'time20');
+  }
+
+  @override
+  Future<BackupSize> getBackupSize() async {
+    final result = await _channel.invokeMethod<String>('getBackupSize');
+    return BackupSize.fromString(result ?? 'size40');
+  }
 }

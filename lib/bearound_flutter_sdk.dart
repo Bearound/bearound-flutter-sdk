@@ -118,4 +118,56 @@ class BearoundFlutterSdk {
   /// ```
   static Stream<BeaconEvent> get regionStream =>
       BearoundFlutterSdkPlatform.instance.regionStream;
+
+  /// Define o intervalo de sincronização de beacons (frequência de scan).
+  ///
+  /// Configura com que frequência o SDK faz scan de beacons.
+  /// Valores menores = maior consumo de bateria, mas detecção mais rápida.
+  /// Valores maiores = menor consumo de bateria, mas detecção mais lenta.
+  ///
+  /// Exemplo:
+  /// ```dart
+  /// await BearoundFlutterSdk.setSyncInterval(SyncInterval.time20); // 20 segundos (padrão)
+  /// await BearoundFlutterSdk.setSyncInterval(SyncInterval.time60); // 60 segundos (economia de bateria)
+  /// ```
+  ///
+  /// Pode ser chamado antes ou depois de `startScan()` para ajuste dinâmico.
+  static Future<void> setSyncInterval(SyncInterval interval) async =>
+      await BearoundFlutterSdkPlatform.instance.setSyncInterval(interval);
+
+  /// Define o tamanho do backup de beacons perdidos.
+  ///
+  /// Configura quantos beacons que falharam na sincronização devem ser
+  /// armazenados para retry. Valores maiores = mais memória usada.
+  ///
+  /// Exemplo:
+  /// ```dart
+  /// await BearoundFlutterSdk.setBackupSize(BackupSize.size40); // 40 beacons (padrão)
+  /// await BearoundFlutterSdk.setBackupSize(BackupSize.size10); // 10 beacons (economia de memória)
+  /// ```
+  ///
+  /// ⚠️ Android: Deve ser chamado ANTES de `startScan()`.
+  /// ⚠️ iOS: Pode ser chamado a qualquer momento.
+  static Future<void> setBackupSize(BackupSize size) async =>
+      await BearoundFlutterSdkPlatform.instance.setBackupSize(size);
+
+  /// Retorna o intervalo de sincronização atual.
+  ///
+  /// Exemplo:
+  /// ```dart
+  /// final interval = await BearoundFlutterSdk.getSyncInterval();
+  /// print('Intervalo atual: ${interval.seconds} segundos');
+  /// ```
+  static Future<SyncInterval> getSyncInterval() async =>
+      await BearoundFlutterSdkPlatform.instance.getSyncInterval();
+
+  /// Retorna o tamanho do backup atual.
+  ///
+  /// Exemplo:
+  /// ```dart
+  /// final size = await BearoundFlutterSdk.getBackupSize();
+  /// print('Tamanho do backup: ${size.value} beacons');
+  /// ```
+  static Future<BackupSize> getBackupSize() async =>
+      await BearoundFlutterSdkPlatform.instance.getBackupSize();
 }
