@@ -1,58 +1,53 @@
 package com.example.bearound_flutter_sdk
 
-import android.Manifest
 import android.content.Context
-import android.content.pm.PackageManager
-import android.os.Build
 import android.os.Handler
 import android.os.Looper
-import androidx.core.content.ContextCompat
-import io.flutter.Log
+import io.bearound.sdk.BeAroundSDK
+import io.bearound.sdk.interfaces.BeAroundSDKDelegate
+import io.bearound.sdk.models.Beacon
+import io.bearound.sdk.models.BeaconMetadata
+import io.bearound.sdk.models.UserProperties
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
-import io.bearound.sdk.BeAround
-import io.bearound.sdk.BeaconData
-import io.bearound.sdk.BeaconListener
-import io.bearound.sdk.SyncListener
-import io.bearound.sdk.RegionListener
+import java.util.Locale
 
-class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler {
+class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKDelegate {
   private lateinit var methodChannel: MethodChannel
   private lateinit var beaconsEventChannel: EventChannel
   private lateinit var syncEventChannel: EventChannel
-  private lateinit var regionEventChannel: EventChannel
+  private lateinit var scanningEventChannel: EventChannel
+  private lateinit var errorEventChannel: EventChannel
 
-  private var beAround: BeAround? = null
-  private lateinit var context: Context
-  private val mainHandler = Handler(Looper.getMainLooper())
-
-  // Event sinks for streaming events to Flutter
   private var beaconsEventSink: EventChannel.EventSink? = null
   private var syncEventSink: EventChannel.EventSink? = null
-  private var regionEventSink: EventChannel.EventSink? = null
+  private var scanningEventSink: EventChannel.EventSink? = null
+  private var errorEventSink: EventChannel.EventSink? = null
+
+  private lateinit var context: Context
+  private val mainHandler = Handler(Looper.getMainLooper())
+  private var sdk: BeAroundSDK? = null
 
   override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
     context = binding.applicationContext
+    sdk = BeAroundSDK.getInstance(context)
+    sdk?.delegate = this
 
-    // Setup method channel
     methodChannel = MethodChannel(binding.binaryMessenger, "bearound_flutter_sdk")
     methodChannel.setMethodCallHandler(this)
 
-    // Setup event channels
     beaconsEventChannel = EventChannel(binding.binaryMessenger, "bearound_flutter_sdk/beacons")
     beaconsEventChannel.setStreamHandler(object : EventChannel.StreamHandler {
       override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
         beaconsEventSink = events
-        Log.d("BearoundFlutterSdk", "Beacons event channel started listening")
       }
 
       override fun onCancel(arguments: Any?) {
         beaconsEventSink = null
-        Log.d("BearoundFlutterSdk", "Beacons event channel cancelled")
       }
     })
 
@@ -60,310 +55,170 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler {
     syncEventChannel.setStreamHandler(object : EventChannel.StreamHandler {
       override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
         syncEventSink = events
-        Log.d("BearoundFlutterSdk", "Sync event channel started listening")
       }
 
       override fun onCancel(arguments: Any?) {
         syncEventSink = null
-        Log.d("BearoundFlutterSdk", "Sync event channel cancelled")
       }
     })
 
-    regionEventChannel = EventChannel(binding.binaryMessenger, "bearound_flutter_sdk/region")
-    regionEventChannel.setStreamHandler(object : EventChannel.StreamHandler {
+    scanningEventChannel = EventChannel(binding.binaryMessenger, "bearound_flutter_sdk/scanning")
+    scanningEventChannel.setStreamHandler(object : EventChannel.StreamHandler {
       override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
-        regionEventSink = events
-        Log.d("BearoundFlutterSdk", "Region event channel started listening")
+        scanningEventSink = events
       }
 
       override fun onCancel(arguments: Any?) {
-        regionEventSink = null
-        Log.d("BearoundFlutterSdk", "Region event channel cancelled")
+        scanningEventSink = null
+      }
+    })
+
+    errorEventChannel = EventChannel(binding.binaryMessenger, "bearound_flutter_sdk/errors")
+    errorEventChannel.setStreamHandler(object : EventChannel.StreamHandler {
+      override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
+        errorEventSink = events
+      }
+
+      override fun onCancel(arguments: Any?) {
+        errorEventSink = null
       }
     })
   }
 
   override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
     methodChannel.setMethodCallHandler(null)
+    beaconsEventChannel.setStreamHandler(null)
+    syncEventChannel.setStreamHandler(null)
+    scanningEventChannel.setStreamHandler(null)
+    errorEventChannel.setStreamHandler(null)
 
-    // Remove listeners
-    beAround?.removeBeaconListener(beaconListener)
-    beAround?.removeSyncListener(syncListener)
-    beAround?.removeRegionListener(regionListener)
-
-    beAround = null
+    sdk?.delegate = null
+    sdk = null
     beaconsEventSink = null
     syncEventSink = null
-    regionEventSink = null
-  }
-
-  private fun checkPermissions(): String {
-    val locationGranted = ContextCompat.checkSelfPermission(
-      context,
-      Manifest.permission.ACCESS_FINE_LOCATION
-    ) == PackageManager.PERMISSION_GRANTED
-
-    val locationCoarseGranted = ContextCompat.checkSelfPermission(
-      context,
-      Manifest.permission.ACCESS_COARSE_LOCATION
-    ) == PackageManager.PERMISSION_GRANTED
-
-    var bluetoothGranted = true
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-      val bluetoothScan = ContextCompat.checkSelfPermission(
-        context,
-        Manifest.permission.BLUETOOTH_SCAN
-      ) == PackageManager.PERMISSION_GRANTED
-
-      val bluetoothConnect = ContextCompat.checkSelfPermission(
-        context,
-        Manifest.permission.BLUETOOTH_CONNECT
-      ) == PackageManager.PERMISSION_GRANTED
-
-      bluetoothGranted = bluetoothScan && bluetoothConnect
-    }
-
-    return """
-      Permissions Status:
-        - ACCESS_FINE_LOCATION: $locationGranted
-        - ACCESS_COARSE_LOCATION: $locationCoarseGranted
-        - BLUETOOTH (SDK 31+): $bluetoothGranted
-    """.trimIndent()
+    scanningEventSink = null
+    errorEventSink = null
   }
 
   override fun onMethodCall(call: MethodCall, result: Result) {
-    Log.d("BearoundFlutterSdkPlugin", "onMethodCall: ${call.method}")
     when (call.method) {
-      "initialize" -> {
-        val iconRes = context.applicationInfo.icon
-        val debug = call.argument<Boolean>("debug") ?: false
-        val clientToken = call.argument<String>("clientToken")?.trim().orEmpty()
+      "configure" -> {
+        val args = call.arguments as? Map<*, *>
+        val appIdArg = (args?.get("appId") as? String)?.trim()
+        val appId = if (!appIdArg.isNullOrEmpty()) appIdArg else context.packageName
+        val syncIntervalSeconds = (args?.get("syncInterval") as? Number)?.toLong() ?: 30L
+        val enableBluetoothScanning =
+          args?.get("enableBluetoothScanning") as? Boolean ?: false
+        val enablePeriodicScanning =
+          args?.get("enablePeriodicScanning") as? Boolean ?: true
 
-        Log.d("BearoundFlutterSdkPlugin", "Initialize called with:")
-        Log.d("BearoundFlutterSdkPlugin", "  - iconRes: $iconRes")
-        Log.d("BearoundFlutterSdkPlugin", "  - debug: $debug")
-        Log.d("BearoundFlutterSdkPlugin", "  - clientToken: ${if (clientToken.isEmpty()) "EMPTY" else "provided"}")
-
-        // Check if already initialized
-        if (BeAround.isInitialized()) {
-          Log.d("BearoundFlutterSdkPlugin", "⚠️ BeAround already initialized, reusing existing instance")
-          beAround = BeAround.getInstance(context)
-
-          // Re-add listeners to ensure they're registered with this plugin instance
-          beAround?.removeBeaconListener(beaconListener)
-          beAround?.removeSyncListener(syncListener)
-          beAround?.removeRegionListener(regionListener)
-          beAround?.addBeaconListener(beaconListener)
-          beAround?.addSyncListener(syncListener)
-          beAround?.addRegionListener(regionListener)
-
-          result.success(null)
-          Log.d("BearoundFlutterSdkPlugin", "✓ Reconnected to existing initialized instance")
-          return
-        }
-
-        // Check permissions
-        Log.d("BearoundFlutterSdkPlugin", checkPermissions())
-
-        // Temporarily allow empty token for testing (like native example)
-        // if (clientToken.isEmpty()) {
-        //   result.error("INIT_ERROR", "clientToken must not be empty", null)
-        //   return
-        // }
-
-        Log.d("BearoundFlutterSdkPlugin", "Getting BeAround instance...")
-        beAround = BeAround.getInstance(context)
-
-        if (beAround == null) {
-          Log.e("BearoundFlutterSdkPlugin", "❌ BeAround.getInstance returned null!")
-          result.error("INIT_ERROR", "Failed to get BeAround instance", null)
-          return
-        }
-
-        Log.d("BearoundFlutterSdkPlugin", "✓ BeAround instance obtained")
-        Log.d("BearoundFlutterSdkPlugin", "Calling beAround.initialize()...")
-
-        beAround?.initialize(iconRes, clientToken, debug)
-
-        Log.d("BearoundFlutterSdkPlugin", "✓ BeAround.initialize() completed")
-        Log.d("BearoundFlutterSdkPlugin", "BeAround.isInitialized: ${BeAround.isInitialized()}")
-
-        // Add listeners
-        Log.d("BearoundFlutterSdkPlugin", "Adding listeners...")
-        beAround?.addBeaconListener(beaconListener)
-        beAround?.addSyncListener(syncListener)
-        beAround?.addRegionListener(regionListener)
-        Log.d("BearoundFlutterSdkPlugin", "✓ All listeners added")
-
-        result.success(null)
-        Log.d("BearoundFlutterSdkPlugin", "✓ Initialize completed successfully")
-      }
-      "stop" -> {
-        Log.d("BearoundFlutterSdkPlugin", "Stop called")
-        beAround?.removeBeaconListener(beaconListener)
-        beAround?.removeSyncListener(syncListener)
-        beAround?.removeRegionListener(regionListener)
-        beAround?.stop()
-        beAround = null
-        result.success(null)
-        Log.d("BearoundFlutterSdkPlugin", "✓ Stop completed")
-      }
-      "isInitialized" -> {
-        val isInitialized = BeAround.isInitialized()
-        Log.d("BearoundFlutterSdkPlugin", "isInitialized check: $isInitialized")
-        result.success(isInitialized)
-      }
-      "setSyncInterval" -> {
-        val intervalName = call.argument<String>("interval") ?: "time20"
-        val interval = mapIntervalToNative(intervalName)
-        beAround?.setSyncInterval(interval)
-        Log.d("BearoundFlutterSdkPlugin", "Set sync interval: $intervalName")
+        sdk?.configure(
+          appId = appId,
+          syncInterval = syncIntervalSeconds * 1000L,
+          enableBluetoothScanning = enableBluetoothScanning,
+          enablePeriodicScanning = enablePeriodicScanning,
+        )
         result.success(null)
       }
-      "setBackupSize" -> {
-        val sizeName = call.argument<String>("size") ?: "size40"
-        val size = mapSizeToNative(sizeName)
-        beAround?.setBackupSize(size)
-        Log.d("BearoundFlutterSdkPlugin", "Set backup size: $sizeName")
+      "startScanning" -> {
+        sdk?.startScanning()
         result.success(null)
       }
-      "getSyncInterval" -> {
-        // Note: Android SDK doesn't expose getter, so we'll store it locally
-        // For now, return default
-        result.success("time20")
+      "stopScanning" -> {
+        sdk?.stopScanning()
+        result.success(null)
       }
-      "getBackupSize" -> {
-        // Note: Android SDK doesn't expose getter, so we'll store it locally
-        // For now, return default
-        result.success("size40")
+      "isScanning" -> {
+        result.success(sdk?.isScanning ?: false)
+      }
+      "setBluetoothScanning" -> {
+        val enabled = call.argument<Boolean>("enabled") ?: false
+        sdk?.setBluetoothScanning(enabled)
+        result.success(null)
+      }
+      "setUserProperties" -> {
+        val args = call.arguments as? Map<*, *> ?: emptyMap<Any, Any>()
+        val properties = mapUserProperties(args)
+        sdk?.setUserProperties(properties)
+        result.success(null)
+      }
+      "clearUserProperties" -> {
+        sdk?.clearUserProperties()
+        result.success(null)
       }
       else -> result.notImplemented()
     }
   }
 
-  private fun mapIntervalToNative(intervalName: String): BeAround.TimeScanBeacons {
-    return when (intervalName) {
-      "time5" -> BeAround.TimeScanBeacons.TIME_5
-      "time10" -> BeAround.TimeScanBeacons.TIME_10
-      "time15" -> BeAround.TimeScanBeacons.TIME_15
-      "time20" -> BeAround.TimeScanBeacons.TIME_20
-      "time25" -> BeAround.TimeScanBeacons.TIME_25
-      "time30" -> BeAround.TimeScanBeacons.TIME_30
-      "time35" -> BeAround.TimeScanBeacons.TIME_35
-      "time40" -> BeAround.TimeScanBeacons.TIME_40
-      "time45" -> BeAround.TimeScanBeacons.TIME_45
-      "time50" -> BeAround.TimeScanBeacons.TIME_50
-      "time55" -> BeAround.TimeScanBeacons.TIME_55
-      "time60" -> BeAround.TimeScanBeacons.TIME_60
-      else -> BeAround.TimeScanBeacons.TIME_20
-    }
+  override fun didUpdateBeacons(beacons: List<Beacon>) {
+    val payload = mapOf(
+      "beacons" to beacons.map { mapBeacon(it) }
+    )
+    mainHandler.post { beaconsEventSink?.success(payload) }
   }
 
-  private fun mapSizeToNative(sizeName: String): BeAround.SizeBackupLostBeacons {
-    return when (sizeName) {
-      "size5" -> BeAround.SizeBackupLostBeacons.SIZE_5
-      "size10" -> BeAround.SizeBackupLostBeacons.SIZE_10
-      "size15" -> BeAround.SizeBackupLostBeacons.SIZE_15
-      "size20" -> BeAround.SizeBackupLostBeacons.SIZE_20
-      "size25" -> BeAround.SizeBackupLostBeacons.SIZE_25
-      "size30" -> BeAround.SizeBackupLostBeacons.SIZE_30
-      "size35" -> BeAround.SizeBackupLostBeacons.SIZE_35
-      "size40" -> BeAround.SizeBackupLostBeacons.SIZE_40
-      "size45" -> BeAround.SizeBackupLostBeacons.SIZE_45
-      "size50" -> BeAround.SizeBackupLostBeacons.SIZE_50
-      else -> BeAround.SizeBackupLostBeacons.SIZE_40
-    }
+  override fun didFailWithError(error: Exception) {
+    val payload = mapOf(
+      "message" to (error.message ?: "Unknown error")
+    )
+    mainHandler.post { errorEventSink?.success(payload) }
   }
 
-  // BeaconListener implementation
-  private val beaconListener = object : BeaconListener {
-    override fun onBeaconsDetected(beacons: List<BeaconData>, eventType: String) {
-      mainHandler.post {
-        val beaconsList = beacons.map { beacon ->
-          mapOf(
-            "uuid" to beacon.uuid,
-            "major" to beacon.major,
-            "minor" to beacon.minor,
-            "rssi" to beacon.rssi,
-            "bluetoothName" to beacon.bluetoothName,
-            "bluetoothAddress" to beacon.bluetoothAddress,
-            "lastSeen" to beacon.lastSeen
-          )
-        }
-
-        val eventData = mapOf(
-          "type" to "beaconsDetected",
-          "beacons" to beaconsList,
-          "eventType" to eventType.uppercase()
-        )
-
-        beaconsEventSink?.success(eventData)
-        Log.d("BearoundFlutterSdk", "Sent beacon event: $eventType with ${beacons.size} beacons")
-      }
-    }
+  override fun didChangeScanning(isScanning: Boolean) {
+    val payload = mapOf("isScanning" to isScanning)
+    mainHandler.post { scanningEventSink?.success(payload) }
   }
 
-  // SyncListener implementation
-  private val syncListener = object : SyncListener {
-    override fun onSyncSuccess(eventType: String, beaconCount: Int, message: String) {
-      mainHandler.post {
-        val eventData = mapOf(
-          "type" to "syncSuccess",
-          "eventType" to eventType,
-          "beaconsCount" to beaconCount,
-          "message" to message
-        )
-
-        syncEventSink?.success(eventData)
-        Log.d("BearoundFlutterSdk", "Sync success: $eventType, count: $beaconCount")
-      }
-    }
-
-    override fun onSyncError(
-      eventType: String,
-      beaconCount: Int,
-      errorCode: Int?,
-      errorMessage: String
-    ) {
-      mainHandler.post {
-        val eventData = mapOf(
-          "type" to "syncError",
-          "eventType" to eventType,
-          "beaconsCount" to beaconCount,
-          "errorCode" to errorCode,
-          "errorMessage" to errorMessage
-        )
-
-        syncEventSink?.success(eventData)
-        Log.d("BearoundFlutterSdk", "Sync error: $errorMessage")
-      }
-    }
+  override fun didUpdateSyncStatus(secondsUntilNextSync: Int, isRanging: Boolean) {
+    val payload = mapOf(
+      "secondsUntilNextSync" to secondsUntilNextSync,
+      "isRanging" to isRanging,
+    )
+    mainHandler.post { syncEventSink?.success(payload) }
   }
 
-  // RegionListener implementation
-  private val regionListener = object : RegionListener {
-    override fun onRegionEnter(regionName: String) {
-      mainHandler.post {
-        val eventData = mapOf(
-          "type" to "beaconRegionEnter",
-          "regionName" to regionName
-        )
+  private fun mapBeacon(beacon: Beacon): Map<String, Any?> {
+    return mapOf(
+      "uuid" to beacon.uuid.toString(),
+      "major" to beacon.major,
+      "minor" to beacon.minor,
+      "rssi" to beacon.rssi,
+      "proximity" to beacon.proximity.name.lowercase(Locale.US),
+      "accuracy" to beacon.accuracy,
+      "timestamp" to beacon.timestamp.time,
+      "metadata" to beacon.metadata?.let { mapMetadata(it) },
+      "txPower" to beacon.txPower,
+    )
+  }
 
-        regionEventSink?.success(eventData)
-        Log.d("BearoundFlutterSdk", "Region enter: $regionName")
-      }
-    }
+  private fun mapMetadata(metadata: BeaconMetadata): Map<String, Any?> {
+    return mapOf(
+      "firmwareVersion" to metadata.firmwareVersion,
+      "batteryLevel" to metadata.batteryLevel,
+      "movements" to metadata.movements,
+      "temperature" to metadata.temperature,
+      "txPower" to metadata.txPower,
+      "rssiFromBLE" to metadata.rssiFromBLE,
+      "isConnectable" to metadata.isConnectable,
+    )
+  }
 
-    override fun onRegionExit(regionName: String) {
-      mainHandler.post {
-        val eventData = mapOf(
-          "type" to "beaconRegionExit",
-          "regionName" to regionName
-        )
+  private fun mapUserProperties(args: Map<*, *>): UserProperties {
+    val internalId = args["internalId"] as? String
+    val email = args["email"] as? String
+    val name = args["name"] as? String
+    val customRaw = args["customProperties"] as? Map<*, *> ?: emptyMap<Any, Any>()
+    val customProperties = customRaw.mapNotNull { entry ->
+      val key = entry.key as? String ?: return@mapNotNull null
+      val value = entry.value as? String ?: return@mapNotNull null
+      key to value
+    }.toMap()
 
-        regionEventSink?.success(eventData)
-        Log.d("BearoundFlutterSdk", "Region exit: $regionName")
-      }
-    }
+    return UserProperties(
+      internalId = internalId,
+      email = email,
+      name = name,
+      customProperties = customProperties,
+    )
   }
 }

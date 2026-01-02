@@ -3,137 +3,56 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('Beacon', () {
-    test('should create instance with required fields', () {
-      final beacon = Beacon(
-        uuid: 'test-uuid',
-        major: 100,
-        minor: 200,
-        rssi: -50,
-      );
-
-      expect(beacon.uuid, equals('test-uuid'));
-      expect(beacon.major, equals(100));
-      expect(beacon.minor, equals(200));
-      expect(beacon.rssi, equals(-50));
-      expect(beacon.bluetoothName, isNull);
-      expect(beacon.bluetoothAddress, isNull);
-      expect(beacon.distanceMeters, isNull);
-    });
-
-    test('should create instance with all fields', () {
-      final beacon = Beacon(
-        uuid: 'test-uuid',
-        major: 100,
-        minor: 200,
-        rssi: -50,
-        bluetoothName: 'Test Beacon',
-        bluetoothAddress: '00:11:22:33:44:55',
-        distanceMeters: 1.5,
-      );
-
-      expect(beacon.uuid, equals('test-uuid'));
-      expect(beacon.major, equals(100));
-      expect(beacon.minor, equals(200));
-      expect(beacon.rssi, equals(-50));
-      expect(beacon.bluetoothName, equals('Test Beacon'));
-      expect(beacon.bluetoothAddress, equals('00:11:22:33:44:55'));
-      expect(beacon.distanceMeters, equals(1.5));
-    });
-
-    test('should create instance from JSON with all fields', () {
+    test('parses beacon with metadata and timestamp', () {
       final json = {
-        'uuid': 'test-uuid',
-        'major': 100,
-        'minor': 200,
+        'uuid': 'E25B8D3C-947A-452F-A13F-589CB706D2E5',
+        'major': 1,
+        'minor': 2,
         'rssi': -50,
-        'bluetoothName': 'Test Beacon',
-        'bluetoothAddress': '00:11:22:33:44:55',
-        'distanceMeters': 1.5,
+        'proximity': 'near',
+        'accuracy': 1.2,
+        'timestamp': 1700000000000,
+        'txPower': -59,
+        'metadata': {
+          'firmwareVersion': '1.0.0',
+          'batteryLevel': 80,
+          'movements': 3,
+          'temperature': 24,
+          'txPower': -59,
+          'rssiFromBLE': -55,
+          'isConnectable': true,
+        },
       };
 
       final beacon = Beacon.fromJson(json);
 
-      expect(beacon.uuid, equals('test-uuid'));
-      expect(beacon.major, equals(100));
-      expect(beacon.minor, equals(200));
+      expect(beacon.uuid, equals('E25B8D3C-947A-452F-A13F-589CB706D2E5'));
+      expect(beacon.major, equals(1));
+      expect(beacon.minor, equals(2));
       expect(beacon.rssi, equals(-50));
-      expect(beacon.bluetoothName, equals('Test Beacon'));
-      expect(beacon.bluetoothAddress, equals('00:11:22:33:44:55'));
-      expect(beacon.distanceMeters, equals(1.5));
+      expect(beacon.proximity, equals(BeaconProximity.near));
+      expect(beacon.accuracy, equals(1.2));
+      expect(beacon.timestamp.millisecondsSinceEpoch, equals(1700000000000));
+      expect(beacon.txPower, equals(-59));
+      expect(beacon.metadata, isNotNull);
+      expect(beacon.metadata?.batteryLevel, equals(80));
     });
 
-    test('should create instance from JSON with only required fields', () {
+    test('defaults missing optional fields', () {
       final json = {
-        'uuid': 'test-uuid',
-        'major': 100,
-        'minor': 200,
-        'rssi': -50,
+        'uuid': 'test',
+        'major': 10,
+        'minor': 20,
+        'rssi': -90,
+        'proximity': 'unknown',
+        'accuracy': 0.0,
       };
 
       final beacon = Beacon.fromJson(json);
 
-      expect(beacon.uuid, equals('test-uuid'));
-      expect(beacon.major, equals(100));
-      expect(beacon.minor, equals(200));
-      expect(beacon.rssi, equals(-50));
-      expect(beacon.bluetoothName, isNull);
-      expect(beacon.bluetoothAddress, isNull);
-      expect(beacon.distanceMeters, isNull);
-    });
-
-    test('should convert to JSON with all fields', () {
-      final beacon = Beacon(
-        uuid: 'test-uuid',
-        major: 100,
-        minor: 200,
-        rssi: -50,
-        bluetoothName: 'Test Beacon',
-        bluetoothAddress: '00:11:22:33:44:55',
-        distanceMeters: 1.5,
-      );
-
-      final json = beacon.toJson();
-
-      expect(json['uuid'], equals('test-uuid'));
-      expect(json['major'], equals(100));
-      expect(json['minor'], equals(200));
-      expect(json['rssi'], equals(-50));
-      expect(json['bluetoothName'], equals('Test Beacon'));
-      expect(json['bluetoothAddress'], equals('00:11:22:33:44:55'));
-      expect(json['distanceMeters'], equals(1.5));
-    });
-
-    test('should convert to JSON with null optional fields', () {
-      final beacon = Beacon(
-        uuid: 'test-uuid',
-        major: 100,
-        minor: 200,
-        rssi: -50,
-      );
-
-      final json = beacon.toJson();
-
-      expect(json['uuid'], equals('test-uuid'));
-      expect(json['major'], equals(100));
-      expect(json['minor'], equals(200));
-      expect(json['rssi'], equals(-50));
-      expect(json['bluetoothName'], isNull);
-      expect(json['bluetoothAddress'], isNull);
-      expect(json['distanceMeters'], isNull);
-    });
-
-    test('should handle distanceMeters as int in JSON', () {
-      final json = {
-        'uuid': 'test-uuid',
-        'major': 100,
-        'minor': 200,
-        'rssi': -50,
-        'distanceMeters': 2, // int instead of double
-      };
-
-      final beacon = Beacon.fromJson(json);
-
-      expect(beacon.distanceMeters, equals(2.0));
+      expect(beacon.metadata, isNull);
+      expect(beacon.txPower, isNull);
+      expect(beacon.proximity, equals(BeaconProximity.unknown));
     });
   });
 }
