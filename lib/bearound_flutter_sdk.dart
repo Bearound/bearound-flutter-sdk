@@ -1,173 +1,153 @@
-export 'src/core.dart';
-import 'src/core.dart';
-import 'bearound_flutter_sdk_platform_interface.dart';
+library;
 
-/// SDK principal do Bearound para integração com beacons.
-///
-/// Esta facade estática centraliza permissões, scanner, sync automático e acesso à stream de eventos.
+import 'dart:async';
+
+import 'package:flutter/services.dart';
+
+import 'src/core/permission_service.dart';
+import 'src/models/beacon.dart';
+import 'src/models/bearound_error.dart';
+import 'src/models/sync_status.dart';
+import 'src/models/user_properties.dart';
+
+export 'src/models/beacon.dart';
+export 'src/models/beacon_metadata.dart';
+export 'src/models/bearound_error.dart';
+export 'src/models/sync_status.dart';
+export 'src/models/user_properties.dart';
+
+/// SDK principal do Bearound para integração com o SDK nativo 2.0.0.
 class BearoundFlutterSdk {
   BearoundFlutterSdk._();
 
-  /// Solicita todas as permissões necessárias para operar o scanner de beacons.
-  ///
-  /// Exemplo de uso:
-  /// ```dart
-  /// final ok = await BearoundFlutterSdk.requestPermissions();
-  /// if (!ok) {
-  ///   // Avise o usuário que permissões são obrigatórias.
-  /// }
-  /// ```
-  /// Retorna `true` se todas as permissões foram concedidas, ou `false` caso contrário.
+  static const MethodChannel _channel = MethodChannel('bearound_flutter_sdk');
+  static const EventChannel _beaconsChannel = EventChannel(
+    'bearound_flutter_sdk/beacons',
+  );
+  static const EventChannel _syncChannel = EventChannel(
+    'bearound_flutter_sdk/sync',
+  );
+  static const EventChannel _scanningChannel = EventChannel(
+    'bearound_flutter_sdk/scanning',
+  );
+  static const EventChannel _errorChannel = EventChannel(
+    'bearound_flutter_sdk/errors',
+  );
+
+  static Stream<List<Beacon>>? _beaconsStream;
+  static Stream<SyncStatus>? _syncStream;
+  static Stream<bool>? _scanningStream;
+  static Stream<BearoundError>? _errorStream;
+
+  /// Solicita as permissões necessárias para operação do SDK.
   static Future<bool> requestPermissions() =>
       PermissionService.instance.requestPermissions();
 
-  /// Inicia o scanner de beacons e sincronização automática com a API.
+  /// Configura o SDK nativo antes de iniciar o scan.
   ///
-  /// Esse método inicializa toda a stack (scanner + sync local/API).
-  /// O parâmetro [debug] ativa logs extras no nativo.
-  ///
-  /// Exemplo:
-  /// ```dart
-  /// await BearoundFlutterSdk.startScan('your-client-token', debug: true);
-  /// ```
-  ///
-  /// Importante: Não precisa se preocupar em passar IDFA, estado do app ou deviceType, pois tudo é obtido automaticamente pelo SDK.
-  static Future<void> startScan(
-    String clientToken, {
-    bool debug = false,
-  }) async => await BeaconScanner.startScan(clientToken, debug: debug);
+  /// O [syncInterval] é expresso em segundos e será validado pelo SDK (5-60s).
+  static Future<void> configure({
+    String? appId,
+    Duration syncInterval = const Duration(seconds: 30),
+    bool enableBluetoothScanning = false,
+    bool enablePeriodicScanning = true,
+  }) async {
+    final args = <String, dynamic>{
+      'syncInterval': syncInterval.inSeconds,
+      'enableBluetoothScanning': enableBluetoothScanning,
+      'enablePeriodicScanning': enablePeriodicScanning,
+    };
 
-  /// Para completamente o scanner e a sincronização dos beacons.
-  ///
-  /// Exemplo:
-  /// ```dart
-  /// await BearoundFlutterSdk.stopScan();
-  /// ```
-  ///
-  /// Recomenda-se sempre chamar esse método ao fechar a tela ou app, para evitar uso desnecessário de recursos.
-  static Future<void> stopScan() async => await BeaconScanner.stopScan();
+    if (appId != null && appId.trim().isNotEmpty) {
+      args['appId'] = appId.trim();
+    }
 
-  /// Verifica se o SDK já foi inicializado e está rodando.
-  ///
-  /// Este método é útil ao reabrir o app para verificar se o scanner
-  /// em background ainda está ativo.
-  ///
-  /// Exemplo:
-  /// ```dart
-  /// final isRunning = await BearoundFlutterSdk.isInitialized();
-  /// if (isRunning) {
-  ///   // SDK já está rodando, atualizar UI
-  /// }
-  /// ```
-  ///
-  /// Retorna `true` se o SDK está inicializado, ou `false` caso contrário.
-  static Future<bool> isInitialized() async =>
-      await BearoundFlutterSdkPlatform.instance.isInitialized();
+    await _channel.invokeMethod('configure', args);
+  }
 
-  /// Stream dos beacons detectados em tempo real.
-  ///
-  /// Recebe eventos quando beacons são detectados (enter, exit, ou failed).
-  ///
-  /// Exemplo de uso:
-  /// ```dart
-  /// BearoundFlutterSdk.beaconsStream.listen((event) {
-  ///   print('Event type: ${event.eventType}');
-  ///   print('Beacons detected: ${event.beacons.length}');
-  ///   for (var beacon in event.beacons) {
-  ///     print('Beacon: ${beacon.uuid}, major: ${beacon.major}, minor: ${beacon.minor}');
-  ///   }
-  /// });
-  /// ```
-  static Stream<BeaconsDetectedEvent> get beaconsStream =>
-      BearoundFlutterSdkPlatform.instance.beaconsStream;
+  /// Inicia o scan de beacons após `configure()`.
+  static Future<void> startScanning() async {
+    await _channel.invokeMethod('startScanning');
+  }
 
-  /// Stream de eventos de sincronização com a API.
-  ///
-  /// Recebe eventos de sucesso (SyncSuccessEvent) ou erro (SyncErrorEvent)
-  /// quando o SDK tenta sincronizar dados de beacons com a API.
-  ///
-  /// Exemplo de uso:
-  /// ```dart
-  /// BearoundFlutterSdk.syncStream.listen((event) {
-  ///   if (event is SyncSuccessEvent) {
-  ///     print('Sync success: ${event.message}');
-  ///     print('Beacons synced: ${event.beaconsCount}');
-  ///   } else if (event is SyncErrorEvent) {
-  ///     print('Sync error: ${event.errorMessage}');
-  ///     print('Error code: ${event.errorCode}');
-  ///   }
-  /// });
-  /// ```
-  static Stream<BeaconEvent> get syncStream =>
-      BearoundFlutterSdkPlatform.instance.syncStream;
+  /// Para o scan de beacons.
+  static Future<void> stopScanning() async {
+    await _channel.invokeMethod('stopScanning');
+  }
 
-  /// Stream de eventos de entrada/saída de regiões de beacons.
-  ///
-  /// Recebe eventos quando o dispositivo entra (BeaconRegionEnterEvent) ou
-  /// sai (BeaconRegionExitEvent) de uma região de beacons.
-  ///
-  /// Exemplo de uso:
-  /// ```dart
-  /// BearoundFlutterSdk.regionStream.listen((event) {
-  ///   if (event is BeaconRegionEnterEvent) {
-  ///     print('Entered region: ${event.regionName}');
-  ///   } else if (event is BeaconRegionExitEvent) {
-  ///     print('Exited region: ${event.regionName}');
-  ///   }
-  /// });
-  /// ```
-  static Stream<BeaconEvent> get regionStream =>
-      BearoundFlutterSdkPlatform.instance.regionStream;
+  /// Retorna se o SDK está escaneando.
+  static Future<bool> isScanning() async {
+    final result = await _channel.invokeMethod<bool>('isScanning');
+    return result ?? false;
+  }
 
-  /// Define o intervalo de sincronização de beacons (frequência de scan).
-  ///
-  /// Configura com que frequência o SDK faz scan de beacons.
-  /// Valores menores = maior consumo de bateria, mas detecção mais rápida.
-  /// Valores maiores = menor consumo de bateria, mas detecção mais lenta.
-  ///
-  /// Exemplo:
-  /// ```dart
-  /// await BearoundFlutterSdk.setSyncInterval(SyncInterval.time20); // 20 segundos (padrão)
-  /// await BearoundFlutterSdk.setSyncInterval(SyncInterval.time60); // 60 segundos (economia de bateria)
-  /// ```
-  ///
-  /// Pode ser chamado antes ou depois de `startScan()` para ajuste dinâmico.
-  static Future<void> setSyncInterval(SyncInterval interval) async =>
-      await BearoundFlutterSdkPlatform.instance.setSyncInterval(interval);
+  /// Habilita ou desabilita o scan Bluetooth de metadados.
+  static Future<void> setBluetoothScanning(bool enabled) async {
+    await _channel.invokeMethod('setBluetoothScanning', {'enabled': enabled});
+  }
 
-  /// Define o tamanho do backup de beacons perdidos.
-  ///
-  /// Configura quantos beacons que falharam na sincronização devem ser
-  /// armazenados para retry. Valores maiores = mais memória usada.
-  ///
-  /// Exemplo:
-  /// ```dart
-  /// await BearoundFlutterSdk.setBackupSize(BackupSize.size40); // 40 beacons (padrão)
-  /// await BearoundFlutterSdk.setBackupSize(BackupSize.size10); // 10 beacons (economia de memória)
-  /// ```
-  ///
-  /// ⚠️ Android: Deve ser chamado ANTES de `startScan()`.
-  /// ⚠️ iOS: Pode ser chamado a qualquer momento.
-  static Future<void> setBackupSize(BackupSize size) async =>
-      await BearoundFlutterSdkPlatform.instance.setBackupSize(size);
+  /// Define propriedades do usuário associadas aos eventos de beacon.
+  static Future<void> setUserProperties(UserProperties properties) async {
+    await _channel.invokeMethod('setUserProperties', properties.toJson());
+  }
 
-  /// Retorna o intervalo de sincronização atual.
-  ///
-  /// Exemplo:
-  /// ```dart
-  /// final interval = await BearoundFlutterSdk.getSyncInterval();
-  /// print('Intervalo atual: ${interval.seconds} segundos');
-  /// ```
-  static Future<SyncInterval> getSyncInterval() async =>
-      await BearoundFlutterSdkPlatform.instance.getSyncInterval();
+  /// Limpa as propriedades do usuário.
+  static Future<void> clearUserProperties() async {
+    await _channel.invokeMethod('clearUserProperties');
+  }
 
-  /// Retorna o tamanho do backup atual.
-  ///
-  /// Exemplo:
-  /// ```dart
-  /// final size = await BearoundFlutterSdk.getBackupSize();
-  /// print('Tamanho do backup: ${size.value} beacons');
-  /// ```
-  static Future<BackupSize> getBackupSize() async =>
-      await BearoundFlutterSdkPlatform.instance.getBackupSize();
+  /// Stream com a lista de beacons atualizada pelo SDK.
+  static Stream<List<Beacon>> get beaconsStream {
+    _beaconsStream ??= _beaconsChannel.receiveBroadcastStream().map((event) {
+      final beaconsRaw = event is List ? event : _asMap(event)['beacons'];
+      if (beaconsRaw is List) {
+        return beaconsRaw
+            .whereType<Map>()
+            .map((item) => Beacon.fromJson(Map<String, dynamic>.from(item)))
+            .toList();
+      }
+      return <Beacon>[];
+    });
+    return _beaconsStream!;
+  }
+
+  /// Stream com o status de sincronização do SDK.
+  static Stream<SyncStatus> get syncStream {
+    _syncStream ??= _syncChannel.receiveBroadcastStream().map((event) {
+      final payload = _asMap(event);
+      return SyncStatus.fromJson(payload);
+    });
+    return _syncStream!;
+  }
+
+  /// Stream indicando alterações no estado de scanning.
+  static Stream<bool> get scanningStream {
+    _scanningStream ??= _scanningChannel.receiveBroadcastStream().map((event) {
+      if (event is bool) {
+        return event;
+      }
+      final payload = _asMap(event);
+      return payload['isScanning'] as bool? ?? false;
+    });
+    return _scanningStream!;
+  }
+
+  /// Stream de erros reportados pelo SDK nativo.
+  static Stream<BearoundError> get errorStream {
+    _errorStream ??= _errorChannel.receiveBroadcastStream().map((event) {
+      if (event is String) {
+        return BearoundError(message: event);
+      }
+      final payload = _asMap(event);
+      return BearoundError.fromJson(payload);
+    });
+    return _errorStream!;
+  }
+
+  static Map<String, dynamic> _asMap(Object? event) {
+    if (event is Map) {
+      return Map<String, dynamic>.from(event);
+    }
+    return <String, dynamic>{};
+  }
 }
