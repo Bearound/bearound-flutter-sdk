@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2026-01-15
+
+### Added
+- New Flutter API aligned to the native SDK 2.0.0 (`configure`, `startScanning`, `stopScanning`).
+- Streamed updates for beacons, sync status, scanning state, and errors.
+- New beacon/metadata models matching native SDK fields.
+- User properties support (`setUserProperties`, `clearUserProperties`).
+
+### Changed
+- Updated Android native dependency to `com.github.Bearound:bearound-android-sdk:2.0.0`.
+- Updated iOS native dependency to `BearoundSDK ~> 2.0.0`.
+- Android minimum SDK is now 23; iOS minimum is 13.0.
+- Plugin channel payloads updated to match v2 delegate events.
+
+### Removed
+- Legacy 1.x API surface (client token initialization, backup size, legacy sync success/error events, region events).
+
 ## [1.3.1] - 2025-12-22
 
 ### Added

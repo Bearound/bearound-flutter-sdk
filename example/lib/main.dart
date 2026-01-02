@@ -1,6 +1,8 @@
-import 'package:flutter/material.dart';
 import 'dart:async';
+
 import 'package:bearound_flutter_sdk/bearound_flutter_sdk.dart';
+import 'package:flutter/material.dart';
+
 import 'settings_page.dart';
 
 void main() {
@@ -32,25 +34,31 @@ class _BeaconHomePageState extends State<BeaconHomePage>
     with WidgetsBindingObserver {
   bool _hasPermission = false;
   bool _isScanning = false;
-  String _status = "Parado";
+  String _status = 'Parado';
 
-  // Listeners
-  StreamSubscription<BeaconsDetectedEvent>? _beaconsSubscription;
-  StreamSubscription<BeaconEvent>? _syncSubscription;
-  StreamSubscription<BeaconEvent>? _regionSubscription;
+  int _syncIntervalSeconds = 30;
+  bool _enableBluetoothScanning = true;
+  bool _enablePeriodicScanning = true;
 
-  // Data
   List<Beacon> _detectedBeacons = [];
   final List<String> _logs = [];
-  String _lastSyncStatus = "Nenhuma sincronização ainda";
-  String _regionStatus = "Fora de região";
+  SyncStatus _syncStatus = const SyncStatus(
+    secondsUntilNextSync: 0,
+    isRanging: false,
+  );
+  String? _lastError;
+
+  StreamSubscription<List<Beacon>>? _beaconsSubscription;
+  StreamSubscription<SyncStatus>? _syncSubscription;
+  StreamSubscription<bool>? _scanningSubscription;
+  StreamSubscription<BearoundError>? _errorSubscription;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _checkAndRequestPermission();
-    _syncStateWithNative();
+    _startListening();
+    _initializeSdk();
   }
 
   @override
@@ -58,7 +66,8 @@ class _BeaconHomePageState extends State<BeaconHomePage>
     WidgetsBinding.instance.removeObserver(this);
     _beaconsSubscription?.cancel();
     _syncSubscription?.cancel();
-    _regionSubscription?.cancel();
+    _scanningSubscription?.cancel();
+    _errorSubscription?.cancel();
     super.dispose();
   }
 
@@ -66,126 +75,130 @@ class _BeaconHomePageState extends State<BeaconHomePage>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
     if (state == AppLifecycleState.resumed) {
-      // App voltou ao foreground, sincronizar estado
-      _syncStateWithNative();
+      _refreshScanningState();
     }
   }
 
-  /// Sincroniza o estado da UI com o estado real do SDK nativo
-  Future<void> _syncStateWithNative() async {
-    final isRunning = await BearoundFlutterSdk.isInitialized();
-    if (isRunning && !_isScanning) {
-      // SDK está rodando mas UI mostra parado - sincronizar
-      // Precisamos re-registrar os listeners nativos que foram removidos ao fechar o app
-      _addLog('🔄 Detectado SDK rodando em background, reconectando...');
-
-      // Primeiro, configurar os listeners do Flutter
-      _startListening();
-
-      // Depois, chamar initialize novamente para re-registrar listeners nativos
-      // O código Android está preparado para lidar com re-inicialização gracefully
-      try {
-        await BearoundFlutterSdk.startScan("test_token", debug: true);
-        setState(() {
-          _isScanning = true;
-          _status = "Scanning…";
-        });
-        _addLog('✅ Reconexão bem-sucedida: eventos nativos restaurados');
-      } catch (e) {
-        _addLog('❌ Erro ao reconectar: $e');
-      }
-    } else if (!isRunning && _isScanning) {
-      // SDK não está rodando mas UI mostra rodando - sincronizar
-      setState(() {
-        _isScanning = false;
-        _status = "Parado";
-      });
-      _addLog('🔄 Estado sincronizado: SDK estava parado');
-    }
-  }
-
-  Future<void> _checkAndRequestPermission() async {
+  Future<void> _initializeSdk() async {
     final granted = await BearoundFlutterSdk.requestPermissions();
     setState(() {
       _hasPermission = granted;
-      _status = granted ? "Permissões OK" : "Permissões necessárias!";
+      _status = granted ? 'Permissões OK' : 'Permissões necessárias!';
+    });
+
+    if (!granted) {
+      return;
+    }
+
+    await _applyConfiguration();
+    await _refreshScanningState();
+  }
+
+  Future<void> _applyConfiguration() async {
+    try {
+      await BearoundFlutterSdk.configure(
+        syncInterval: Duration(seconds: _syncIntervalSeconds),
+        enableBluetoothScanning: _enableBluetoothScanning,
+        enablePeriodicScanning: _enablePeriodicScanning,
+      );
+
+      _addLog(
+        '⚙️ Configurado: ${_syncIntervalSeconds}s, '
+        'BLE ${_enableBluetoothScanning ? 'on' : 'off'}, '
+        'periódico ${_enablePeriodicScanning ? 'on' : 'off'}',
+      );
+    } catch (error) {
+      setState(() {
+        _lastError = error.toString();
+      });
+      _addLog('❌ Erro ao configurar: $error');
+    }
+  }
+
+  Future<void> _refreshScanningState() async {
+    final isRunning = await BearoundFlutterSdk.isScanning();
+    setState(() {
+      _isScanning = isRunning;
+      _status = isRunning ? 'Scaneando…' : 'Parado';
     });
   }
 
   void _startListening() {
-    // Listen to beacon detection events
-    _beaconsSubscription = BearoundFlutterSdk.beaconsStream.listen((event) {
+    _beaconsSubscription = BearoundFlutterSdk.beaconsStream.listen((beacons) {
       setState(() {
-        _detectedBeacons = event.beacons;
-        _addLog(
-          '📡 Beacons detectados (${event.eventType.name}): ${event.beacons.length}',
-        );
+        _detectedBeacons = beacons;
+      });
+      _addLog('📡 Beacons detectados: ${beacons.length}');
+    });
+
+    _syncSubscription = BearoundFlutterSdk.syncStream.listen((status) {
+      setState(() {
+        _syncStatus = status;
       });
     });
 
-    // Listen to sync events
-    _syncSubscription = BearoundFlutterSdk.syncStream.listen((event) {
-      if (event is SyncSuccessEvent) {
-        setState(() {
-          _lastSyncStatus =
-              '✅ Sucesso: ${event.beaconsCount} beacons (${event.eventType})';
-          _addLog('✅ Sync sucesso: ${event.message}');
-        });
-      } else if (event is SyncErrorEvent) {
-        setState(() {
-          _lastSyncStatus =
-              '❌ Erro: ${event.errorMessage} (código: ${event.errorCode})';
-          _addLog('❌ Sync erro: ${event.errorMessage}');
-        });
-      }
+    _scanningSubscription = BearoundFlutterSdk.scanningStream.listen((
+      isScanning,
+    ) {
+      setState(() {
+        _isScanning = isScanning;
+        _status = isScanning ? 'Scaneando…' : 'Parado';
+      });
+      _addLog('🔄 Scanning ${isScanning ? 'ativo' : 'parado'}');
     });
 
-    // Listen to region events
-    _regionSubscription = BearoundFlutterSdk.regionStream.listen((event) {
-      if (event is BeaconRegionEnterEvent) {
-        setState(() {
-          _regionStatus = '🟢 Dentro da região: ${event.regionName}';
-          _addLog('🟢 Entrou na região: ${event.regionName}');
-        });
-      } else if (event is BeaconRegionExitEvent) {
-        setState(() {
-          _regionStatus = '🔴 Fora da região: ${event.regionName}';
-          _addLog('🔴 Saiu da região: ${event.regionName}');
-        });
-      }
+    _errorSubscription = BearoundFlutterSdk.errorStream.listen((error) {
+      setState(() {
+        _lastError = error.message;
+      });
+      _addLog('❌ Erro: ${error.message}');
     });
   }
 
   void _addLog(String log) {
     final timestamp = DateTime.now().toString().substring(11, 19);
-    _logs.insert(0, '[$timestamp] $log');
-    if (_logs.length > 50) {
-      _logs.removeLast();
+    if (!mounted) {
+      return;
     }
+    setState(() {
+      _logs.insert(0, '[$timestamp] $log');
+      if (_logs.length > 50) {
+        _logs.removeLast();
+      }
+    });
   }
 
   Future<void> _startScan() async {
-    await BearoundFlutterSdk.startScan("test_token", debug: true);
-    setState(() {
-      _isScanning = true;
-      _status = "Scanning…";
-    });
-    _startListening();
-    _addLog('🚀 Scanner iniciado');
+    if (!_hasPermission) {
+      _addLog('⚠️ Permissões necessárias');
+      return;
+    }
+
+    await _applyConfiguration();
+    try {
+      await BearoundFlutterSdk.startScanning();
+      _addLog('🚀 Scanner iniciado');
+    } catch (error) {
+      setState(() {
+        _lastError = error.toString();
+      });
+      _addLog('❌ Erro ao iniciar: $error');
+    }
   }
 
   Future<void> _stopScan() async {
-    await BearoundFlutterSdk.stopScan();
-    _beaconsSubscription?.cancel();
-    _syncSubscription?.cancel();
-    _regionSubscription?.cancel();
-
+    try {
+      await BearoundFlutterSdk.stopScanning();
+    } catch (error) {
+      setState(() {
+        _lastError = error.toString();
+      });
+      _addLog('❌ Erro ao parar: $error');
+    }
     setState(() {
-      _isScanning = false;
-      _status = "Parado";
       _detectedBeacons = [];
-      _lastSyncStatus = "Nenhuma sincronização ainda";
-      _regionStatus = "Fora de região";
+      _syncStatus = const SyncStatus(secondsUntilNextSync: 0, isRanging: false);
+      _lastError = null;
     });
     _addLog('🛑 Scanner parado');
   }
@@ -196,25 +209,15 @@ class _BeaconHomePageState extends State<BeaconHomePage>
       length: 3,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Bearound SDK Example'),
+          title: const Text('Bearound SDK'),
           bottom: const TabBar(
             tabs: [
               Tab(icon: Icon(Icons.radar), text: 'Beacons'),
-              Tab(icon: Icon(Icons.sync), text: 'Sync'),
+              Tab(icon: Icon(Icons.sync), text: 'Status'),
               Tab(icon: Icon(Icons.article), text: 'Logs'),
             ],
           ),
           actions: [
-            IconButton(
-              icon: const Icon(Icons.settings),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const SettingsPage()),
-                );
-              },
-              tooltip: 'Configurações',
-            ),
             Container(
               margin: const EdgeInsets.only(right: 16),
               child: Center(
@@ -230,10 +233,37 @@ class _BeaconHomePageState extends State<BeaconHomePage>
                 ),
               ),
             ),
+            IconButton(
+              icon: const Icon(Icons.settings),
+              onPressed: () async {
+                final result = await Navigator.push<SdkSettings>(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => SettingsPage(
+                      initialSyncIntervalSeconds: _syncIntervalSeconds,
+                      initialBluetoothScanning: _enableBluetoothScanning,
+                      initialPeriodicScanning: _enablePeriodicScanning,
+                    ),
+                  ),
+                );
+
+                if (result != null) {
+                  setState(() {
+                    _syncIntervalSeconds = result.syncIntervalSeconds;
+                    _enableBluetoothScanning = result.enableBluetoothScanning;
+                    _enablePeriodicScanning = result.enablePeriodicScanning;
+                  });
+                  if (_hasPermission) {
+                    await _applyConfiguration();
+                  }
+                }
+              },
+              tooltip: 'Configurações',
+            ),
           ],
         ),
         body: TabBarView(
-          children: [_buildBeaconsTab(), _buildSyncTab(), _buildLogsTab()],
+          children: [_buildBeaconsTab(), _buildStatusTab(), _buildLogsTab()],
         ),
         bottomNavigationBar: _buildBottomBar(),
       ),
@@ -243,22 +273,23 @@ class _BeaconHomePageState extends State<BeaconHomePage>
   Widget _buildBeaconsTab() {
     return Column(
       children: [
-        Container(
-          padding: const EdgeInsets.all(16),
-          color: Colors.blue.shade50,
-          child: Row(
-            children: [
-              const Icon(Icons.location_on, color: Colors.blue),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  _regionStatus,
-                  style: const TextStyle(fontSize: 16),
+        if (_lastError != null)
+          Container(
+            padding: const EdgeInsets.all(16),
+            color: Colors.red.shade50,
+            child: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.red),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _lastError!,
+                    style: const TextStyle(fontSize: 14, color: Colors.red),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
         Expanded(
           child: _detectedBeacons.isEmpty
               ? const Center(
@@ -271,6 +302,7 @@ class _BeaconHomePageState extends State<BeaconHomePage>
                   itemCount: _detectedBeacons.length,
                   itemBuilder: (context, index) {
                     final beacon = _detectedBeacons[index];
+                    final metadata = beacon.metadata;
                     return Card(
                       margin: const EdgeInsets.symmetric(
                         horizontal: 16,
@@ -289,11 +321,15 @@ class _BeaconHomePageState extends State<BeaconHomePage>
                           children: [
                             Text('UUID: ${beacon.uuid}'),
                             Text('RSSI: ${beacon.rssi} dBm'),
-                            if (beacon.bluetoothName != null)
-                              Text('Nome: ${beacon.bluetoothName}'),
-                            if (beacon.distanceMeters != null)
+                            Text(
+                              'Proximidade: ${beacon.proximity.name} | '
+                              'Precisão: ${beacon.accuracy.toStringAsFixed(2)}m',
+                            ),
+                            if (metadata != null)
                               Text(
-                                'Distância: ${beacon.distanceMeters!.toStringAsFixed(2)}m',
+                                'Bateria: ${metadata.batteryLevel}% | '
+                                'Temp: ${metadata.temperature}°C | '
+                                'Firmware: ${metadata.firmwareVersion}',
                               ),
                           ],
                         ),
@@ -307,61 +343,56 @@ class _BeaconHomePageState extends State<BeaconHomePage>
     );
   }
 
-  Widget _buildSyncTab() {
+  Widget _buildStatusTab() {
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Status de Sincronização com API',
+            'Status do SDK',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        _lastSyncStatus.contains('✅')
-                            ? Icons.check_circle
-                            : Icons.error,
-                        color: _lastSyncStatus.contains('✅')
-                            ? Colors.green
-                            : Colors.red,
-                      ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'Último Status',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(_lastSyncStatus),
-                ],
-              ),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.grey.shade300),
+            ),
+            padding: const EdgeInsets.all(16),
+            width: double.infinity,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Scanning: ${_isScanning ? 'ativo' : 'parado'}'),
+                const SizedBox(height: 8),
+                Text('Próxima sync: ${_syncStatus.secondsUntilNextSync}s'),
+                const SizedBox(height: 8),
+                Text('Ranging: ${_syncStatus.isRanging ? 'ativo' : 'inativo'}'),
+              ],
             ),
           ),
           const SizedBox(height: 16),
           const Text(
-            'Informações:',
+            'Configuração Atual',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
-          const Text(
-            '• O SDK sincroniza automaticamente os beacons detectados com a API\n'
-            '• Eventos de sucesso mostram quantos beacons foram enviados\n'
-            '• Eventos de erro mostram o código e mensagem de erro',
-            style: TextStyle(color: Colors.grey),
+          Text('Intervalo: $_syncIntervalSeconds segundos'),
+          Text(
+            'Bluetooth metadata: ${_enableBluetoothScanning ? 'ligado' : 'desligado'}',
           ),
+          Text(
+            'Scan periódico: ${_enablePeriodicScanning ? 'ligado' : 'desligado'}',
+          ),
+          if (_lastError != null) ...[
+            const SizedBox(height: 16),
+            Text(
+              'Último erro: $_lastError',
+              style: const TextStyle(color: Colors.red),
+            ),
+          ],
         ],
       ),
     );
@@ -444,9 +475,9 @@ class _BeaconHomePageState extends State<BeaconHomePage>
             if (!_hasPermission)
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: _checkAndRequestPermission,
+                  onPressed: _initializeSdk,
                   icon: const Icon(Icons.lock_open),
-                  label: const Text("Solicitar Permissões"),
+                  label: const Text('Solicitar Permissões'),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
@@ -457,7 +488,7 @@ class _BeaconHomePageState extends State<BeaconHomePage>
                 child: ElevatedButton.icon(
                   onPressed: _startScan,
                   icon: const Icon(Icons.play_arrow),
-                  label: const Text("Iniciar Scan"),
+                  label: const Text('Iniciar Scan'),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     backgroundColor: Colors.green,
@@ -470,7 +501,7 @@ class _BeaconHomePageState extends State<BeaconHomePage>
                 child: ElevatedButton.icon(
                   onPressed: _stopScan,
                   icon: const Icon(Icons.stop),
-                  label: const Text("Parar Scan"),
+                  label: const Text('Parar Scan'),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     backgroundColor: Colors.red,

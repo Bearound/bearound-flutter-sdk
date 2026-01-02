@@ -60,4 +60,17 @@ class PermissionService {
       return false;
     }
   }
+
+  Future<bool> requestNotification() async {
+    try {
+      final bool granted = await Permission.notification.isGranted;
+      if (granted) {
+        return true;
+      }
+      final status = await Permission.notification.request();
+      return status.isGranted;
+    } catch (e) {
+      return false;
+    }
+  }
 }
