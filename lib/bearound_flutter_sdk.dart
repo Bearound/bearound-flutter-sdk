@@ -1,4 +1,4 @@
-library bearound_flutter_sdk;
+library;
 
 import 'dart:async';
 
