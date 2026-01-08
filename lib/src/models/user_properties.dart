@@ -29,6 +29,3 @@ class UserProperties {
     return data;
   }
 }
-
-
-

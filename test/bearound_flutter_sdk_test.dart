@@ -56,9 +56,7 @@ void main() {
     });
 
     test('configure uses default values when parameters are omitted', () async {
-      await BearoundFlutterSdk.configure(
-        businessToken: 'test-token',
-      );
+      await BearoundFlutterSdk.configure(businessToken: 'test-token');
 
       expect(methodCalls, hasLength(1));
       expect(methodCalls.first.method, equals('configure'));
@@ -73,29 +71,38 @@ void main() {
       );
     });
 
-    test('configure throws ArgumentError when businessToken is empty', () async {
-      expect(
-        () => BearoundFlutterSdk.configure(businessToken: ''),
-        throwsA(isA<ArgumentError>()),
-      );
+    test(
+      'configure throws ArgumentError when businessToken is empty',
+      () async {
+        expect(
+          () => BearoundFlutterSdk.configure(businessToken: ''),
+          throwsA(isA<ArgumentError>()),
+        );
 
-      expect(methodCalls, isEmpty);
-    });
+        expect(methodCalls, isEmpty);
+      },
+    );
 
-    test('configure throws ArgumentError when businessToken is whitespace', () async {
-      expect(
-        () => BearoundFlutterSdk.configure(businessToken: '   '),
-        throwsA(isA<ArgumentError>()),
-      );
+    test(
+      'configure throws ArgumentError when businessToken is whitespace',
+      () async {
+        expect(
+          () => BearoundFlutterSdk.configure(businessToken: '   '),
+          throwsA(isA<ArgumentError>()),
+        );
 
-      expect(methodCalls, isEmpty);
-    });
+        expect(methodCalls, isEmpty);
+      },
+    );
 
     test('configure trims businessToken whitespace', () async {
       await BearoundFlutterSdk.configure(businessToken: '  test-token  ');
 
       expect(methodCalls, hasLength(1));
-      expect(methodCalls.first.arguments['businessToken'], equals('test-token'));
+      expect(
+        methodCalls.first.arguments['businessToken'],
+        equals('test-token'),
+      );
     });
 
     test('configure with minimum sync interval (5 seconds)', () async {
