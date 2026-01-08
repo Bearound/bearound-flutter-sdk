@@ -33,10 +33,10 @@ void main() {
 
   group('BearoundFlutterSdk Configuration', () {
     test('configure sends expected arguments with all parameters', () async {
-      final appId = faker.company.name();
+      final businessToken = faker.guid.guid();
 
       await BearoundFlutterSdk.configure(
-        appId: appId,
+        businessToken: businessToken,
         syncInterval: const Duration(seconds: 20),
         enableBluetoothScanning: true,
         enablePeriodicScanning: false,
@@ -47,7 +47,7 @@ void main() {
       expect(
         methodCalls.first.arguments,
         equals({
-          'appId': appId,
+          'businessToken': businessToken,
           'syncInterval': 20,
           'enableBluetoothScanning': true,
           'enablePeriodicScanning': false,
@@ -56,13 +56,14 @@ void main() {
     });
 
     test('configure uses default values when parameters are omitted', () async {
-      await BearoundFlutterSdk.configure();
+      await BearoundFlutterSdk.configure(businessToken: 'test-token');
 
       expect(methodCalls, hasLength(1));
       expect(methodCalls.first.method, equals('configure'));
       expect(
         methodCalls.first.arguments,
         equals({
+          'businessToken': 'test-token',
           'syncInterval': 30,
           'enableBluetoothScanning': false,
           'enablePeriodicScanning': true,
@@ -70,22 +71,43 @@ void main() {
       );
     });
 
-    test('configure ignores empty appId', () async {
-      await BearoundFlutterSdk.configure(appId: '   ');
+    test(
+      'configure throws ArgumentError when businessToken is empty',
+      () async {
+        expect(
+          () => BearoundFlutterSdk.configure(businessToken: ''),
+          throwsA(isA<ArgumentError>()),
+        );
+
+        expect(methodCalls, isEmpty);
+      },
+    );
+
+    test(
+      'configure throws ArgumentError when businessToken is whitespace',
+      () async {
+        expect(
+          () => BearoundFlutterSdk.configure(businessToken: '   '),
+          throwsA(isA<ArgumentError>()),
+        );
+
+        expect(methodCalls, isEmpty);
+      },
+    );
+
+    test('configure trims businessToken whitespace', () async {
+      await BearoundFlutterSdk.configure(businessToken: '  test-token  ');
 
       expect(methodCalls, hasLength(1));
-      expect(methodCalls.first.arguments, isNot(contains('appId')));
-    });
-
-    test('configure trims appId whitespace', () async {
-      await BearoundFlutterSdk.configure(appId: '  test-app  ');
-
-      expect(methodCalls, hasLength(1));
-      expect(methodCalls.first.arguments['appId'], equals('test-app'));
+      expect(
+        methodCalls.first.arguments['businessToken'],
+        equals('test-token'),
+      );
     });
 
     test('configure with minimum sync interval (5 seconds)', () async {
       await BearoundFlutterSdk.configure(
+        businessToken: 'test-token',
         syncInterval: const Duration(seconds: 5),
       );
 
@@ -94,6 +116,7 @@ void main() {
 
     test('configure with maximum sync interval (60 seconds)', () async {
       await BearoundFlutterSdk.configure(
+        businessToken: 'test-token',
         syncInterval: const Duration(seconds: 60),
       );
 

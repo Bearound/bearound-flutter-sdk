@@ -5,6 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.1] - 2026-01-07
+
+### ⚠️ Breaking Changes
+
+**Authentication Update**: SDK now requires business token instead of appId for authentication.
+
+### Changed
+
+- **API**: `configure()` now requires `businessToken` parameter (replaces `appId`)
+- **Auto-detection**: `appId` automatically extracted from package/bundle identifier
+- **Authorization**: Business token sent in `Authorization` header for all API requests
+- **Native SDKs**: Updated to version 2.0.1
+  - Android: `com.github.Bearound:bearound-android-sdk:v2.0.1`
+  - iOS: `BearoundSDK ~> 2.0.1`
+
+### Migration
+
+**Before (v2.0.0):**
+```dart
+await BearoundFlutterSdk.configure(
+  appId: 'com.example.app',
+  syncInterval: const Duration(seconds: 30),
+);
+```
+
+**After (v2.0.1):**
+```dart
+await BearoundFlutterSdk.configure(
+  businessToken: 'your-business-token-here',
+  syncInterval: const Duration(seconds: 30),
+);
+// Note: appId is now automatically extracted from package/bundle identifier
+```
+
+---
+
 ## [2.0.0] - 2026-01-15
 
 ### Added

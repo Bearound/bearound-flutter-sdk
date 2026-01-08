@@ -16,7 +16,7 @@ export 'src/models/bearound_error.dart';
 export 'src/models/sync_status.dart';
 export 'src/models/user_properties.dart';
 
-/// SDK principal do Bearound para integração com o SDK nativo 2.0.0.
+/// SDK principal do Bearound para integração com o SDK nativo 2.0.1.
 class BearoundFlutterSdk {
   BearoundFlutterSdk._();
 
@@ -45,22 +45,29 @@ class BearoundFlutterSdk {
 
   /// Configura o SDK nativo antes de iniciar o scan.
   ///
+  /// O [businessToken] é obrigatório para autenticação.
   /// O [syncInterval] é expresso em segundos e será validado pelo SDK (5-60s).
+  /// O appId é extraído automaticamente do package/bundle identifier.
   static Future<void> configure({
-    String? appId,
+    required String businessToken,
     Duration syncInterval = const Duration(seconds: 30),
     bool enableBluetoothScanning = false,
     bool enablePeriodicScanning = true,
   }) async {
+    if (businessToken.trim().isEmpty) {
+      throw ArgumentError.value(
+        businessToken,
+        'businessToken',
+        'Business token cannot be empty',
+      );
+    }
+
     final args = <String, dynamic>{
+      'businessToken': businessToken.trim(),
       'syncInterval': syncInterval.inSeconds,
       'enableBluetoothScanning': enableBluetoothScanning,
       'enablePeriodicScanning': enablePeriodicScanning,
     };
-
-    if (appId != null && appId.trim().isNotEmpty) {
-      args['appId'] = appId.trim();
-    }
 
     await _channel.invokeMethod('configure', args);
   }
