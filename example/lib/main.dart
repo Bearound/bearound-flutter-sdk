@@ -97,7 +97,7 @@ class _BeaconHomePageState extends State<BeaconHomePage>
   Future<void> _applyConfiguration() async {
     try {
       await BearoundFlutterSdk.configure(
-        businessToken: "BUSINESS_TOKEN",
+        businessToken: "your-business-token-here",
         syncInterval: Duration(seconds: _syncIntervalSeconds),
         enableBluetoothScanning: _enableBluetoothScanning,
         enablePeriodicScanning: _enablePeriodicScanning,

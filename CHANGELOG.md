@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Auto-detection**: `appId` automatically extracted from package/bundle identifier
 - **Authorization**: Business token sent in `Authorization` header for all API requests
 - **Native SDKs**: Updated to version 2.0.1
-  - Android: `com.github.Bearound:bearound-android-sdk:2.0.1`
+  - Android: `com.github.Bearound:bearound-android-sdk:v2.0.1`
   - iOS: `BearoundSDK ~> 2.0.1`
 
 ### Migration

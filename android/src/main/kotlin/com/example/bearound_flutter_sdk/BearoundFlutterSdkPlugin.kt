@@ -111,9 +111,9 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKDe
           return
         }
         
-        val syncIntervalSeconds = (args["syncInterval"] as? Number)?.toLong() ?: 30L
-        val enableBluetoothScanning = args["enableBluetoothScanning"] as? Boolean ?: false
-        val enablePeriodicScanning = args["enablePeriodicScanning"] as? Boolean ?: true
+        val syncIntervalSeconds = (args?.get("syncInterval") as? Number)?.toLong() ?: 30L
+        val enableBluetoothScanning = args?.get("enableBluetoothScanning") as? Boolean ?: false
+        val enablePeriodicScanning = args?.get("enablePeriodicScanning") as? Boolean ?: true
 
         sdk?.configure(
           businessToken = businessToken,

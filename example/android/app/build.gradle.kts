@@ -10,15 +10,6 @@ android {
     compileSdk = flutter.compileSdkVersion
     ndkVersion = "28.2.13676358"
 
-    configurations.all {
-        resolutionStrategy {
-            force("org.jetbrains.kotlin:kotlin-stdlib:2.1.0")
-            force("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.22")
-            force("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22")
-            force("org.jetbrains.kotlin:kotlin-stdlib-common:2.1.0")
-        }
-    }
-
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
