@@ -1,7 +1,7 @@
+import BearoundSDK
+import CoreLocation
 import Flutter
 import UIKit
-import CoreLocation
-import BearoundSDK
 
 public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDelegate {
     private let beaconsStreamHandler = EventStreamHandler()
@@ -50,27 +50,27 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
         switch call.method {
         case "configure":
             let args = call.arguments as? [String: Any]
-            let appIdArg = (args?["appId"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
-            let appId = (appIdArg?.isEmpty == false)
-                ? appIdArg!
-                : (Bundle.main.bundleIdentifier ?? "")
-            let syncInterval = (args?["syncInterval"] as? NSNumber)?.doubleValue ?? 30
-            let enableBluetoothScanning = args?["enableBluetoothScanning"] as? Bool ?? false
-            let enablePeriodicScanning = args?["enablePeriodicScanning"] as? Bool ?? true
-
-            if appId.isEmpty {
+            guard
+                let businessToken = (args?["businessToken"] as? String)?.trimmingCharacters(
+                    in: .whitespacesAndNewlines),
+                !businessToken.isEmpty
+            else {
                 result(
                     FlutterError(
-                        code: "CONFIG_ERROR",
-                        message: "appId is required",
+                        code: "INVALID_ARGUMENT",
+                        message: "businessToken is required",
                         details: nil
                     )
                 )
                 return
             }
 
+            let syncInterval = (args?["syncInterval"] as? NSNumber)?.doubleValue ?? 30
+            let enableBluetoothScanning = args?["enableBluetoothScanning"] as? Bool ?? false
+            let enablePeriodicScanning = args?["enablePeriodicScanning"] as? Bool ?? true
+
             BeAroundSDK.shared.configure(
-                appId: appId,
+                businessToken: businessToken,
                 syncInterval: syncInterval,
                 enableBluetoothScanning: enableBluetoothScanning,
                 enablePeriodicScanning: enablePeriodicScanning
@@ -153,7 +153,7 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
                 "rssi": beacon.rssi,
                 "proximity": mapProximity(beacon.proximity),
                 "accuracy": beacon.accuracy,
-                "timestamp": Int(beacon.timestamp.timeIntervalSince1970 * 1000)
+                "timestamp": Int(beacon.timestamp.timeIntervalSince1970 * 1000),
             ]
 
             if let metadata = beacon.metadata {
@@ -192,7 +192,7 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
         guard isActiveScan else { return }
         let payload: [String: Any] = [
             "secondsUntilNextSync": secondsUntilNextSync,
-            "isRanging": isRanging
+            "isRanging": isRanging,
         ]
         DispatchQueue.main.async { [weak self] in
             self?.syncStreamHandler.eventSink?(payload)
@@ -219,7 +219,7 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
             "firmwareVersion": metadata.firmwareVersion,
             "batteryLevel": metadata.batteryLevel,
             "movements": metadata.movements,
-            "temperature": metadata.temperature
+            "temperature": metadata.temperature,
         ]
 
         if let txPower = metadata.txPower {
@@ -239,7 +239,9 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
 private class EventStreamHandler: NSObject, FlutterStreamHandler {
     var eventSink: FlutterEventSink?
 
-    func onListen(withArguments arguments: Any?, eventSink events: @escaping FlutterEventSink) -> FlutterError? {
+    func onListen(withArguments arguments: Any?, eventSink events: @escaping FlutterEventSink)
+        -> FlutterError?
+    {
         self.eventSink = events
         return nil
     }

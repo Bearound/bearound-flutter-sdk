@@ -1,6 +1,6 @@
 # 🐻 Bearound Flutter SDK
 
-Official Flutter plugin for the Bearound native SDKs (Android/iOS) version 2.0.0.
+Official Flutter plugin for the Bearound native SDKs (Android/iOS) version 2.0.1.
 
 ## Features
 
@@ -10,6 +10,7 @@ Official Flutter plugin for the Bearound native SDKs (Android/iOS) version 2.0.0
 - Scanning state and error streams.
 - User properties support for enriched beacon events.
 - Permission helper for location/Bluetooth setup.
+- Business token authentication with automatic app ID detection.
 
 ## Installation
 
@@ -17,7 +18,7 @@ Add to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  bearound_flutter_sdk: ^2.0.0
+  bearound_flutter_sdk: ^2.0.1
 ```
 
 Run:
@@ -94,10 +95,12 @@ Future<void> setupSdk() async {
   }
 
   await BearoundFlutterSdk.configure(
+    businessToken: 'your-business-token-here',
     syncInterval: const Duration(seconds: 30),
     enableBluetoothScanning: true,
     enablePeriodicScanning: true,
   );
+  // Note: appId is automatically extracted from the app's package/bundle identifier
 
   // appId is optional; defaults to the bundle identifier / package name.
 

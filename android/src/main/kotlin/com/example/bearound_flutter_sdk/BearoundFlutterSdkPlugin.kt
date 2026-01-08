@@ -104,16 +104,21 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKDe
     when (call.method) {
       "configure" -> {
         val args = call.arguments as? Map<*, *>
-        val appIdArg = (args?.get("appId") as? String)?.trim()
-        val appId = if (!appIdArg.isNullOrEmpty()) appIdArg else context.packageName
-        val syncIntervalSeconds = (args?.get("syncInterval") as? Number)?.toLong() ?: 30L
-        val enableBluetoothScanning =
-          args?.get("enableBluetoothScanning") as? Boolean ?: false
-        val enablePeriodicScanning =
-          args?.get("enablePeriodicScanning") as? Boolean ?: true
+        val businessToken = (args?.get("businessToken") as? String)?.trim()
+        
+        if (businessToken.isNullOrEmpty()) {
+          result.error("INVALID_ARGUMENT", "businessToken is required", null)
+          return
+        }
+        
+        val syncIntervalSeconds = (args["syncInterval"] as? Number)?.toLong() ?: 30L
+        val enableBluetoothScanning = args["enableBluetoothScanning"] as? Boolean ?: false
+        val enablePeriodicScanning = args["enablePeriodicScanning"] as? Boolean ?: true
 
+        // TODO: Update to businessToken when SDK 2.0.1 is available on JitPack
+        // For now, using appId (SDK 2.0.0 API)
         sdk?.configure(
-          appId = appId,
+          appId = context.packageName,
           syncInterval = syncIntervalSeconds * 1000L,
           enableBluetoothScanning = enableBluetoothScanning,
           enablePeriodicScanning = enablePeriodicScanning,
