@@ -36,7 +36,11 @@ class _BeaconHomePageState extends State<BeaconHomePage>
   bool _isScanning = false;
   String _status = 'Parado';
 
-  int _syncIntervalSeconds = 30;
+  ForegroundScanInterval _foregroundScanInterval =
+      ForegroundScanInterval.seconds15;
+  BackgroundScanInterval _backgroundScanInterval =
+      BackgroundScanInterval.seconds30;
+  MaxQueuedPayloads _maxQueuedPayloads = MaxQueuedPayloads.medium;
   bool _enableBluetoothScanning = true;
   bool _enablePeriodicScanning = true;
 
@@ -98,13 +102,17 @@ class _BeaconHomePageState extends State<BeaconHomePage>
     try {
       await BearoundFlutterSdk.configure(
         businessToken: "your-business-token-here",
-        syncInterval: Duration(seconds: _syncIntervalSeconds),
+        foregroundScanInterval: _foregroundScanInterval,
+        backgroundScanInterval: _backgroundScanInterval,
+        maxQueuedPayloads: _maxQueuedPayloads,
         enableBluetoothScanning: _enableBluetoothScanning,
         enablePeriodicScanning: _enablePeriodicScanning,
       );
 
       _addLog(
-        '⚙️ Configurado: ${_syncIntervalSeconds}s, '
+        '⚙️ Configurado: FG ${_foregroundScanInterval.seconds}s, '
+        'BG ${_backgroundScanInterval.seconds}s, '
+        'Queue ${_maxQueuedPayloads.value}, '
         'BLE ${_enableBluetoothScanning ? 'on' : 'off'}, '
         'periódico ${_enablePeriodicScanning ? 'on' : 'off'}',
       );
@@ -241,7 +249,9 @@ class _BeaconHomePageState extends State<BeaconHomePage>
                   context,
                   MaterialPageRoute(
                     builder: (context) => SettingsPage(
-                      initialSyncIntervalSeconds: _syncIntervalSeconds,
+                      initialForegroundScanInterval: _foregroundScanInterval,
+                      initialBackgroundScanInterval: _backgroundScanInterval,
+                      initialMaxQueuedPayloads: _maxQueuedPayloads,
                       initialBluetoothScanning: _enableBluetoothScanning,
                       initialPeriodicScanning: _enablePeriodicScanning,
                     ),
@@ -250,7 +260,9 @@ class _BeaconHomePageState extends State<BeaconHomePage>
 
                 if (result != null) {
                   setState(() {
-                    _syncIntervalSeconds = result.syncIntervalSeconds;
+                    _foregroundScanInterval = result.foregroundScanInterval;
+                    _backgroundScanInterval = result.backgroundScanInterval;
+                    _maxQueuedPayloads = result.maxQueuedPayloads;
                     _enableBluetoothScanning = result.enableBluetoothScanning;
                     _enablePeriodicScanning = result.enablePeriodicScanning;
                   });
@@ -380,7 +392,9 @@ class _BeaconHomePageState extends State<BeaconHomePage>
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
-          Text('Intervalo: $_syncIntervalSeconds segundos'),
+          Text('Foreground: ${_foregroundScanInterval.seconds}s'),
+          Text('Background: ${_backgroundScanInterval.seconds}s'),
+          Text('Fila de retry: ${_maxQueuedPayloads.value} batches'),
           Text(
             'Bluetooth metadata: ${_enableBluetoothScanning ? 'ligado' : 'desligado'}',
           ),

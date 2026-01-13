@@ -1,12 +1,17 @@
+import 'package:bearound_flutter_sdk/bearound_flutter_sdk.dart';
 import 'package:flutter/material.dart';
 
 class SdkSettings {
-  final int syncIntervalSeconds;
+  final ForegroundScanInterval foregroundScanInterval;
+  final BackgroundScanInterval backgroundScanInterval;
+  final MaxQueuedPayloads maxQueuedPayloads;
   final bool enableBluetoothScanning;
   final bool enablePeriodicScanning;
 
   const SdkSettings({
-    required this.syncIntervalSeconds,
+    required this.foregroundScanInterval,
+    required this.backgroundScanInterval,
+    required this.maxQueuedPayloads,
     required this.enableBluetoothScanning,
     required this.enablePeriodicScanning,
   });
@@ -15,12 +20,16 @@ class SdkSettings {
 class SettingsPage extends StatefulWidget {
   const SettingsPage({
     super.key,
-    required this.initialSyncIntervalSeconds,
+    required this.initialForegroundScanInterval,
+    required this.initialBackgroundScanInterval,
+    required this.initialMaxQueuedPayloads,
     required this.initialBluetoothScanning,
     required this.initialPeriodicScanning,
   });
 
-  final int initialSyncIntervalSeconds;
+  final ForegroundScanInterval initialForegroundScanInterval;
+  final BackgroundScanInterval initialBackgroundScanInterval;
+  final MaxQueuedPayloads initialMaxQueuedPayloads;
   final bool initialBluetoothScanning;
   final bool initialPeriodicScanning;
 
@@ -29,26 +38,20 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  late int _syncIntervalSeconds;
+  late ForegroundScanInterval _foregroundScanInterval;
+  late BackgroundScanInterval _backgroundScanInterval;
+  late MaxQueuedPayloads _maxQueuedPayloads;
   late bool _enableBluetoothScanning;
   late bool _enablePeriodicScanning;
 
   @override
   void initState() {
     super.initState();
-    _syncIntervalSeconds = widget.initialSyncIntervalSeconds;
+    _foregroundScanInterval = widget.initialForegroundScanInterval;
+    _backgroundScanInterval = widget.initialBackgroundScanInterval;
+    _maxQueuedPayloads = widget.initialMaxQueuedPayloads;
     _enableBluetoothScanning = widget.initialBluetoothScanning;
     _enablePeriodicScanning = widget.initialPeriodicScanning;
-  }
-
-  String _intervalLabel(int value) {
-    if (value <= 10) {
-      return 'Alta frequência';
-    }
-    if (value <= 30) {
-      return 'Balanceado';
-    }
-    return 'Economia de bateria';
   }
 
   @override
@@ -59,24 +62,83 @@ class _SettingsPageState extends State<SettingsPage> {
         padding: const EdgeInsets.all(16),
         children: [
           const Text(
-            'Intervalo de Sincronização',
+            'Intervalo de Scan - Foreground',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
-          Text(
-            '$_syncIntervalSeconds segundos (${_intervalLabel(_syncIntervalSeconds)})',
-            style: const TextStyle(color: Colors.grey),
-          ),
-          Slider(
-            value: _syncIntervalSeconds.toDouble(),
-            min: 5,
-            max: 60,
-            divisions: 11,
-            label: '$_syncIntervalSeconds s',
+          DropdownButton<ForegroundScanInterval>(
+            value: _foregroundScanInterval,
+            isExpanded: true,
+            items: ForegroundScanInterval.values.map((interval) {
+              return DropdownMenuItem(
+                value: interval,
+                child: Text('${interval.seconds} segundos'),
+              );
+            }).toList(),
             onChanged: (value) {
-              setState(() {
-                _syncIntervalSeconds = value.round();
-              });
+              if (value != null) {
+                setState(() {
+                  _foregroundScanInterval = value;
+                });
+              }
+            },
+          ),
+          const SizedBox(height: 24),
+          const Text(
+            'Intervalo de Scan - Background',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          DropdownButton<BackgroundScanInterval>(
+            value: _backgroundScanInterval,
+            isExpanded: true,
+            items: BackgroundScanInterval.values.map((interval) {
+              return DropdownMenuItem(
+                value: interval,
+                child: Text('${interval.seconds} segundos'),
+              );
+            }).toList(),
+            onChanged: (value) {
+              if (value != null) {
+                setState(() {
+                  _backgroundScanInterval = value;
+                });
+              }
+            },
+          ),
+          const SizedBox(height: 24),
+          const Text(
+            'Tamanho da Fila de Retry',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          DropdownButton<MaxQueuedPayloads>(
+            value: _maxQueuedPayloads,
+            isExpanded: true,
+            items: MaxQueuedPayloads.values.map((size) {
+              String label;
+              switch (size) {
+                case MaxQueuedPayloads.small:
+                  label = 'Pequena (${size.value} batches)';
+                  break;
+                case MaxQueuedPayloads.medium:
+                  label = 'Média (${size.value} batches)';
+                  break;
+                case MaxQueuedPayloads.large:
+                  label = 'Grande (${size.value} batches)';
+                  break;
+                case MaxQueuedPayloads.xlarge:
+                  label = 'Extra Grande (${size.value} batches)';
+                  break;
+              }
+              return DropdownMenuItem(value: size, child: Text(label));
+            }).toList(),
+            onChanged: (value) {
+              if (value != null) {
+                setState(() {
+                  _maxQueuedPayloads = value;
+                });
+              }
             },
           ),
           const SizedBox(height: 24),
@@ -106,7 +168,9 @@ class _SettingsPageState extends State<SettingsPage> {
               Navigator.pop(
                 context,
                 SdkSettings(
-                  syncIntervalSeconds: _syncIntervalSeconds,
+                  foregroundScanInterval: _foregroundScanInterval,
+                  backgroundScanInterval: _backgroundScanInterval,
+                  maxQueuedPayloads: _maxQueuedPayloads,
                   enableBluetoothScanning: _enableBluetoothScanning,
                   enablePeriodicScanning: _enablePeriodicScanning,
                 ),

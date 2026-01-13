@@ -1,6 +1,6 @@
 # 🐻 Bearound Flutter SDK
 
-Official Flutter plugin for the Bearound native SDKs (Android/iOS) version 2.0.1.
+Official Flutter plugin for the Bearound native SDKs (Android/iOS) version 2.1.0.
 
 ## Features
 
@@ -18,7 +18,7 @@ Add to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  bearound_flutter_sdk: ^2.0.1
+  bearound_flutter_sdk: ^2.1.0
 ```
 
 Run:
@@ -96,13 +96,13 @@ Future<void> setupSdk() async {
 
   await BearoundFlutterSdk.configure(
     businessToken: 'your-business-token-here',
-    syncInterval: const Duration(seconds: 30),
+    foregroundScanInterval: ForegroundScanInterval.seconds15,  // Default: 15s
+    backgroundScanInterval: BackgroundScanInterval.seconds30,  // Default: 30s
+    maxQueuedPayloads: MaxQueuedPayloads.medium,               // Default: 100
     enableBluetoothScanning: true,
     enablePeriodicScanning: true,
   );
   // Note: appId is automatically extracted from the app's package/bundle identifier
-
-  // appId is optional; defaults to the bundle identifier / package name.
 
   BearoundFlutterSdk.beaconsStream.listen((beacons) {
     for (final beacon in beacons) {
@@ -141,13 +141,43 @@ await BearoundFlutterSdk.setUserProperties(
 
 ## API Summary
 
-- `configure({appId, syncInterval, enableBluetoothScanning, enablePeriodicScanning})`
+- `configure({businessToken, foregroundScanInterval, backgroundScanInterval, maxQueuedPayloads, enableBluetoothScanning, enablePeriodicScanning})`
 - `startScanning() / stopScanning() / isScanning()`
 - `setBluetoothScanning(bool enabled)`
 - `setUserProperties(UserProperties) / clearUserProperties()`
 - Streams: `beaconsStream`, `syncStream`, `scanningStream`, `errorStream`
 
-## Migration from 1.x
+### Configuration Enums
+
+- **ForegroundScanInterval**: `seconds5` to `seconds60` (5-second increments)
+- **BackgroundScanInterval**: `seconds15`, `seconds30`, `seconds60`, `seconds90`, `seconds120`
+- **MaxQueuedPayloads**: `small` (50), `medium` (100), `large` (200), `xlarge` (500)
+
+## Migration Guide
+
+### From 2.0.1 to 2.1.0
+
+**Breaking Change:** `syncInterval` parameter replaced with separate foreground/background intervals.
+
+**Before (v2.0.1):**
+```dart
+await BearoundFlutterSdk.configure(
+  businessToken: 'token',
+  syncInterval: const Duration(seconds: 30),
+);
+```
+
+**After (v2.1.0):**
+```dart
+await BearoundFlutterSdk.configure(
+  businessToken: 'token',
+  foregroundScanInterval: ForegroundScanInterval.seconds30,
+  backgroundScanInterval: BackgroundScanInterval.seconds90,
+  maxQueuedPayloads: MaxQueuedPayloads.large,
+);
+```
+
+### From 1.x to 2.x
 
 - `startScan(clientToken)` was replaced by `configure()` + `startScanning()`.
 - Backup size, region events, and legacy sync success/error events were removed.

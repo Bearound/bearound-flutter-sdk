@@ -16,7 +16,6 @@ void main() {
         .setMockMethodCallHandler(channel, (MethodCall call) async {
           methodCalls.add(call);
 
-          // Mock responses for specific methods
           switch (call.method) {
             case 'isScanning':
               return true;
@@ -37,7 +36,9 @@ void main() {
 
       await BearoundFlutterSdk.configure(
         businessToken: businessToken,
-        syncInterval: const Duration(seconds: 20),
+        foregroundScanInterval: ForegroundScanInterval.seconds20,
+        backgroundScanInterval: BackgroundScanInterval.seconds90,
+        maxQueuedPayloads: MaxQueuedPayloads.large,
         enableBluetoothScanning: true,
         enablePeriodicScanning: false,
       );
@@ -48,7 +49,9 @@ void main() {
         methodCalls.first.arguments,
         equals({
           'businessToken': businessToken,
-          'syncInterval': 20,
+          'foregroundScanInterval': 20,
+          'backgroundScanInterval': 90,
+          'maxQueuedPayloads': 200,
           'enableBluetoothScanning': true,
           'enablePeriodicScanning': false,
         }),
@@ -64,7 +67,9 @@ void main() {
         methodCalls.first.arguments,
         equals({
           'businessToken': 'test-token',
-          'syncInterval': 30,
+          'foregroundScanInterval': 15,
+          'backgroundScanInterval': 30,
+          'maxQueuedPayloads': 100,
           'enableBluetoothScanning': false,
           'enablePeriodicScanning': true,
         }),
@@ -105,22 +110,55 @@ void main() {
       );
     });
 
-    test('configure with minimum sync interval (5 seconds)', () async {
+    test(
+      'configure with minimum foreground scan interval (5 seconds)',
+      () async {
+        await BearoundFlutterSdk.configure(
+          businessToken: 'test-token',
+          foregroundScanInterval: ForegroundScanInterval.seconds5,
+        );
+
+        expect(
+          methodCalls.first.arguments['foregroundScanInterval'],
+          equals(5),
+        );
+      },
+    );
+
+    test(
+      'configure with maximum foreground scan interval (60 seconds)',
+      () async {
+        await BearoundFlutterSdk.configure(
+          businessToken: 'test-token',
+          foregroundScanInterval: ForegroundScanInterval.seconds60,
+        );
+
+        expect(
+          methodCalls.first.arguments['foregroundScanInterval'],
+          equals(60),
+        );
+      },
+    );
+
+    test('configure with different background scan intervals', () async {
       await BearoundFlutterSdk.configure(
         businessToken: 'test-token',
-        syncInterval: const Duration(seconds: 5),
+        backgroundScanInterval: BackgroundScanInterval.seconds120,
       );
 
-      expect(methodCalls.first.arguments['syncInterval'], equals(5));
+      expect(
+        methodCalls.first.arguments['backgroundScanInterval'],
+        equals(120),
+      );
     });
 
-    test('configure with maximum sync interval (60 seconds)', () async {
+    test('configure with different max queued payloads', () async {
       await BearoundFlutterSdk.configure(
         businessToken: 'test-token',
-        syncInterval: const Duration(seconds: 60),
+        maxQueuedPayloads: MaxQueuedPayloads.xlarge,
       );
 
-      expect(methodCalls.first.arguments['syncInterval'], equals(60));
+      expect(methodCalls.first.arguments['maxQueuedPayloads'], equals(500));
     });
   });
 
