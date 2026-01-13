@@ -36,8 +36,10 @@ class _BeaconHomePageState extends State<BeaconHomePage>
   bool _isScanning = false;
   String _status = 'Parado';
 
-  ForegroundScanInterval _foregroundScanInterval = ForegroundScanInterval.seconds15;
-  BackgroundScanInterval _backgroundScanInterval = BackgroundScanInterval.seconds30;
+  ForegroundScanInterval _foregroundScanInterval =
+      ForegroundScanInterval.seconds15;
+  BackgroundScanInterval _backgroundScanInterval =
+      BackgroundScanInterval.seconds30;
   MaxQueuedPayloads _maxQueuedPayloads = MaxQueuedPayloads.medium;
   bool _enableBluetoothScanning = true;
   bool _enablePeriodicScanning = true;
