@@ -7,12 +7,14 @@ import 'package:flutter/services.dart';
 import 'src/core/permission_service.dart';
 import 'src/models/beacon.dart';
 import 'src/models/bearound_error.dart';
+import 'src/models/scan_interval_configuration.dart';
 import 'src/models/sync_status.dart';
 import 'src/models/user_properties.dart';
 
 export 'src/models/beacon.dart';
 export 'src/models/beacon_metadata.dart';
 export 'src/models/bearound_error.dart';
+export 'src/models/scan_interval_configuration.dart';
 export 'src/models/sync_status.dart';
 export 'src/models/user_properties.dart';
 
@@ -46,11 +48,16 @@ class BearoundFlutterSdk {
   /// Configura o SDK nativo antes de iniciar o scan.
   ///
   /// O [businessToken] é obrigatório para autenticação.
-  /// O [syncInterval] é expresso em segundos e será validado pelo SDK (5-60s).
-  /// O appId é extraído automaticamente do package/bundle identifier.
+  /// O [foregroundScanInterval] configura o intervalo de scan quando o app está em primeiro plano (padrão: 15s).
+  /// O [backgroundScanInterval] configura o intervalo de scan quando o app está em background (padrão: 30s).
+  /// O [maxQueuedPayloads] configura o tamanho da fila de retry para falhas de API (padrão: medium/100).
   static Future<void> configure({
     required String businessToken,
-    Duration syncInterval = const Duration(seconds: 30),
+    ForegroundScanInterval foregroundScanInterval =
+        ForegroundScanInterval.seconds15,
+    BackgroundScanInterval backgroundScanInterval =
+        BackgroundScanInterval.seconds30,
+    MaxQueuedPayloads maxQueuedPayloads = MaxQueuedPayloads.medium,
     bool enableBluetoothScanning = false,
     bool enablePeriodicScanning = true,
   }) async {
@@ -64,7 +71,9 @@ class BearoundFlutterSdk {
 
     final args = <String, dynamic>{
       'businessToken': businessToken.trim(),
-      'syncInterval': syncInterval.inSeconds,
+      'foregroundScanInterval': foregroundScanInterval.seconds,
+      'backgroundScanInterval': backgroundScanInterval.seconds,
+      'maxQueuedPayloads': maxQueuedPayloads.value,
       'enableBluetoothScanning': enableBluetoothScanning,
       'enablePeriodicScanning': enablePeriodicScanning,
     };

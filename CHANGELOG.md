@@ -5,6 +5,83 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2026-01-13
+
+### ⚠️ Breaking Changes
+
+**Configurable Scan Intervals**: SDK now supports separate foreground and background scan intervals with configurable retry queue.
+
+### Added
+
+- **Configurable Scan Intervals**: New enums for fine-grained control over scan behavior
+  - `ForegroundScanInterval`: Configure foreground scan intervals from 5 to 60 seconds (in 5-second increments)
+  - `BackgroundScanInterval`: Configure background scan intervals (15s, 30s, 60s, 90s, or 120s)
+  - Default: 15 seconds for foreground, 30 seconds for background
+  
+- **Configurable Retry Queue**: New `MaxQueuedPayloads` enum to control retry queue size
+  - `.small` (50 failed batches)
+  - `.medium` (100 failed batches) - default
+  - `.large` (200 failed batches)
+  - `.xlarge` (500 failed batches)
+  - Replaces fixed limit with configurable options
+  - Each batch can contain multiple beacons from a single sync
+
+### Changed
+
+- **Configuration API**: `configure()` method now accepts enum parameters instead of `Duration`
+  - `foregroundScanInterval: ForegroundScanInterval = ForegroundScanInterval.seconds15`
+  - `backgroundScanInterval: BackgroundScanInterval = BackgroundScanInterval.seconds30`
+  - `maxQueuedPayloads: MaxQueuedPayloads = MaxQueuedPayloads.medium`
+  - Old `syncInterval` parameter removed in favor of separate foreground/background intervals
+
+- **Dynamic Interval Switching**: SDK now automatically switches between foreground and background intervals based on app state (iOS only for now)
+
+- **Improved Resilience**: Increased default retry queue from fixed size to 100 failed batches
+
+- **Native SDKs**: Updated to version 2.1.0
+  - iOS: `BearoundSDK ~> 2.1.0`
+  - Android: `com.github.Bearound:bearound-android-sdk:v2.1.0`
+
+### Migration
+
+**Before (v2.0.1):**
+```dart
+await BearoundFlutterSdk.configure(
+  businessToken: 'your-business-token-here',
+  syncInterval: const Duration(seconds: 30),
+);
+```
+
+**After (v2.1.0):**
+```dart
+// Using defaults (recommended)
+await BearoundFlutterSdk.configure(
+  businessToken: 'your-business-token-here',
+);
+
+// Custom configuration
+await BearoundFlutterSdk.configure(
+  businessToken: 'your-business-token-here',
+  foregroundScanInterval: ForegroundScanInterval.seconds30,
+  backgroundScanInterval: BackgroundScanInterval.seconds90,
+  maxQueuedPayloads: MaxQueuedPayloads.large,
+);
+```
+
+### Platform Support
+
+- ✅ **iOS**: Fully supports all new features with native SDK 2.1.0
+- ✅ **Android**: Fully supports all new features with native SDK 2.1.0
+
+### Technical Details
+
+- Scan duration formula unchanged: `scanDuration = max(5, min(syncInterval / 3, 10))`
+- Backoff retry logic unchanged: exponential backoff with max 60s delay
+- All existing scanning and sync behaviors preserved
+- Type-safe enum-based configuration for better developer experience
+
+---
+
 ## [2.0.1] - 2026-01-07
 
 ### ⚠️ Breaking Changes

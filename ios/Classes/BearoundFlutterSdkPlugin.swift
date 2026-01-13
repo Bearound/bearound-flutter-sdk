@@ -52,7 +52,8 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
             let args = call.arguments as? [String: Any]
             guard
                 let businessToken = (args?["businessToken"] as? String)?.trimmingCharacters(
-                    in: .whitespacesAndNewlines),
+                    in: .whitespacesAndNewlines
+                ),
                 !businessToken.isEmpty
             else {
                 result(
@@ -65,13 +66,22 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
                 return
             }
 
-            let syncInterval = (args?["syncInterval"] as? NSNumber)?.doubleValue ?? 30
+            let foregroundSeconds = (args?["foregroundScanInterval"] as? NSNumber)?.intValue ?? 15
+            let backgroundSeconds = (args?["backgroundScanInterval"] as? NSNumber)?.intValue ?? 30
+            let maxQueuedValue = (args?["maxQueuedPayloads"] as? NSNumber)?.intValue ?? 100
             let enableBluetoothScanning = args?["enableBluetoothScanning"] as? Bool ?? false
             let enablePeriodicScanning = args?["enablePeriodicScanning"] as? Bool ?? true
 
+            // Map Int values to native iOS enums
+            let foregroundInterval = mapToForegroundScanInterval(foregroundSeconds)
+            let backgroundInterval = mapToBackgroundScanInterval(backgroundSeconds)
+            let maxQueuedPayloads = mapToMaxQueuedPayloads(maxQueuedValue)
+
             BeAroundSDK.shared.configure(
                 businessToken: businessToken,
-                syncInterval: syncInterval,
+                foregroundScanInterval: foregroundInterval,
+                backgroundScanInterval: backgroundInterval,
+                maxQueuedPayloads: maxQueuedPayloads,
                 enableBluetoothScanning: enableBluetoothScanning,
                 enablePeriodicScanning: enablePeriodicScanning
             )
@@ -233,6 +243,45 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
         }
 
         return payload
+    }
+
+    private func mapToForegroundScanInterval(_ seconds: Int) -> ForegroundScanInterval {
+        switch seconds {
+        case 5: return .seconds5
+        case 10: return .seconds10
+        case 15: return .seconds15
+        case 20: return .seconds20
+        case 25: return .seconds25
+        case 30: return .seconds30
+        case 35: return .seconds35
+        case 40: return .seconds40
+        case 45: return .seconds45
+        case 50: return .seconds50
+        case 55: return .seconds55
+        case 60: return .seconds60
+        default: return .seconds15  // Default fallback
+        }
+    }
+
+    private func mapToBackgroundScanInterval(_ seconds: Int) -> BackgroundScanInterval {
+        switch seconds {
+        case 15: return .seconds15
+        case 30: return .seconds30
+        case 60: return .seconds60
+        case 90: return .seconds90
+        case 120: return .seconds120
+        default: return .seconds30  // Default fallback
+        }
+    }
+
+    private func mapToMaxQueuedPayloads(_ value: Int) -> MaxQueuedPayloads {
+        switch value {
+        case 50: return .small
+        case 100: return .medium
+        case 200: return .large
+        case 500: return .xlarge
+        default: return .medium  // Default fallback
+        }
     }
 }
 

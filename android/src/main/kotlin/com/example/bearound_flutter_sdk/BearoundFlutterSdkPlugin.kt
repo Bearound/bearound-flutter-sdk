@@ -5,8 +5,11 @@ import android.os.Handler
 import android.os.Looper
 import io.bearound.sdk.BeAroundSDK
 import io.bearound.sdk.interfaces.BeAroundSDKDelegate
+import io.bearound.sdk.models.BackgroundScanInterval
 import io.bearound.sdk.models.Beacon
 import io.bearound.sdk.models.BeaconMetadata
+import io.bearound.sdk.models.ForegroundScanInterval
+import io.bearound.sdk.models.MaxQueuedPayloads
 import io.bearound.sdk.models.UserProperties
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.EventChannel
@@ -111,13 +114,22 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKDe
           return
         }
         
-        val syncIntervalSeconds = (args?.get("syncInterval") as? Number)?.toLong() ?: 30L
+        val foregroundSeconds = (args?.get("foregroundScanInterval") as? Number)?.toInt() ?: 15
+        val backgroundSeconds = (args?.get("backgroundScanInterval") as? Number)?.toInt() ?: 30
+        val maxQueuedValue = (args?.get("maxQueuedPayloads") as? Number)?.toInt() ?: 100
         val enableBluetoothScanning = args?.get("enableBluetoothScanning") as? Boolean ?: false
         val enablePeriodicScanning = args?.get("enablePeriodicScanning") as? Boolean ?: true
 
+        // Map Int values to native Android enums
+        val foregroundInterval = mapToForegroundScanInterval(foregroundSeconds)
+        val backgroundInterval = mapToBackgroundScanInterval(backgroundSeconds)
+        val maxQueuedPayloads = mapToMaxQueuedPayloads(maxQueuedValue)
+
         sdk?.configure(
           businessToken = businessToken,
-          syncInterval = syncIntervalSeconds * 1000L,
+          foregroundScanInterval = foregroundInterval,
+          backgroundScanInterval = backgroundInterval,
+          maxQueuedPayloads = maxQueuedPayloads,
           enableBluetoothScanning = enableBluetoothScanning,
           enablePeriodicScanning = enablePeriodicScanning,
         )
@@ -223,5 +235,44 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKDe
       name = name,
       customProperties = customProperties,
     )
+  }
+
+  private fun mapToForegroundScanInterval(seconds: Int): ForegroundScanInterval {
+    return when (seconds) {
+      5 -> ForegroundScanInterval.SECONDS_5
+      10 -> ForegroundScanInterval.SECONDS_10
+      15 -> ForegroundScanInterval.SECONDS_15
+      20 -> ForegroundScanInterval.SECONDS_20
+      25 -> ForegroundScanInterval.SECONDS_25
+      30 -> ForegroundScanInterval.SECONDS_30
+      35 -> ForegroundScanInterval.SECONDS_35
+      40 -> ForegroundScanInterval.SECONDS_40
+      45 -> ForegroundScanInterval.SECONDS_45
+      50 -> ForegroundScanInterval.SECONDS_50
+      55 -> ForegroundScanInterval.SECONDS_55
+      60 -> ForegroundScanInterval.SECONDS_60
+      else -> ForegroundScanInterval.SECONDS_15  // Default fallback
+    }
+  }
+
+  private fun mapToBackgroundScanInterval(seconds: Int): BackgroundScanInterval {
+    return when (seconds) {
+      15 -> BackgroundScanInterval.SECONDS_15
+      30 -> BackgroundScanInterval.SECONDS_30
+      60 -> BackgroundScanInterval.SECONDS_60
+      90 -> BackgroundScanInterval.SECONDS_90
+      120 -> BackgroundScanInterval.SECONDS_120
+      else -> BackgroundScanInterval.SECONDS_30  // Default fallback
+    }
+  }
+
+  private fun mapToMaxQueuedPayloads(value: Int): MaxQueuedPayloads {
+    return when (value) {
+      50 -> MaxQueuedPayloads.SMALL
+      100 -> MaxQueuedPayloads.MEDIUM
+      200 -> MaxQueuedPayloads.LARGE
+      500 -> MaxQueuedPayloads.XLARGE
+      else -> MaxQueuedPayloads.MEDIUM  // Default fallback
+    }
   }
 }
