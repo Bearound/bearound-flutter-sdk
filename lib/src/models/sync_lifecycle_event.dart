@@ -1,16 +1,16 @@
 /// Represents a sync lifecycle event from the native SDK.
-/// 
+///
 /// v2.2.0: Added to track sync operations start and completion.
 class SyncLifecycleEvent {
   /// Type of sync event: 'started' or 'completed'
   final String type;
-  
+
   /// Number of beacons involved in the sync operation
   final int beaconCount;
-  
+
   /// Whether the sync completed successfully (only for 'completed' type)
   final bool? success;
-  
+
   /// Error message if sync failed (only for 'completed' type when success is false)
   final String? error;
 

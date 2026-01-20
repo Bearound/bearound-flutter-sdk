@@ -173,28 +173,30 @@ class BearoundFlutterSdk {
   }
 
   /// Stream de eventos de ciclo de vida de sincronização (v2.2.0).
-  /// 
+  ///
   /// Notifica quando uma operação de sincronização inicia ou completa.
   /// Útil para mostrar indicadores de progresso ou notificações ao usuário.
   static Stream<SyncLifecycleEvent> get syncLifecycleStream {
-    _syncLifecycleStream ??=
-        _syncLifecycleChannel.receiveBroadcastStream().map((event) {
-      final payload = _asMap(event);
-      return SyncLifecycleEvent.fromJson(payload);
-    });
+    _syncLifecycleStream ??= _syncLifecycleChannel.receiveBroadcastStream().map(
+      (event) {
+        final payload = _asMap(event);
+        return SyncLifecycleEvent.fromJson(payload);
+      },
+    );
     return _syncLifecycleStream!;
   }
 
   /// Stream de eventos de detecção em background (v2.2.0).
-  /// 
+  ///
   /// Notifica quando beacons são detectados enquanto o app está em background.
   /// Útil para mostrar notificações ou registrar eventos de proximidade.
   static Stream<BackgroundDetectionEvent> get backgroundDetectionStream {
-    _backgroundDetectionStream ??=
-        _backgroundDetectionChannel.receiveBroadcastStream().map((event) {
-      final payload = _asMap(event);
-      return BackgroundDetectionEvent.fromJson(payload);
-    });
+    _backgroundDetectionStream ??= _backgroundDetectionChannel
+        .receiveBroadcastStream()
+        .map((event) {
+          final payload = _asMap(event);
+          return BackgroundDetectionEvent.fromJson(payload);
+        });
     return _backgroundDetectionStream!;
   }
 

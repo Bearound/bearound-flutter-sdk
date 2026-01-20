@@ -55,7 +55,8 @@ class _BeaconHomePageState extends State<BeaconHomePage>
   StreamSubscription<bool>? _scanningSubscription;
   StreamSubscription<BearoundError>? _errorSubscription;
   StreamSubscription<SyncLifecycleEvent>? _syncLifecycleSubscription;
-  StreamSubscription<BackgroundDetectionEvent>? _backgroundDetectionSubscription;
+  StreamSubscription<BackgroundDetectionEvent>?
+  _backgroundDetectionSubscription;
 
   @override
   void initState() {
@@ -140,13 +141,17 @@ class _BeaconHomePageState extends State<BeaconHomePage>
       });
       _addLog('📡 Beacons detectados: ${beacons.length}');
       for (final beacon in beacons) {
-        print('[DEBUG]   - Beacon ${beacon.major}.${beacon.minor}: RSSI ${beacon.rssi}dBm');
+        print(
+          '[DEBUG]   - Beacon ${beacon.major}.${beacon.minor}: RSSI ${beacon.rssi}dBm',
+        );
       }
     });
 
     // Sync status stream (deprecated but kept for compatibility)
     _syncSubscription = BearoundFlutterSdk.syncStream.listen((status) {
-      print('[DEBUG] 🔄 Sync status: ${status.secondsUntilNextSync}s, ranging: ${status.isRanging}');
+      print(
+        '[DEBUG] 🔄 Sync status: ${status.secondsUntilNextSync}s, ranging: ${status.isRanging}',
+      );
       setState(() {
         _syncStatus = status;
       });
@@ -174,8 +179,12 @@ class _BeaconHomePageState extends State<BeaconHomePage>
     });
 
     // v2.2.0: Sync lifecycle stream (NEW!)
-    _syncLifecycleSubscription = BearoundFlutterSdk.syncLifecycleStream.listen((event) {
-      print('[DEBUG] 🔄 Sync lifecycle: ${event.type}, beacons: ${event.beaconCount}');
+    _syncLifecycleSubscription = BearoundFlutterSdk.syncLifecycleStream.listen((
+      event,
+    ) {
+      print(
+        '[DEBUG] 🔄 Sync lifecycle: ${event.type}, beacons: ${event.beaconCount}',
+      );
       if (event.isStarted) {
         _addLog('🚀 Sync iniciado com ${event.beaconCount} beacon(s)');
       } else if (event.isCompleted) {
@@ -188,10 +197,14 @@ class _BeaconHomePageState extends State<BeaconHomePage>
     });
 
     // v2.2.0: Background detection stream (NEW!)
-    _backgroundDetectionSubscription = BearoundFlutterSdk.backgroundDetectionStream.listen((event) {
-      print('[DEBUG] 🌙 Background detection: ${event.beaconCount} beacons');
-      _addLog('🌙 Background: ${event.beaconCount} beacon(s) detectado(s)');
-    });
+    _backgroundDetectionSubscription = BearoundFlutterSdk
+        .backgroundDetectionStream
+        .listen((event) {
+          print(
+            '[DEBUG] 🌙 Background detection: ${event.beaconCount} beacons',
+          );
+          _addLog('🌙 Background: ${event.beaconCount} beacon(s) detectado(s)');
+        });
 
     print('[DEBUG] ✅ Todos os streams inicializados');
   }
