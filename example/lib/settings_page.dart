@@ -5,15 +5,11 @@ class SdkSettings {
   final ForegroundScanInterval foregroundScanInterval;
   final BackgroundScanInterval backgroundScanInterval;
   final MaxQueuedPayloads maxQueuedPayloads;
-  final bool enableBluetoothScanning;
-  final bool enablePeriodicScanning;
 
   const SdkSettings({
     required this.foregroundScanInterval,
     required this.backgroundScanInterval,
     required this.maxQueuedPayloads,
-    required this.enableBluetoothScanning,
-    required this.enablePeriodicScanning,
   });
 }
 
@@ -23,15 +19,11 @@ class SettingsPage extends StatefulWidget {
     required this.initialForegroundScanInterval,
     required this.initialBackgroundScanInterval,
     required this.initialMaxQueuedPayloads,
-    required this.initialBluetoothScanning,
-    required this.initialPeriodicScanning,
   });
 
   final ForegroundScanInterval initialForegroundScanInterval;
   final BackgroundScanInterval initialBackgroundScanInterval;
   final MaxQueuedPayloads initialMaxQueuedPayloads;
-  final bool initialBluetoothScanning;
-  final bool initialPeriodicScanning;
 
   @override
   State<SettingsPage> createState() => _SettingsPageState();
@@ -41,8 +33,6 @@ class _SettingsPageState extends State<SettingsPage> {
   late ForegroundScanInterval _foregroundScanInterval;
   late BackgroundScanInterval _backgroundScanInterval;
   late MaxQueuedPayloads _maxQueuedPayloads;
-  late bool _enableBluetoothScanning;
-  late bool _enablePeriodicScanning;
 
   @override
   void initState() {
@@ -50,8 +40,6 @@ class _SettingsPageState extends State<SettingsPage> {
     _foregroundScanInterval = widget.initialForegroundScanInterval;
     _backgroundScanInterval = widget.initialBackgroundScanInterval;
     _maxQueuedPayloads = widget.initialMaxQueuedPayloads;
-    _enableBluetoothScanning = widget.initialBluetoothScanning;
-    _enablePeriodicScanning = widget.initialPeriodicScanning;
   }
 
   @override
@@ -142,25 +130,26 @@ class _SettingsPageState extends State<SettingsPage> {
             },
           ),
           const SizedBox(height: 24),
-          SwitchListTile(
-            title: const Text('Bluetooth Metadata'),
-            subtitle: const Text('Coleta bateria, firmware e temperatura'),
-            value: _enableBluetoothScanning,
-            onChanged: (value) {
-              setState(() {
-                _enableBluetoothScanning = value;
-              });
-            },
-          ),
-          SwitchListTile(
-            title: const Text('Scan Periódico'),
-            subtitle: const Text('Melhora consumo de bateria'),
-            value: _enablePeriodicScanning,
-            onChanged: (value) {
-              setState(() {
-                _enablePeriodicScanning = value;
-              });
-            },
+          const Card(
+            child: Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '✨ Automático em v2.2.0',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 8),
+                  Text('• Bluetooth Metadata: sempre ativo'),
+                  Text('  (coleta bateria, firmware e temperatura)'),
+                  SizedBox(height: 8),
+                  Text('• Scan Periódico:'),
+                  Text('  - Foreground: ativo (economia de bateria)'),
+                  Text('  - Background: contínuo (máxima detecção)'),
+                ],
+              ),
+            ),
           ),
           const SizedBox(height: 24),
           ElevatedButton.icon(
@@ -171,8 +160,6 @@ class _SettingsPageState extends State<SettingsPage> {
                   foregroundScanInterval: _foregroundScanInterval,
                   backgroundScanInterval: _backgroundScanInterval,
                   maxQueuedPayloads: _maxQueuedPayloads,
-                  enableBluetoothScanning: _enableBluetoothScanning,
-                  enablePeriodicScanning: _enablePeriodicScanning,
                 ),
               );
             },

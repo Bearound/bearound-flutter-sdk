@@ -2,21 +2,26 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>io.bearound.sdk.sync</string>
+		<string>io.bearound.sdk.processing</string>
+	</array>
 	<key>UIBackgroundModes</key>
 	<array>
-		<string>bluetooth-central</string>
 		<string>location</string>
+		<string>bluetooth-central</string>
+		<string>fetch</string>
+		<string>processing</string>
 	</array>
-	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Usamos sua localização para detectar beacons mesmo em segundo plano.</string>
 	<key>NSBluetoothAlwaysUsageDescription</key>
-	<string>Este app usa Bluetooth para detectar beacons Bearound próximos.</string>
+	<string>O aplicativo usa Bluetooth para detectar e se comunicar com beacons próximos para posicionamento indoor.</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>O aplicativo usa dispositivos Bluetooth periféricos para detectar beacons.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>O aplicativo precisa de acesso à localização sempre ativo para detectar beacons BLE mesmo quando estiver em segundo plano. Isso é necessário para funcionamento contínuo do monitoramento de beacons.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Precisamos da sua localização para identificar beacons próximos.</string>
-	<key>NSLocationAlwaysUsageDescription</key>
-	<string>Precisamos da sua localização para identificar beacons próximos.</string>
-	<key>NSUserTrackingUsageDescription</key>
-	<string>Precisamos dessa permissão</string>
+	<string>O aplicativo precisa de acesso à localização para detectar beacons BLE próximos.</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
