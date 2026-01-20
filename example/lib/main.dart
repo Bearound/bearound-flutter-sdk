@@ -135,13 +135,13 @@ class _BeaconHomePageState extends State<BeaconHomePage>
   void _startListening() {
     // Beacons stream
     _beaconsSubscription = BearoundFlutterSdk.beaconsStream.listen((beacons) {
-      print('[DEBUG] 📡 Beacons callback: ${beacons.length} beacons');
+      debugPrint('[DEBUG] 📡 Beacons callback: ${beacons.length} beacons');
       setState(() {
         _detectedBeacons = beacons;
       });
       _addLog('📡 Beacons detectados: ${beacons.length}');
       for (final beacon in beacons) {
-        print(
+        debugPrint(
           '[DEBUG]   - Beacon ${beacon.major}.${beacon.minor}: RSSI ${beacon.rssi}dBm',
         );
       }
@@ -149,7 +149,7 @@ class _BeaconHomePageState extends State<BeaconHomePage>
 
     // Sync status stream (deprecated but kept for compatibility)
     _syncSubscription = BearoundFlutterSdk.syncStream.listen((status) {
-      print(
+      debugPrint(
         '[DEBUG] 🔄 Sync status: ${status.secondsUntilNextSync}s, ranging: ${status.isRanging}',
       );
       setState(() {
@@ -161,7 +161,7 @@ class _BeaconHomePageState extends State<BeaconHomePage>
     _scanningSubscription = BearoundFlutterSdk.scanningStream.listen((
       isScanning,
     ) {
-      print('[DEBUG] 🎯 Scanning state changed: $isScanning');
+      debugPrint('[DEBUG] 🎯 Scanning state changed: $isScanning');
       setState(() {
         _isScanning = isScanning;
         _status = isScanning ? 'Scaneando…' : 'Parado';
@@ -171,7 +171,7 @@ class _BeaconHomePageState extends State<BeaconHomePage>
 
     // Error stream
     _errorSubscription = BearoundFlutterSdk.errorStream.listen((error) {
-      print('[DEBUG] ❌ Error callback: ${error.message}');
+      debugPrint('[DEBUG] ❌ Error callback: ${error.message}');
       setState(() {
         _lastError = error.message;
       });
@@ -182,7 +182,7 @@ class _BeaconHomePageState extends State<BeaconHomePage>
     _syncLifecycleSubscription = BearoundFlutterSdk.syncLifecycleStream.listen((
       event,
     ) {
-      print(
+      debugPrint(
         '[DEBUG] 🔄 Sync lifecycle: ${event.type}, beacons: ${event.beaconCount}',
       );
       if (event.isStarted) {
@@ -200,13 +200,13 @@ class _BeaconHomePageState extends State<BeaconHomePage>
     _backgroundDetectionSubscription = BearoundFlutterSdk
         .backgroundDetectionStream
         .listen((event) {
-          print(
+          debugPrint(
             '[DEBUG] 🌙 Background detection: ${event.beaconCount} beacons',
           );
           _addLog('🌙 Background: ${event.beaconCount} beacon(s) detectado(s)');
         });
 
-    print('[DEBUG] ✅ Todos os streams inicializados');
+    debugPrint('[DEBUG] ✅ Todos os streams inicializados');
   }
 
   void _addLog(String log) {
