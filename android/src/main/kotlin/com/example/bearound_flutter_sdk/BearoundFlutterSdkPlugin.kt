@@ -22,14 +22,12 @@ import java.util.Locale
 class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKListener {
   private lateinit var methodChannel: MethodChannel
   private lateinit var beaconsEventChannel: EventChannel
-  private lateinit var syncEventChannel: EventChannel
   private lateinit var scanningEventChannel: EventChannel
   private lateinit var errorEventChannel: EventChannel
   private lateinit var syncLifecycleEventChannel: EventChannel
   private lateinit var backgroundDetectionEventChannel: EventChannel
 
   private var beaconsEventSink: EventChannel.EventSink? = null
-  private var syncEventSink: EventChannel.EventSink? = null
   private var scanningEventSink: EventChannel.EventSink? = null
   private var errorEventSink: EventChannel.EventSink? = null
   private var syncLifecycleEventSink: EventChannel.EventSink? = null
@@ -55,17 +53,6 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
 
       override fun onCancel(arguments: Any?) {
         beaconsEventSink = null
-      }
-    })
-
-    syncEventChannel = EventChannel(binding.binaryMessenger, "bearound_flutter_sdk/sync")
-    syncEventChannel.setStreamHandler(object : EventChannel.StreamHandler {
-      override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
-        syncEventSink = events
-      }
-
-      override fun onCancel(arguments: Any?) {
-        syncEventSink = null
       }
     })
 
@@ -117,7 +104,6 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
   override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
     methodChannel.setMethodCallHandler(null)
     beaconsEventChannel.setStreamHandler(null)
-    syncEventChannel.setStreamHandler(null)
     scanningEventChannel.setStreamHandler(null)
     errorEventChannel.setStreamHandler(null)
     syncLifecycleEventChannel.setStreamHandler(null)
@@ -126,7 +112,6 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
     sdk?.listener = null
     sdk = null
     beaconsEventSink = null
-    syncEventSink = null
     scanningEventSink = null
     errorEventSink = null
     syncLifecycleEventSink = null
@@ -148,21 +133,32 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
         val backgroundSeconds = (args?.get("backgroundScanInterval") as? Number)?.toInt() ?: 30
         val maxQueuedValue = (args?.get("maxQueuedPayloads") as? Number)?.toInt() ?: 100
 
-        // Map Int values to native Android enums
         val foregroundInterval = mapToForegroundScanInterval(foregroundSeconds)
         val backgroundInterval = mapToBackgroundScanInterval(backgroundSeconds)
         val maxQueuedPayloads = mapToMaxQueuedPayloads(maxQueuedValue)
 
-        // v2.2.0: Bluetooth scanning and periodic scanning are now automatic
+        val wasScanning = sdk?.isScanning ?: false
+        if (wasScanning) {
+          sdk?.stopScanning()
+        }
+
+        sdk?.listener = this
+
         sdk?.configure(
           businessToken = businessToken,
           foregroundScanInterval = foregroundInterval,
           backgroundScanInterval = backgroundInterval,
           maxQueuedPayloads = maxQueuedPayloads
         )
+
+        if (wasScanning) {
+          sdk?.startScanning()
+        }
+        
         result.success(null)
       }
       "startScanning" -> {
+        sdk?.listener = this
         sdk?.startScanning()
         result.success(null)
       }
@@ -190,8 +186,6 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
       else -> result.notImplemented()
     }
   }
-
-  // region BeAroundSDKListener Implementation
   
   override fun onBeaconsUpdated(beacons: List<Beacon>) {
     val payload = mapOf(
@@ -201,6 +195,8 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
   }
 
   override fun onError(error: Exception) {
+    android.util.Log.e("BearoundFlutterSdk", "SDK Error: ${error.message}", error)
+    
     val payload = mapOf(
       "message" to (error.message ?: "Unknown error")
     )
@@ -212,14 +208,6 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
     mainHandler.post { scanningEventSink?.success(payload) }
   }
 
-  override fun onSyncStatusUpdated(secondsUntilNextSync: Int, isRanging: Boolean) {
-    val payload = mapOf(
-      "secondsUntilNextSync" to secondsUntilNextSync,
-      "isRanging" to isRanging,
-    )
-    mainHandler.post { syncEventSink?.success(payload) }
-  }
-  
   override fun onAppStateChanged(isInBackground: Boolean) {
     // Not needed for Flutter SDK - handled by Flutter framework
   }

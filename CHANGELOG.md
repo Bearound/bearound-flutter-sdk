@@ -5,6 +5,45 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.1] - 2026-01-20
+
+### ⚠️ Breaking Changes
+
+- **Removed `syncStream`**: The countdown updates (`secondsUntilNextSync`, `isRanging`) have been removed to save battery. The native iOS SDK removed this callback, and we're aligning all SDKs.
+- **Removed `SyncStatus` model**: No longer needed without `syncStream`.
+
+### Fixed
+
+- **iOS/Android: Auto-restored scan not respecting configuration**: Fixed critical bug where if the SDK auto-restored scanning from a previous session, it would continue with the old configuration (continuous scan) instead of using the new configuration. The plugin now detects if SDK was already scanning during `configure()`, stops it, applies the new configuration, and restarts with correct periodic scan settings.
+- **Android: No beacons appearing**: Fixed critical bug where the listener was not being properly set in `configure()` and `startScanning()` methods. The Android plugin now correctly redefines the listener to ensure beacon events are received even when the listener was previously overwritten by the Application class.
+- **Android: Example app beacon detection blocked**: Removed `android:usesPermissionFlags="neverForLocation"` from `BLUETOOTH_SCAN` permission in example app manifest. This flag was blocking iBeacon detection since beacons require location services.
+- **iOS: App state synchronization**: Added workaround to force the SDK to recognize the correct foreground state by posting `willEnterForegroundNotification` when starting scan in active state. This addresses a potential race condition where the BeaconManager might have been initialized with incorrect foreground state.
+- **Flutter Example: Duplicate scan initialization**: Removed duplicate `configure()` call in `_startScan()` method that was causing the scan to restart twice in rapid succession.
+
+### Changed
+
+- **Native SDKs Updated**:
+  - Android: `com.github.Bearound:bearound-android-sdk:v2.2.1`
+  - iOS: `BearoundSDK ~> 2.2.1`
+
+### Technical Details
+
+- **Both iOS and Android Plugins**: 
+  - Added logic in `configure()` to detect if SDK was already scanning (auto-restored)
+  - If SDK was scanning, stops it, applies new config, and restarts with correct settings
+  - This ensures periodic scan configuration is always applied correctly
+  - Cleaned up diagnostic logs - keeping only essential error logging
+
+- **Android Plugin**: 
+  - Re-assigns listener in both `configure()` and `startScanning()` methods
+  - This ensures Flutter plugin always receives callbacks even if Application class overwrites listener
+  - Maintains error logging for debugging
+  
+- **iOS Plugin**:
+  - Posts `willEnterForegroundNotification` when starting scan in active state
+  - This forces SDK to correctly recognize foreground state and apply periodic scan configuration
+  - Syncs `isActiveScan` with SDK state to handle auto-restored scanning
+
 ## [2.2.0] - 2026-01-20
 
 ### ⚠️ Breaking Changes
@@ -33,7 +72,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Background: Continuous (maximum detection)
 
 - **Native SDKs Updated**:
-  - Android: `com.github.Bearound:bearound-android-sdk:v2.2.0`
+  - Android: `com.github.Bearound:bearound-android-sdk:v2.2.1`
   - iOS: `BearoundSDK ~> 2.2.1`
 
 - **Platform Improvements**:

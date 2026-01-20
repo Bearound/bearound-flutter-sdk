@@ -10,7 +10,6 @@ import 'src/models/beacon.dart';
 import 'src/models/bearound_error.dart';
 import 'src/models/scan_interval_configuration.dart';
 import 'src/models/sync_lifecycle_event.dart';
-import 'src/models/sync_status.dart';
 import 'src/models/user_properties.dart';
 
 export 'src/models/background_detection_event.dart';
@@ -19,7 +18,6 @@ export 'src/models/beacon_metadata.dart';
 export 'src/models/bearound_error.dart';
 export 'src/models/scan_interval_configuration.dart';
 export 'src/models/sync_lifecycle_event.dart';
-export 'src/models/sync_status.dart';
 export 'src/models/user_properties.dart';
 
 /// SDK principal do Bearound para integração com o SDK nativo 2.2.0.
@@ -29,9 +27,6 @@ class BearoundFlutterSdk {
   static const MethodChannel _channel = MethodChannel('bearound_flutter_sdk');
   static const EventChannel _beaconsChannel = EventChannel(
     'bearound_flutter_sdk/beacons',
-  );
-  static const EventChannel _syncChannel = EventChannel(
-    'bearound_flutter_sdk/sync',
   );
   static const EventChannel _scanningChannel = EventChannel(
     'bearound_flutter_sdk/scanning',
@@ -47,7 +42,6 @@ class BearoundFlutterSdk {
   );
 
   static Stream<List<Beacon>>? _beaconsStream;
-  static Stream<SyncStatus>? _syncStream;
   static Stream<bool>? _scanningStream;
   static Stream<BearoundError>? _errorStream;
   static Stream<SyncLifecycleEvent>? _syncLifecycleStream;
@@ -70,8 +64,6 @@ class BearoundFlutterSdk {
     BackgroundScanInterval backgroundScanInterval =
         BackgroundScanInterval.seconds30,
     MaxQueuedPayloads maxQueuedPayloads = MaxQueuedPayloads.medium,
-    bool enableBluetoothScanning = false,
-    bool enablePeriodicScanning = true,
   }) async {
     if (businessToken.trim().isEmpty) {
       throw ArgumentError.value(
@@ -86,8 +78,6 @@ class BearoundFlutterSdk {
       'foregroundScanInterval': foregroundScanInterval.seconds,
       'backgroundScanInterval': backgroundScanInterval.seconds,
       'maxQueuedPayloads': maxQueuedPayloads.value,
-      'enableBluetoothScanning': enableBluetoothScanning,
-      'enablePeriodicScanning': enablePeriodicScanning,
     };
 
     await _channel.invokeMethod('configure', args);
@@ -107,11 +97,6 @@ class BearoundFlutterSdk {
   static Future<bool> isScanning() async {
     final result = await _channel.invokeMethod<bool>('isScanning');
     return result ?? false;
-  }
-
-  /// Habilita ou desabilita o scan Bluetooth de metadados.
-  static Future<void> setBluetoothScanning(bool enabled) async {
-    await _channel.invokeMethod('setBluetoothScanning', {'enabled': enabled});
   }
 
   /// Define propriedades do usuário associadas aos eventos de beacon.
@@ -137,15 +122,6 @@ class BearoundFlutterSdk {
       return <Beacon>[];
     });
     return _beaconsStream!;
-  }
-
-  /// Stream com o status de sincronização do SDK.
-  static Stream<SyncStatus> get syncStream {
-    _syncStream ??= _syncChannel.receiveBroadcastStream().map((event) {
-      final payload = _asMap(event);
-      return SyncStatus.fromJson(payload);
-    });
-    return _syncStream!;
   }
 
   /// Stream indicando alterações no estado de scanning.

@@ -44,14 +44,9 @@ class _BeaconHomePageState extends State<BeaconHomePage>
 
   List<Beacon> _detectedBeacons = [];
   final List<String> _logs = [];
-  SyncStatus _syncStatus = const SyncStatus(
-    secondsUntilNextSync: 0,
-    isRanging: false,
-  );
   String? _lastError;
 
   StreamSubscription<List<Beacon>>? _beaconsSubscription;
-  StreamSubscription<SyncStatus>? _syncSubscription;
   StreamSubscription<bool>? _scanningSubscription;
   StreamSubscription<BearoundError>? _errorSubscription;
   StreamSubscription<SyncLifecycleEvent>? _syncLifecycleSubscription;
@@ -70,7 +65,6 @@ class _BeaconHomePageState extends State<BeaconHomePage>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _beaconsSubscription?.cancel();
-    _syncSubscription?.cancel();
     _scanningSubscription?.cancel();
     _errorSubscription?.cancel();
     _syncLifecycleSubscription?.cancel();
@@ -147,16 +141,6 @@ class _BeaconHomePageState extends State<BeaconHomePage>
       }
     });
 
-    // Sync status stream (deprecated but kept for compatibility)
-    _syncSubscription = BearoundFlutterSdk.syncStream.listen((status) {
-      debugPrint(
-        '[DEBUG] 🔄 Sync status: ${status.secondsUntilNextSync}s, ranging: ${status.isRanging}',
-      );
-      setState(() {
-        _syncStatus = status;
-      });
-    });
-
     // Scanning state stream
     _scanningSubscription = BearoundFlutterSdk.scanningStream.listen((
       isScanning,
@@ -228,7 +212,8 @@ class _BeaconHomePageState extends State<BeaconHomePage>
       return;
     }
 
-    await _applyConfiguration();
+    // Configuration already applied in _initializeSdk() or when settings change
+    // No need to call _applyConfiguration() here, it would restart the scan twice
     try {
       await BearoundFlutterSdk.startScanning();
       _addLog('🚀 Scanner iniciado');
@@ -251,7 +236,6 @@ class _BeaconHomePageState extends State<BeaconHomePage>
     }
     setState(() {
       _detectedBeacons = [];
-      _syncStatus = const SyncStatus(secondsUntilNextSync: 0, isRanging: false);
       _lastError = null;
     });
     _addLog('🛑 Scanner parado');
@@ -419,11 +403,24 @@ class _BeaconHomePageState extends State<BeaconHomePage>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Scanning: ${_isScanning ? 'ativo' : 'parado'}'),
+                Row(
+                  children: [
+                    Icon(
+                      _isScanning ? Icons.wifi_tethering : Icons.wifi_off,
+                      color: _isScanning ? Colors.green : Colors.grey,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Scanning: ${_isScanning ? 'ativo' : 'parado'}',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: _isScanning ? Colors.green : Colors.grey,
+                      ),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 8),
-                Text('Próxima sync: ${_syncStatus.secondsUntilNextSync}s'),
-                const SizedBox(height: 8),
-                Text('Ranging: ${_syncStatus.isRanging ? 'ativo' : 'inativo'}'),
+                Text('Beacons detectados: ${_detectedBeacons.length}'),
               ],
             ),
           ),

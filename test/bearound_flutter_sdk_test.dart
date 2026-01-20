@@ -39,8 +39,6 @@ void main() {
         foregroundScanInterval: ForegroundScanInterval.seconds20,
         backgroundScanInterval: BackgroundScanInterval.seconds90,
         maxQueuedPayloads: MaxQueuedPayloads.large,
-        enableBluetoothScanning: true,
-        enablePeriodicScanning: false,
       );
 
       expect(methodCalls, hasLength(1));
@@ -52,8 +50,6 @@ void main() {
           'foregroundScanInterval': 20,
           'backgroundScanInterval': 90,
           'maxQueuedPayloads': 200,
-          'enableBluetoothScanning': true,
-          'enablePeriodicScanning': false,
         }),
       );
     });
@@ -70,8 +66,6 @@ void main() {
           'foregroundScanInterval': 15,
           'backgroundScanInterval': 30,
           'maxQueuedPayloads': 100,
-          'enableBluetoothScanning': false,
-          'enablePeriodicScanning': true,
         }),
       );
     });
@@ -184,22 +178,6 @@ void main() {
       expect(methodCalls.first.method, equals('isScanning'));
       expect(result, isTrue);
     });
-
-    test('setBluetoothScanning with enabled true', () async {
-      await BearoundFlutterSdk.setBluetoothScanning(true);
-
-      expect(methodCalls, hasLength(1));
-      expect(methodCalls.first.method, equals('setBluetoothScanning'));
-      expect(methodCalls.first.arguments, equals({'enabled': true}));
-    });
-
-    test('setBluetoothScanning with enabled false', () async {
-      await BearoundFlutterSdk.setBluetoothScanning(false);
-
-      expect(methodCalls, hasLength(1));
-      expect(methodCalls.first.method, equals('setBluetoothScanning'));
-      expect(methodCalls.first.arguments, equals({'enabled': false}));
-    });
   });
 
   group('BearoundFlutterSdk User Properties', () {
@@ -249,10 +227,6 @@ void main() {
   group('BearoundFlutterSdk Streams', () {
     test('beaconsStream is available', () {
       expect(BearoundFlutterSdk.beaconsStream, isA<Stream<List<Beacon>>>());
-    });
-
-    test('syncStream is available', () {
-      expect(BearoundFlutterSdk.syncStream, isA<Stream<SyncStatus>>());
     });
 
     test('scanningStream is available', () {
