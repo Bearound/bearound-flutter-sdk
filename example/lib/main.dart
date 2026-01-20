@@ -41,8 +41,6 @@ class _BeaconHomePageState extends State<BeaconHomePage>
   BackgroundScanInterval _backgroundScanInterval =
       BackgroundScanInterval.seconds30;
   MaxQueuedPayloads _maxQueuedPayloads = MaxQueuedPayloads.medium;
-  bool _enableBluetoothScanning = true;
-  bool _enablePeriodicScanning = true;
 
   List<Beacon> _detectedBeacons = [];
   final List<String> _logs = [];
@@ -56,6 +54,9 @@ class _BeaconHomePageState extends State<BeaconHomePage>
   StreamSubscription<SyncStatus>? _syncSubscription;
   StreamSubscription<bool>? _scanningSubscription;
   StreamSubscription<BearoundError>? _errorSubscription;
+  StreamSubscription<SyncLifecycleEvent>? _syncLifecycleSubscription;
+  StreamSubscription<BackgroundDetectionEvent>?
+  _backgroundDetectionSubscription;
 
   @override
   void initState() {
@@ -72,6 +73,8 @@ class _BeaconHomePageState extends State<BeaconHomePage>
     _syncSubscription?.cancel();
     _scanningSubscription?.cancel();
     _errorSubscription?.cancel();
+    _syncLifecycleSubscription?.cancel();
+    _backgroundDetectionSubscription?.cancel();
     super.dispose();
   }
 
@@ -105,16 +108,13 @@ class _BeaconHomePageState extends State<BeaconHomePage>
         foregroundScanInterval: _foregroundScanInterval,
         backgroundScanInterval: _backgroundScanInterval,
         maxQueuedPayloads: _maxQueuedPayloads,
-        enableBluetoothScanning: _enableBluetoothScanning,
-        enablePeriodicScanning: _enablePeriodicScanning,
       );
 
       _addLog(
         '⚙️ Configurado: FG ${_foregroundScanInterval.seconds}s, '
         'BG ${_backgroundScanInterval.seconds}s, '
-        'Queue ${_maxQueuedPayloads.value}, '
-        'BLE ${_enableBluetoothScanning ? 'on' : 'off'}, '
-        'periódico ${_enablePeriodicScanning ? 'on' : 'off'}',
+        'Queue ${_maxQueuedPayloads.value} '
+        '(BLE metadata e scan periódico são automáticos em v2.2.0)',
       );
     } catch (error) {
       setState(() {
@@ -133,22 +133,35 @@ class _BeaconHomePageState extends State<BeaconHomePage>
   }
 
   void _startListening() {
+    // Beacons stream
     _beaconsSubscription = BearoundFlutterSdk.beaconsStream.listen((beacons) {
+      debugPrint('[DEBUG] 📡 Beacons callback: ${beacons.length} beacons');
       setState(() {
         _detectedBeacons = beacons;
       });
       _addLog('📡 Beacons detectados: ${beacons.length}');
+      for (final beacon in beacons) {
+        debugPrint(
+          '[DEBUG]   - Beacon ${beacon.major}.${beacon.minor}: RSSI ${beacon.rssi}dBm',
+        );
+      }
     });
 
+    // Sync status stream (deprecated but kept for compatibility)
     _syncSubscription = BearoundFlutterSdk.syncStream.listen((status) {
+      debugPrint(
+        '[DEBUG] 🔄 Sync status: ${status.secondsUntilNextSync}s, ranging: ${status.isRanging}',
+      );
       setState(() {
         _syncStatus = status;
       });
     });
 
+    // Scanning state stream
     _scanningSubscription = BearoundFlutterSdk.scanningStream.listen((
       isScanning,
     ) {
+      debugPrint('[DEBUG] 🎯 Scanning state changed: $isScanning');
       setState(() {
         _isScanning = isScanning;
         _status = isScanning ? 'Scaneando…' : 'Parado';
@@ -156,12 +169,44 @@ class _BeaconHomePageState extends State<BeaconHomePage>
       _addLog('🔄 Scanning ${isScanning ? 'ativo' : 'parado'}');
     });
 
+    // Error stream
     _errorSubscription = BearoundFlutterSdk.errorStream.listen((error) {
+      debugPrint('[DEBUG] ❌ Error callback: ${error.message}');
       setState(() {
         _lastError = error.message;
       });
       _addLog('❌ Erro: ${error.message}');
     });
+
+    // v2.2.0: Sync lifecycle stream (NEW!)
+    _syncLifecycleSubscription = BearoundFlutterSdk.syncLifecycleStream.listen((
+      event,
+    ) {
+      debugPrint(
+        '[DEBUG] 🔄 Sync lifecycle: ${event.type}, beacons: ${event.beaconCount}',
+      );
+      if (event.isStarted) {
+        _addLog('🚀 Sync iniciado com ${event.beaconCount} beacon(s)');
+      } else if (event.isCompleted) {
+        if (event.success == true) {
+          _addLog('✅ Sync completo: ${event.beaconCount} beacon(s) enviados');
+        } else {
+          _addLog('❌ Sync falhou: ${event.error ?? "erro desconhecido"}');
+        }
+      }
+    });
+
+    // v2.2.0: Background detection stream (NEW!)
+    _backgroundDetectionSubscription = BearoundFlutterSdk
+        .backgroundDetectionStream
+        .listen((event) {
+          debugPrint(
+            '[DEBUG] 🌙 Background detection: ${event.beaconCount} beacons',
+          );
+          _addLog('🌙 Background: ${event.beaconCount} beacon(s) detectado(s)');
+        });
+
+    debugPrint('[DEBUG] ✅ Todos os streams inicializados');
   }
 
   void _addLog(String log) {
@@ -252,8 +297,6 @@ class _BeaconHomePageState extends State<BeaconHomePage>
                       initialForegroundScanInterval: _foregroundScanInterval,
                       initialBackgroundScanInterval: _backgroundScanInterval,
                       initialMaxQueuedPayloads: _maxQueuedPayloads,
-                      initialBluetoothScanning: _enableBluetoothScanning,
-                      initialPeriodicScanning: _enablePeriodicScanning,
                     ),
                   ),
                 );
@@ -263,8 +306,6 @@ class _BeaconHomePageState extends State<BeaconHomePage>
                     _foregroundScanInterval = result.foregroundScanInterval;
                     _backgroundScanInterval = result.backgroundScanInterval;
                     _maxQueuedPayloads = result.maxQueuedPayloads;
-                    _enableBluetoothScanning = result.enableBluetoothScanning;
-                    _enablePeriodicScanning = result.enablePeriodicScanning;
                   });
                   if (_hasPermission) {
                     await _applyConfiguration();
@@ -395,12 +436,13 @@ class _BeaconHomePageState extends State<BeaconHomePage>
           Text('Foreground: ${_foregroundScanInterval.seconds}s'),
           Text('Background: ${_backgroundScanInterval.seconds}s'),
           Text('Fila de retry: ${_maxQueuedPayloads.value} batches'),
-          Text(
-            'Bluetooth metadata: ${_enableBluetoothScanning ? 'ligado' : 'desligado'}',
+          const SizedBox(height: 8),
+          const Text(
+            '✨ Automático em v2.2.0:',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
           ),
-          Text(
-            'Scan periódico: ${_enablePeriodicScanning ? 'ligado' : 'desligado'}',
-          ),
+          const Text('• Bluetooth metadata: sempre ativo'),
+          const Text('• Scan periódico: FG ativo, BG contínuo'),
           if (_lastError != null) ...[
             const SizedBox(height: 16),
             Text(

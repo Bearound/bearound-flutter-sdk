@@ -8,6 +8,8 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
     private let syncStreamHandler = EventStreamHandler()
     private let scanningStreamHandler = EventStreamHandler()
     private let errorStreamHandler = EventStreamHandler()
+    private let syncLifecycleStreamHandler = EventStreamHandler()
+    private let backgroundDetectionStreamHandler = EventStreamHandler()
     private var isActiveScan = false
 
     public static func register(with registrar: FlutterPluginRegistrar) {
@@ -43,6 +45,18 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
         )
         errorChannel.setStreamHandler(instance.errorStreamHandler)
 
+        let syncLifecycleChannel = FlutterEventChannel(
+            name: "bearound_flutter_sdk/sync_lifecycle",
+            binaryMessenger: registrar.messenger()
+        )
+        syncLifecycleChannel.setStreamHandler(instance.syncLifecycleStreamHandler)
+
+        let backgroundDetectionChannel = FlutterEventChannel(
+            name: "bearound_flutter_sdk/background_detection",
+            binaryMessenger: registrar.messenger()
+        )
+        backgroundDetectionChannel.setStreamHandler(instance.backgroundDetectionStreamHandler)
+
         BeAroundSDK.shared.delegate = instance
     }
 
@@ -69,21 +83,18 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
             let foregroundSeconds = (args?["foregroundScanInterval"] as? NSNumber)?.intValue ?? 15
             let backgroundSeconds = (args?["backgroundScanInterval"] as? NSNumber)?.intValue ?? 30
             let maxQueuedValue = (args?["maxQueuedPayloads"] as? NSNumber)?.intValue ?? 100
-            let enableBluetoothScanning = args?["enableBluetoothScanning"] as? Bool ?? false
-            let enablePeriodicScanning = args?["enablePeriodicScanning"] as? Bool ?? true
 
             // Map Int values to native iOS enums
             let foregroundInterval = mapToForegroundScanInterval(foregroundSeconds)
             let backgroundInterval = mapToBackgroundScanInterval(backgroundSeconds)
             let maxQueuedPayloads = mapToMaxQueuedPayloads(maxQueuedValue)
 
+            // v2.2.1: Bluetooth scanning and periodic scanning are now automatic
             BeAroundSDK.shared.configure(
                 businessToken: businessToken,
                 foregroundScanInterval: foregroundInterval,
                 backgroundScanInterval: backgroundInterval,
-                maxQueuedPayloads: maxQueuedPayloads,
-                enableBluetoothScanning: enableBluetoothScanning,
-                enablePeriodicScanning: enablePeriodicScanning
+                maxQueuedPayloads: maxQueuedPayloads
             )
             BeAroundSDK.shared.delegate = self
             result(nil)
@@ -111,8 +122,7 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
             result(BeAroundSDK.shared.isScanning)
 
         case "setBluetoothScanning":
-            let enabled = (call.arguments as? [String: Any])?["enabled"] as? Bool ?? false
-            BeAroundSDK.shared.setBluetoothScanning(enabled: enabled)
+            // v2.2.1: Bluetooth scanning is now automatic - method deprecated
             result(nil)
 
         case "setUserProperties":
@@ -198,14 +208,34 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
         }
     }
 
-    public func didUpdateSyncStatus(secondsUntilNextSync: Int, isRanging: Bool) {
-        guard isActiveScan else { return }
+    public func willStartSync(beaconCount: Int) {
         let payload: [String: Any] = [
-            "secondsUntilNextSync": secondsUntilNextSync,
-            "isRanging": isRanging,
+            "type": "started",
+            "beaconCount": beaconCount
         ]
         DispatchQueue.main.async { [weak self] in
-            self?.syncStreamHandler.eventSink?(payload)
+            self?.syncLifecycleStreamHandler.eventSink?(payload)
+        }
+    }
+    
+    public func didCompleteSync(beaconCount: Int, success: Bool, error: Error?) {
+        let payload: [String: Any] = [
+            "type": "completed",
+            "beaconCount": beaconCount,
+            "success": success,
+            "error": error?.localizedDescription as Any
+        ]
+        DispatchQueue.main.async { [weak self] in
+            self?.syncLifecycleStreamHandler.eventSink?(payload)
+        }
+    }
+    
+    public func didDetectBeaconInBackground(beaconCount: Int) {
+        let payload: [String: Any] = [
+            "beaconCount": beaconCount
+        ]
+        DispatchQueue.main.async { [weak self] in
+            self?.backgroundDetectionStreamHandler.eventSink?(payload)
         }
     }
 

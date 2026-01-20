@@ -5,6 +5,95 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - 2026-01-20
+
+### ⚠️ Breaking Changes
+
+**Simplified Configuration**: Bluetooth metadata and periodic scanning are now automatic. The `enableBluetoothScanning` and `enablePeriodicScanning` parameters have been removed from the `configure()` method.
+
+### Added
+
+- **NEW Streams for Better Control**:
+  - `syncLifecycleStream`: Notifies when sync operations start and complete
+    - `onSyncStarted(beaconCount)`: Called before starting a sync
+    - `onSyncCompleted(beaconCount, success, error)`: Called after sync completes
+  - `backgroundDetectionStream`: Notifies when beacons are detected in background
+    - `onBeaconDetectedInBackground(beaconCount)`: Called when beacons detected while app is in background
+
+- **New Models**:
+  - `SyncLifecycleEvent`: Represents sync lifecycle events with type, beaconCount, success, and error fields
+  - `BackgroundDetectionEvent`: Represents background detection events with beaconCount
+
+### Changed
+
+- **Automatic Features**: 
+  - Bluetooth metadata collection is now always enabled (no need to configure)
+  - Periodic scanning is automatic:
+    - Foreground: Enabled (saves battery)
+    - Background: Continuous (maximum detection)
+
+- **Native SDKs Updated**:
+  - Android: `com.github.Bearound:bearound-android-sdk:v2.2.0`
+  - iOS: `BearoundSDK ~> 2.2.1`
+
+- **Platform Improvements**:
+  - Android: Renamed `BeAroundSDKDelegate` to `BeAroundSDKListener` (Android naming convention)
+  - Android: Changed callback prefix from `did*` to `on*` (e.g., `didUpdateBeacons` → `onBeaconsUpdated`)
+  - iOS: Added new callbacks while maintaining `did*` prefix (iOS convention)
+
+### Removed
+
+- `enableBluetoothScanning` parameter from `configure()` method (now automatic)
+- `enablePeriodicScanning` parameter from `configure()` method (now automatic)
+- `setBluetoothScanning()` method (no longer needed)
+
+### Migration
+
+**Before (v2.1.0):**
+```dart
+await BearoundFlutterSdk.configure(
+  businessToken: 'your-token',
+  enableBluetoothScanning: true,
+  enablePeriodicScanning: true,
+);
+```
+
+**After (v2.2.0):**
+```dart
+// Simpler configuration
+await BearoundFlutterSdk.configure(
+  businessToken: 'your-token',
+  // Bluetooth metadata and periodic scanning are automatic
+);
+
+// NEW: Listen to sync lifecycle
+BearoundFlutterSdk.syncLifecycleStream.listen((event) {
+  if (event.isStarted) {
+    print('📤 Sync started: ${event.beaconCount} beacons');
+  } else if (event.isCompleted) {
+    if (event.success == true) {
+      print('✅ Sync success: ${event.beaconCount} beacons sent');
+    } else {
+      print('❌ Sync failed: ${event.error}');
+    }
+  }
+});
+
+// NEW: Listen to background detections
+BearoundFlutterSdk.backgroundDetectionStream.listen((event) {
+  print('🌙 Background: ${event.beaconCount} beacons detected');
+});
+```
+
+### Technical Details
+
+- Improved code deduplication in native Android SDK
+- Better async handling for device info collection
+- iOS SDK updated with new callback structure
+- All callbacks now have debug logging support
+
+---
+
 ## [2.1.0] - 2026-01-13
 
 ### ⚠️ Breaking Changes

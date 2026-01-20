@@ -1,16 +1,19 @@
 # 🐻 Bearound Flutter SDK
 
-Official Flutter plugin for the Bearound native SDKs (Android/iOS) version 2.1.0.
+Official Flutter plugin for the Bearound native SDKs (Android/iOS) version 2.2.0.
 
 ## Features
 
-- Native beacon scanning on Android and iOS.
-- Real-time beacon stream with metadata (battery, firmware, temperature).
-- Sync status updates (next sync countdown + ranging state).
-- Scanning state and error streams.
-- User properties support for enriched beacon events.
-- Permission helper for location/Bluetooth setup.
-- Business token authentication with automatic app ID detection.
+- Native beacon scanning on Android and iOS
+- Real-time beacon stream with metadata (battery, firmware, temperature)
+- **NEW v2.2.0:** Sync lifecycle events (sync started/completed callbacks)
+- **NEW v2.2.0:** Background detection events (beacons detected in background)
+- Sync status updates (next sync countdown + ranging state)
+- Scanning state and error streams
+- User properties support for enriched beacon events
+- Permission helper for location/Bluetooth setup
+- Business token authentication with automatic app ID detection
+- Automatic Bluetooth metadata collection and periodic scanning
 
 ## Installation
 
@@ -18,7 +21,7 @@ Add to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  bearound_flutter_sdk: ^2.1.0
+  bearound_flutter_sdk: ^2.2.0
 ```
 
 Run:
@@ -68,8 +71,10 @@ Add the following to `ios/Runner/Info.plist`:
 ```xml
 <key>UIBackgroundModes</key>
 <array>
-    <string>bluetooth-central</string>
+    <string>fetch</string>
     <string>location</string>
+    <string>processing</string>
+    <string>bluetooth-central</string>
 </array>
 <key>NSBluetoothAlwaysUsageDescription</key>
 <string>This app uses Bluetooth to detect nearby beacons.</string>
@@ -80,6 +85,11 @@ Add the following to `ios/Runner/Info.plist`:
 <key>NSUserTrackingUsageDescription</key>
 <string>This app uses tracking permission for beacon detection.</string>
 ```
+
+**Important for terminated app detection:**
+- `fetch` mode allows iOS to wake the app when beacons are detected
+- User must grant "Always" location permission (not "When In Use")
+- User must enable "Background App Refresh" in device Settings
 
 Minimum iOS version: 13.0.
 
@@ -99,17 +109,32 @@ Future<void> setupSdk() async {
     foregroundScanInterval: ForegroundScanInterval.seconds15,  // Default: 15s
     backgroundScanInterval: BackgroundScanInterval.seconds30,  // Default: 30s
     maxQueuedPayloads: MaxQueuedPayloads.medium,               // Default: 100
-    enableBluetoothScanning: true,
-    enablePeriodicScanning: true,
   );
   // Note: appId is automatically extracted from the app's package/bundle identifier
+  // Bluetooth metadata and periodic scanning are automatic in v2.2.0
 
+  // Listen to beacons
   BearoundFlutterSdk.beaconsStream.listen((beacons) {
     for (final beacon in beacons) {
       print('${beacon.major}.${beacon.minor} - RSSI ${beacon.rssi}');
     }
   });
 
+  // Listen to sync lifecycle (NEW in v2.2.0)
+  BearoundFlutterSdk.syncLifecycleStream.listen((event) {
+    if (event.isStarted) {
+      print('Sync started with ${event.beaconCount} beacons');
+    } else if (event.isCompleted) {
+      print('Sync completed: ${event.success ? "success" : "failed"}');
+    }
+  });
+
+  // Listen to background detections (NEW in v2.2.0)
+  BearoundFlutterSdk.backgroundDetectionStream.listen((event) {
+    print('Background: ${event.beaconCount} beacons detected');
+  });
+
+  // Other streams
   BearoundFlutterSdk.syncStream.listen((status) {
     print('Next sync in ${status.secondsUntilNextSync}s');
   });
@@ -141,11 +166,20 @@ await BearoundFlutterSdk.setUserProperties(
 
 ## API Summary
 
-- `configure({businessToken, foregroundScanInterval, backgroundScanInterval, maxQueuedPayloads, enableBluetoothScanning, enablePeriodicScanning})`
+### Methods
+
+- `configure({businessToken, foregroundScanInterval, backgroundScanInterval, maxQueuedPayloads})`
 - `startScanning() / stopScanning() / isScanning()`
-- `setBluetoothScanning(bool enabled)`
 - `setUserProperties(UserProperties) / clearUserProperties()`
-- Streams: `beaconsStream`, `syncStream`, `scanningStream`, `errorStream`
+
+### Streams
+
+- `beaconsStream` - Detected beacons with metadata
+- `syncLifecycleStream` - **NEW v2.2.0:** Sync started/completed events
+- `backgroundDetectionStream` - **NEW v2.2.0:** Background beacon detections
+- `syncStream` - Sync status updates (deprecated, use syncLifecycleStream)
+- `scanningStream` - Scanning state changes
+- `errorStream` - SDK errors
 
 ### Configuration Enums
 
@@ -154,6 +188,43 @@ await BearoundFlutterSdk.setUserProperties(
 - **MaxQueuedPayloads**: `small` (50), `medium` (100), `large` (200), `xlarge` (500)
 
 ## Migration Guide
+
+### From 2.1.0 to 2.2.0
+
+**Simplified API:** Bluetooth metadata and periodic scanning are now automatic.
+
+**Before (v2.1.0):**
+```dart
+await BearoundFlutterSdk.configure(
+  businessToken: 'token',
+  enableBluetoothScanning: true,  // ❌ Removed
+  enablePeriodicScanning: true,   // ❌ Removed
+);
+```
+
+**After (v2.2.0):**
+```dart
+await BearoundFlutterSdk.configure(
+  businessToken: 'token',
+  // ✅ Bluetooth metadata: always enabled
+  // ✅ Periodic scanning: automatic (FG: enabled, BG: continuous)
+);
+
+// NEW: Listen to sync lifecycle events
+BearoundFlutterSdk.syncLifecycleStream.listen((event) {
+  if (event.isStarted) print('Sync started');
+  if (event.isCompleted) print('Sync completed: ${event.success}');
+});
+
+// NEW: Listen to background detections
+BearoundFlutterSdk.backgroundDetectionStream.listen((event) {
+  print('${event.beaconCount} beacons detected in background');
+});
+```
+
+**Native SDK Updates:**
+- Android: `v2.2.0`
+- iOS: `v2.2.1`
 
 ### From 2.0.1 to 2.1.0
 
@@ -181,4 +252,4 @@ await BearoundFlutterSdk.configure(
 
 - `startScan(clientToken)` was replaced by `configure()` + `startScanning()`.
 - Backup size, region events, and legacy sync success/error events were removed.
-- Use `syncStream` for countdown/ranging status and `errorStream` for failures.
+- Use `syncLifecycleStream` for sync events and `errorStream` for failures.

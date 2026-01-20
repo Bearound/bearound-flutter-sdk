@@ -5,20 +5,24 @@ import 'dart:async';
 import 'package:flutter/services.dart';
 
 import 'src/core/permission_service.dart';
+import 'src/models/background_detection_event.dart';
 import 'src/models/beacon.dart';
 import 'src/models/bearound_error.dart';
 import 'src/models/scan_interval_configuration.dart';
+import 'src/models/sync_lifecycle_event.dart';
 import 'src/models/sync_status.dart';
 import 'src/models/user_properties.dart';
 
+export 'src/models/background_detection_event.dart';
 export 'src/models/beacon.dart';
 export 'src/models/beacon_metadata.dart';
 export 'src/models/bearound_error.dart';
 export 'src/models/scan_interval_configuration.dart';
+export 'src/models/sync_lifecycle_event.dart';
 export 'src/models/sync_status.dart';
 export 'src/models/user_properties.dart';
 
-/// SDK principal do Bearound para integração com o SDK nativo 2.0.1.
+/// SDK principal do Bearound para integração com o SDK nativo 2.2.0.
 class BearoundFlutterSdk {
   BearoundFlutterSdk._();
 
@@ -35,11 +39,19 @@ class BearoundFlutterSdk {
   static const EventChannel _errorChannel = EventChannel(
     'bearound_flutter_sdk/errors',
   );
+  static const EventChannel _syncLifecycleChannel = EventChannel(
+    'bearound_flutter_sdk/sync_lifecycle',
+  );
+  static const EventChannel _backgroundDetectionChannel = EventChannel(
+    'bearound_flutter_sdk/background_detection',
+  );
 
   static Stream<List<Beacon>>? _beaconsStream;
   static Stream<SyncStatus>? _syncStream;
   static Stream<bool>? _scanningStream;
   static Stream<BearoundError>? _errorStream;
+  static Stream<SyncLifecycleEvent>? _syncLifecycleStream;
+  static Stream<BackgroundDetectionEvent>? _backgroundDetectionStream;
 
   /// Solicita as permissões necessárias para operação do SDK.
   static Future<bool> requestPermissions() =>
@@ -158,6 +170,34 @@ class BearoundFlutterSdk {
       return BearoundError.fromJson(payload);
     });
     return _errorStream!;
+  }
+
+  /// Stream de eventos de ciclo de vida de sincronização (v2.2.0).
+  ///
+  /// Notifica quando uma operação de sincronização inicia ou completa.
+  /// Útil para mostrar indicadores de progresso ou notificações ao usuário.
+  static Stream<SyncLifecycleEvent> get syncLifecycleStream {
+    _syncLifecycleStream ??= _syncLifecycleChannel.receiveBroadcastStream().map(
+      (event) {
+        final payload = _asMap(event);
+        return SyncLifecycleEvent.fromJson(payload);
+      },
+    );
+    return _syncLifecycleStream!;
+  }
+
+  /// Stream de eventos de detecção em background (v2.2.0).
+  ///
+  /// Notifica quando beacons são detectados enquanto o app está em background.
+  /// Útil para mostrar notificações ou registrar eventos de proximidade.
+  static Stream<BackgroundDetectionEvent> get backgroundDetectionStream {
+    _backgroundDetectionStream ??= _backgroundDetectionChannel
+        .receiveBroadcastStream()
+        .map((event) {
+          final payload = _asMap(event);
+          return BackgroundDetectionEvent.fromJson(payload);
+        });
+    return _backgroundDetectionStream!;
   }
 
   static Map<String, dynamic> _asMap(Object? event) {
