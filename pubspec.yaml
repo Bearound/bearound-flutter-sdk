@@ -1,6 +1,6 @@
 name: bearound_flutter_sdk
 description: "Bearound Flutter SDK - Beacon detection and proximity tracking"
-version: 2.2.1
+version: 2.2.2
 repository: https://github.com/Bearound/bearound-flutter-sdk
 issue_tracker: https://github.com/Bearound/bearound-flutter-sdk/issues
 homepage:
@@ -14,7 +14,6 @@ dependencies:
   flutter:
     sdk: flutter
   permission_handler: ">=12.0.0 <13.0.0"
-  location: ^8.0.1
 
 dev_dependencies:
   flutter_test:

@@ -3,7 +3,7 @@ import CoreLocation
 import Flutter
 import UIKit
 
-public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDelegate {
+public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDelegate, CLLocationManagerDelegate {
     private let beaconsStreamHandler = EventStreamHandler()
     private let scanningStreamHandler = EventStreamHandler()
     private let errorStreamHandler = EventStreamHandler()
@@ -12,6 +12,10 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
     
     /// Tracks if Flutter explicitly started scanning
     private var isActiveScan = false
+    
+    /// CLLocationManager for requesting permissions (like React Native)
+    private var permissionManager: CLLocationManager?
+    private var permissionResult: FlutterResult?
 
     public static func register(with registrar: FlutterPluginRegistrar) {
         let channel = FlutterMethodChannel(
@@ -182,9 +186,112 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
             BeAroundSDK.shared.clearUserProperties()
             result(nil)
 
+        case "requestPermissions":
+            requestLocationPermissions(result: result)
+
+        case "checkPermissions":
+            let granted = checkLocationPermissions()
+            result(granted)
+
         default:
             result(FlutterMethodNotImplemented)
         }
+    }
+    
+    // MARK: - Permission Handling (same as React Native)
+    
+    /// Request location permissions using CLLocationManager directly
+    /// This calls requestAlwaysAuthorization() like the iOS native and React Native SDKs
+    private func requestLocationPermissions(result: @escaping FlutterResult) {
+        // Check location services on a background queue to avoid blocking the main thread
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self = self else {
+                result(false)
+                return
+            }
+            
+            guard CLLocationManager.locationServicesEnabled() else {
+                result(false)
+                return
+            }
+            
+            // Now move to main queue for UI-related location manager setup
+            DispatchQueue.main.async {
+                // Use a CLLocationManager instance and rely on delegate callback to avoid synchronous status checks on main thread
+                self.permissionResult = result
+                let manager = CLLocationManager()
+                self.permissionManager = manager
+                manager.delegate = self
+
+                // Determine current status using manager (iOS 14+) or class method for earlier versions
+                let status: CLAuthorizationStatus
+                if #available(iOS 14.0, *) {
+                    status = manager.authorizationStatus
+                } else {
+                    status = CLLocationManager.authorizationStatus()
+                }
+
+                switch status {
+                case .authorizedAlways, .authorizedWhenInUse:
+                    // Already authorized
+                    self.permissionResult?(true)
+                    self.permissionResult = nil
+                    self.permissionManager?.delegate = nil
+                    self.permissionManager = nil
+                case .notDetermined:
+                    // Request "Always" authorization; result will be delivered via delegate
+                    manager.requestAlwaysAuthorization()
+                case .denied, .restricted:
+                    // Cannot request again; return false
+                    self.permissionResult?(false)
+                    self.permissionResult = nil
+                    self.permissionManager?.delegate = nil
+                    self.permissionManager = nil
+                @unknown default:
+                    self.permissionResult?(false)
+                    self.permissionResult = nil
+                    self.permissionManager?.delegate = nil
+                    self.permissionManager = nil
+                }
+            }
+        }
+    }
+    
+    /// Check current location permission status
+    private func checkLocationPermissions() -> Bool {
+        let status = currentAuthorizationStatus()
+        return status == .authorizedAlways || status == .authorizedWhenInUse
+    }
+    
+    /// Get current authorization status
+    private func currentAuthorizationStatus() -> CLAuthorizationStatus {
+        if #available(iOS 14.0, *) {
+            return CLLocationManager().authorizationStatus
+        } else {
+            return CLLocationManager.authorizationStatus()
+        }
+    }
+    
+    // MARK: - CLLocationManagerDelegate
+    
+    public func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        if #available(iOS 14.0, *) {
+            handleAuthorizationChange(manager.authorizationStatus)
+        }
+    }
+    
+    public func locationManager(_ manager: CLLocationManager, didChangeAuthorization status: CLAuthorizationStatus) {
+        handleAuthorizationChange(status)
+    }
+    
+    private func handleAuthorizationChange(_ status: CLAuthorizationStatus) {
+        guard status != .notDetermined else { return }
+        
+        let granted = status == .authorizedAlways || status == .authorizedWhenInUse
+        permissionResult?(granted)
+        permissionResult = nil
+        permissionManager?.delegate = nil
+        permissionManager = nil
     }
 
     // MARK: - BeAroundSDKDelegate
