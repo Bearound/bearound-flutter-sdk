@@ -1,27 +1,23 @@
 import 'dart:io' show Platform;
+import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:location/location.dart' as loc;
 
 class PermissionService {
   PermissionService._();
 
   static final PermissionService instance = PermissionService._();
 
+  static const MethodChannel _channel = MethodChannel('bearound_flutter_sdk');
+
   Future<bool> requestPermissions() async {
     try {
       if (Platform.isIOS) {
-        final location = loc.Location();
-        var permissionGranted = await location.hasPermission();
-        if (permissionGranted == loc.PermissionStatus.denied) {
-          permissionGranted = await location.requestPermission();
-        }
-        if (permissionGranted != loc.PermissionStatus.granted &&
-            permissionGranted != loc.PermissionStatus.grantedLimited) {
-          return false;
-        }
-        return true;
+        // iOS: Use native method that calls requestAlwaysAuthorization()
+        // This is the same approach used by React Native SDK
+        final result = await _channel.invokeMethod<bool>('requestPermissions');
+        return result ?? false;
       } else {
-        // Android permissions - more flexible approach
+        // Android: Use permission_handler package
         bool hasLocationPermission = false;
         bool hasBluetoothPermission = false;
 
@@ -35,13 +31,10 @@ class PermissionService {
         }
 
         // Request Bluetooth permissions (essential for beacon scanning)
-        // These permissions may not all be available on all Android versions
         final bluetoothScanStatus = await Permission.bluetoothScan.request();
         final bluetoothConnectStatus = await Permission.bluetoothConnect
             .request();
 
-        // Consider bluetooth granted if either bluetoothScan is granted
-        // or the old bluetooth permission is granted (for older Android versions)
         hasBluetoothPermission =
             bluetoothScanStatus.isGranted ||
             bluetoothConnectStatus.isGranted ||
@@ -51,12 +44,28 @@ class PermissionService {
         await Permission.bluetoothAdvertise.request();
         await Permission.notification.request();
 
-        // Return true if we have at least location OR bluetooth
-        // The SDK can work with either
         return hasLocationPermission || hasBluetoothPermission;
       }
     } catch (e) {
-      // Error requesting permissions
+      return false;
+    }
+  }
+
+  Future<bool> checkPermissions() async {
+    try {
+      if (Platform.isIOS) {
+        // iOS: Check via native code
+        final result = await _channel.invokeMethod<bool>('checkPermissions');
+        return result ?? false;
+      } else {
+        // Android: Check via permission_handler
+        final location = await Permission.location.isGranted;
+        final bluetooth =
+            await Permission.bluetoothScan.isGranted ||
+            await Permission.bluetooth.isGranted;
+        return location || bluetooth;
+      }
+    } catch (e) {
       return false;
     }
   }

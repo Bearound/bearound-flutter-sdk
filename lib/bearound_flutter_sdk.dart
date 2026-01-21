@@ -48,8 +48,16 @@ class BearoundFlutterSdk {
   static Stream<BackgroundDetectionEvent>? _backgroundDetectionStream;
 
   /// Solicita as permissões necessárias para operação do SDK.
+  /// No iOS, chama requestAlwaysAuthorization() via código nativo.
+  /// No Android, usa permission_handler para solicitar permissões.
   static Future<bool> requestPermissions() =>
       PermissionService.instance.requestPermissions();
+
+  /// Verifica se as permissões necessárias foram concedidas.
+  /// No iOS, verifica via código nativo.
+  /// No Android, usa permission_handler.
+  static Future<bool> checkPermissions() =>
+      PermissionService.instance.checkPermissions();
 
   /// Configura o SDK nativo antes de iniciar o scan.
   ///

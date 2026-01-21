@@ -1,17 +1,16 @@
 # 🐻 Bearound Flutter SDK
 
-Official Flutter plugin for the Bearound native SDKs (Android/iOS) version 2.2.0.
+Official Flutter plugin for the Bearound native SDKs (Android/iOS) version 2.2.2.
 
 ## Features
 
 - Native beacon scanning on Android and iOS
 - Real-time beacon stream with metadata (battery, firmware, temperature)
-- **NEW v2.2.0:** Sync lifecycle events (sync started/completed callbacks)
-- **NEW v2.2.0:** Background detection events (beacons detected in background)
-- Sync status updates (next sync countdown + ranging state)
+- Sync lifecycle events (sync started/completed callbacks)
+- Background detection events (beacons detected in background)
 - Scanning state and error streams
 - User properties support for enriched beacon events
-- Permission helper for location/Bluetooth setup
+- **Native permission handling** - iOS uses `requestAlwaysAuthorization()` directly (no blue GPS indicator)
 - Business token authentication with automatic app ID detection
 - Automatic Bluetooth metadata collection and periodic scanning
 
@@ -21,7 +20,7 @@ Add to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  bearound_flutter_sdk: ^2.2.0
+  bearound_flutter_sdk: ^2.2.2
 ```
 
 Run:
@@ -120,7 +119,7 @@ Future<void> setupSdk() async {
     }
   });
 
-  // Listen to sync lifecycle (NEW in v2.2.0)
+  // Listen to sync lifecycle
   BearoundFlutterSdk.syncLifecycleStream.listen((event) {
     if (event.isStarted) {
       print('Sync started with ${event.beaconCount} beacons');
@@ -129,16 +128,12 @@ Future<void> setupSdk() async {
     }
   });
 
-  // Listen to background detections (NEW in v2.2.0)
+  // Listen to background detections
   BearoundFlutterSdk.backgroundDetectionStream.listen((event) {
     print('Background: ${event.beaconCount} beacons detected');
   });
 
   // Other streams
-  BearoundFlutterSdk.syncStream.listen((status) {
-    print('Next sync in ${status.secondsUntilNextSync}s');
-  });
-
   BearoundFlutterSdk.scanningStream.listen((isScanning) {
     print('Scanning: $isScanning');
   });
@@ -175,9 +170,8 @@ await BearoundFlutterSdk.setUserProperties(
 ### Streams
 
 - `beaconsStream` - Detected beacons with metadata
-- `syncLifecycleStream` - **NEW v2.2.0:** Sync started/completed events
-- `backgroundDetectionStream` - **NEW v2.2.0:** Background beacon detections
-- `syncStream` - Sync status updates (deprecated, use syncLifecycleStream)
+- `syncLifecycleStream` - Sync started/completed events
+- `backgroundDetectionStream` - Background beacon detections
 - `scanningStream` - Scanning state changes
 - `errorStream` - SDK errors
 

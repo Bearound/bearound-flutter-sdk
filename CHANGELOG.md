@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.2] - 2026-01-21
+
+### Changed
+
+- **iOS Permission Handling**: Permissions are now requested via native Swift code using `CLLocationManager.requestAlwaysAuthorization()`, matching the behavior of the iOS native SDK and React Native SDK. This eliminates the blue GPS indicator that appeared when using the `location` Flutter package.
+
+### Fixed
+
+- **iOS: Blue GPS indicator no longer appears**: Removed dependency on the `location` Flutter package for iOS. Permissions are now handled natively via MethodChannel, which prevents the continuous location updates that caused the blue GPS indicator to appear.
+
+- **iOS: Permission flow aligned with native SDKs**: The permission request now goes directly to "Always" authorization (like React Native and iOS native SDKs) instead of first asking for "When In Use" and then upgrading.
+
+### Removed
+
+- **Removed `location` package dependency**: The `location` package is no longer used. iOS permissions are handled via native Swift code, and Android permissions continue to use `permission_handler`.
+
+### Technical Details
+
+- **iOS Plugin (`BearoundFlutterSdkPlugin.swift`)**:
+  - Added `CLLocationManagerDelegate` conformance
+  - Added `requestPermissions` method that calls `requestAlwaysAuthorization()` directly
+  - Added `checkPermissions` method to verify current authorization status
+  - Both methods mirror the React Native SDK's `RNBearoundBridge.swift` implementation
+
+- **Permission Service (`permission_service.dart`)**:
+  - iOS: Now uses `MethodChannel` to call native Swift permission methods
+  - Android: Continues using `permission_handler` package
+  - Added `checkPermissions()` method to the public API
+
 ## [2.2.1] - 2026-01-20
 
 ### ⚠️ Breaking Changes
