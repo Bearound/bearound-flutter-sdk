@@ -5,11 +5,12 @@ import UIKit
 
 public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDelegate {
     private let beaconsStreamHandler = EventStreamHandler()
-    private let syncStreamHandler = EventStreamHandler()
     private let scanningStreamHandler = EventStreamHandler()
     private let errorStreamHandler = EventStreamHandler()
     private let syncLifecycleStreamHandler = EventStreamHandler()
     private let backgroundDetectionStreamHandler = EventStreamHandler()
+    
+    /// Tracks if Flutter explicitly started scanning
     private var isActiveScan = false
 
     public static func register(with registrar: FlutterPluginRegistrar) {
@@ -26,12 +27,6 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
             binaryMessenger: registrar.messenger()
         )
         beaconsChannel.setStreamHandler(instance.beaconsStreamHandler)
-
-        let syncChannel = FlutterEventChannel(
-            name: "bearound_flutter_sdk/sync",
-            binaryMessenger: registrar.messenger()
-        )
-        syncChannel.setStreamHandler(instance.syncStreamHandler)
 
         let scanningChannel = FlutterEventChannel(
             name: "bearound_flutter_sdk/scanning",
@@ -57,7 +52,11 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
         )
         backgroundDetectionChannel.setStreamHandler(instance.backgroundDetectionStreamHandler)
 
+        // Register as delegate
         BeAroundSDK.shared.delegate = instance
+        
+        // Sync isActiveScan with SDK's current state (handles auto-restored scanning)
+        instance.isActiveScan = BeAroundSDK.shared.isScanning
     }
 
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
@@ -89,7 +88,13 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
             let backgroundInterval = mapToBackgroundScanInterval(backgroundSeconds)
             let maxQueuedPayloads = mapToMaxQueuedPayloads(maxQueuedValue)
 
-            // v2.2.1: Bluetooth scanning and periodic scanning are now automatic
+            // FIX: If SDK was already scanning (auto-restored), stop it first
+            // so the new configuration takes effect
+            let wasScanning = BeAroundSDK.shared.isScanning
+            if wasScanning {
+                BeAroundSDK.shared.stopScanning()
+            }
+
             BeAroundSDK.shared.configure(
                 businessToken: businessToken,
                 foregroundScanInterval: foregroundInterval,
@@ -97,11 +102,34 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
                 maxQueuedPayloads: maxQueuedPayloads
             )
             BeAroundSDK.shared.delegate = self
+            
+            // If SDK was scanning before, restart with new configuration
+            if wasScanning {
+                // Force correct foreground state
+                let appState = UIApplication.shared.applicationState
+                if appState == .active {
+                    NotificationCenter.default.post(name: UIApplication.willEnterForegroundNotification, object: nil)
+                }
+                
+                BeAroundSDK.shared.startScanning()
+                isActiveScan = true
+            } else {
+                isActiveScan = false
+            }
+            
             result(nil)
 
         case "startScanning":
             isActiveScan = true
             BeAroundSDK.shared.delegate = self
+            
+            // WORKAROUND: Force SDK to recognize correct foreground state
+            // This ensures BeaconManager.isInForeground is correctly set
+            let appState = UIApplication.shared.applicationState
+            if appState == .active {
+                NotificationCenter.default.post(name: UIApplication.willEnterForegroundNotification, object: nil)
+            }
+            
             BeAroundSDK.shared.startScanning()
             result(nil)
 
@@ -110,10 +138,6 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
             BeAroundSDK.shared.stopScanning()
             DispatchQueue.main.async { [weak self] in
                 self?.beaconsStreamHandler.eventSink?(["beacons": []])
-                self?.syncStreamHandler.eventSink?([
-                    "secondsUntilNextSync": 0,
-                    "isRanging": false,
-                ])
                 self?.scanningStreamHandler.eventSink?(["isScanning": false])
             }
             result(nil)
@@ -163,8 +187,9 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
         }
     }
 
+    // MARK: - BeAroundSDKDelegate
+
     public func didUpdateBeacons(_ beacons: [Beacon]) {
-        guard isActiveScan else { return }
         let mapped = beacons.map { beacon -> [String: Any] in
             var payload: [String: Any] = [
                 "uuid": beacon.uuid.uuidString,
@@ -192,7 +217,7 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
     }
 
     public func didFailWithError(_ error: Error) {
-        guard isActiveScan else { return }
+        // FIX: Always forward errors to Flutter
         let payload: [String: Any] = [
             "message": error.localizedDescription
         ]
@@ -202,7 +227,8 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
     }
 
     public func didChangeScanning(isScanning: Bool) {
-        isActiveScan = isScanning
+        self.isActiveScan = isScanning
+        
         DispatchQueue.main.async { [weak self] in
             self?.scanningStreamHandler.eventSink?(["isScanning": isScanning])
         }
@@ -238,6 +264,8 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
             self?.backgroundDetectionStreamHandler.eventSink?(payload)
         }
     }
+
+    // MARK: - Mapping Helpers
 
     private func mapProximity(_ proximity: CLProximity) -> String {
         switch proximity {
@@ -314,6 +342,8 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
         }
     }
 }
+
+// MARK: - Event Stream Handler
 
 private class EventStreamHandler: NSObject, FlutterStreamHandler {
     var eventSink: FlutterEventSink?

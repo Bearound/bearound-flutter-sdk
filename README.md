@@ -223,7 +223,7 @@ BearoundFlutterSdk.backgroundDetectionStream.listen((event) {
 ```
 
 **Native SDK Updates:**
-- Android: `v2.2.0`
+- Android: `v2.2.1`
 - iOS: `v2.2.1`
 
 ### From 2.0.1 to 2.1.0
