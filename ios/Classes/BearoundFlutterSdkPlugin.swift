@@ -203,7 +203,8 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
     /// Request location permissions using CLLocationManager directly
     /// This calls requestAlwaysAuthorization() like the iOS native and React Native SDKs
     private func requestLocationPermissions(result: @escaping FlutterResult) {
-        DispatchQueue.main.async { [weak self] in
+        // Check location services on a background queue to avoid blocking the main thread
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self = self else {
                 result(false)
                 return
@@ -214,26 +215,45 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
                 return
             }
             
-            let status = self.currentAuthorizationStatus()
-            
-            // Already authorized
-            if status == .authorizedAlways || status == .authorizedWhenInUse {
-                result(true)
-                return
+            // Now move to main queue for UI-related location manager setup
+            DispatchQueue.main.async {
+                // Use a CLLocationManager instance and rely on delegate callback to avoid synchronous status checks on main thread
+                self.permissionResult = result
+                let manager = CLLocationManager()
+                self.permissionManager = manager
+                manager.delegate = self
+
+                // Determine current status using manager (iOS 14+) or class method for earlier versions
+                let status: CLAuthorizationStatus
+                if #available(iOS 14.0, *) {
+                    status = manager.authorizationStatus
+                } else {
+                    status = CLLocationManager.authorizationStatus()
+                }
+
+                switch status {
+                case .authorizedAlways, .authorizedWhenInUse:
+                    // Already authorized
+                    self.permissionResult?(true)
+                    self.permissionResult = nil
+                    self.permissionManager?.delegate = nil
+                    self.permissionManager = nil
+                case .notDetermined:
+                    // Request "Always" authorization; result will be delivered via delegate
+                    manager.requestAlwaysAuthorization()
+                case .denied, .restricted:
+                    // Cannot request again; return false
+                    self.permissionResult?(false)
+                    self.permissionResult = nil
+                    self.permissionManager?.delegate = nil
+                    self.permissionManager = nil
+                @unknown default:
+                    self.permissionResult?(false)
+                    self.permissionResult = nil
+                    self.permissionManager?.delegate = nil
+                    self.permissionManager = nil
+                }
             }
-            
-            // Denied or restricted - can't request again
-            guard status == .notDetermined else {
-                result(false)
-                return
-            }
-            
-            // Request "Always" authorization directly (like React Native)
-            self.permissionResult = result
-            let manager = CLLocationManager()
-            self.permissionManager = manager
-            manager.delegate = self
-            manager.requestAlwaysAuthorization()
         }
     }
     
