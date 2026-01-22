@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.3] - 2026-01-22
+
+### Changed
+
+- **Native SDKs Updated**:
+  - Android: `com.github.Bearound:bearound-android-sdk:v2.2.2`
+  - iOS: `BearoundSDK ~> 2.2.2`
+
+### Fixed
+
+- **iOS Podspec Version Sync**: Fixed podspec version that was out of sync with the package version.
+
+### Technical Details
+
+- **Native SDK v2.2.2 Changes**:
+  - Removed 1-second foreground scan interval option (minimum is now 5 seconds)
+  - 5-second foreground scan interval now uses continuous scanning (no pause between scans)
+  - Beacons are no longer cleared from internal state after being sent to the API
+
 ## [2.2.2] - 2026-01-21
 
 ### Changed

@@ -2,7 +2,11 @@
 ///
 /// Controls how frequently the SDK scans for beacons when the app is in foreground.
 enum ForegroundScanInterval {
-  /// Scan every 5 seconds
+  /// Scan every 5 seconds (continuous mode - no pause between scans)
+  ///
+  /// Note: When using 5-second interval, the SDK uses continuous scanning
+  /// for maximum beacon detection. Other intervals use periodic scanning
+  /// with calculated scan/pause durations.
   seconds5(5),
 
   /// Scan every 10 seconds
