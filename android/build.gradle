@@ -67,5 +67,5 @@ android {
 }
 
 dependencies {
-    api 'com.github.Bearound:bearound-android-sdk:v2.2.2'
+    api 'com.github.Bearound:bearound-android-sdk:v2.3.0'
 }

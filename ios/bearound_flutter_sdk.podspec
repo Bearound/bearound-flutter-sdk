@@ -4,7 +4,7 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'bearound_flutter_sdk'
-  s.version          = '2.3.0'
+  s.version          = '2.3.1'
   s.summary          = 'BearoundSDK secure BLE beacon detection and indoor positioning by Bearound.'
   s.description      = <<-DESC
 Official SDKs for integrating Bearound's secure BLE beacon detection and indoor location technology across Android, iOS, React Native, and Flutter.
