@@ -4,6 +4,7 @@ enum BeaconProximity {
   immediate,
   near,
   far,
+  bt,
   unknown;
 
   static BeaconProximity fromString(String value) {
@@ -14,6 +15,8 @@ enum BeaconProximity {
         return BeaconProximity.near;
       case 'far':
         return BeaconProximity.far;
+      case 'bt':
+        return BeaconProximity.bt;
       default:
         return BeaconProximity.unknown;
     }
