@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.1] - 2026-02-18
+
+### Changed
+
+- **Native SDKs Updated**:
+  - Android: `com.github.Bearound:bearound-android-sdk:v2.3.0`
+  - iOS: `BearoundSDK ~> 2.3.0`
+
+### Added
+
+- **Bluetooth-only (BT) proximity fallback**: New `BeaconProximity.bt` value for beacons detected via Bluetooth scanning only, without CoreLocation/distance estimation.
+
+### Technical Details
+
+- **Native SDK v2.3.0 Changes**:
+  - Added BT proximity for bluetooth-only fallback detection
+  - Improved beacon structure with discovery source tracking
+
+---
+
 ## [2.2.3] - 2026-01-22
 
 ### Changed
