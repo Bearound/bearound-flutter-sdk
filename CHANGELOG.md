@@ -9,7 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Documentation**: Updated README to reflect native SDK v2.3.0 alignment and package version.
+- **Native SDKs Updated to v2.3.2**:
+  - Android: `com.github.Bearound:bearound-android-sdk:v2.3.2`
+  - iOS: `BearoundSDK ~> 2.3.2`
+- **Documentation**: Updated README to reflect native SDK v2.3.2 alignment and package version.
 
 ---
 
