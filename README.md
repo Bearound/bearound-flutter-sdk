@@ -1,6 +1,6 @@
 # 🐻 Bearound Flutter SDK
 
-Official Flutter plugin for the Bearound native SDKs (Android/iOS) version 2.3.6.
+Official Flutter plugin for the Bearound native SDKs (Android/iOS) version 2.3.7.
 
 ## Features
 
@@ -20,7 +20,7 @@ Add to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  bearound_flutter_sdk: ^2.3.6
+  bearound_flutter_sdk: ^2.3.7
 ```
 
 Run:
@@ -217,8 +217,8 @@ BearoundFlutterSdk.backgroundDetectionStream.listen((event) {
 ```
 
 **Native SDK Updates:**
-- Android: `v2.3.6`
-- iOS: `v2.3.6`
+- Android: `v2.3.7`
+- iOS: `v2.3.7`
 
 ### From 2.0.1 to 2.1.0
 
