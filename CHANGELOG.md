@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.0] - 2026-05-22
+
+### ⚠️ Breaking Changes
+
+- **`configure()` API**: replaced `foregroundScanInterval` and `backgroundScanInterval` (`ForegroundScanInterval` / `BackgroundScanInterval` enums) with a single unified `scanPrecision: ScanPrecision` parameter, matching the native iOS/Android v2.4.0 API.
+  - **Before**: `BearoundFlutterSdk.configure(businessToken: ..., foregroundScanInterval: ForegroundScanInterval.seconds15, backgroundScanInterval: BackgroundScanInterval.seconds30, maxQueuedPayloads: ...)`
+  - **After**: `BearoundFlutterSdk.configure(businessToken: ..., scanPrecision: ScanPrecision.medium, maxQueuedPayloads: ...)`
+- The `ForegroundScanInterval` and `BackgroundScanInterval` enums have been **removed**. Migrate to `ScanPrecision.high` / `medium` / `low`.
+
+### Changed
+
+- **Native SDKs bumped to v2.4.0**:
+  - Android: `com.github.Bearound:bearound-android-sdk:2.4.0` (dropped legacy `v` prefix per JitPack cache compat)
+  - iOS: `BearoundSDK ~> 2.4.0`
+- **Location is now strictly beacon-gated** (mirrors native v2.4.0 doctrine). GPS and active BLE scanning only run while the device is inside a beacon region. Outside the region, only kernel-level region monitoring stays on — effectively zero battery cost.
+
+### Added
+
+- 3 new event channels surfaced from the native SDKs:
+  - `bearound_flutter_sdk/beacon_region` — region enter/exit transitions
+  - `bearound_flutter_sdk/active_scan` — active scanning toggle state
+  - `bearound_flutter_sdk/location_capture` — beacon-triggered GPS window lifecycle (`started` / `completed`)
+- 3 new Dart streams on `BearoundFlutterSdk`:
+  - `beaconRegionStream` → `Stream<BeaconRegionEvent>` (with `isEnter` / `isExit` helpers)
+  - `activeScanStream` → `Stream<ActiveScanEvent>` (`isActive` boolean)
+  - `locationCaptureStream` → `Stream<LocationCaptureResult>` (discriminated by `isStarted` / `isCompleted`)
+- New models: `LocationCaptureResult`, `CapturedLocation`, `BeaconRegionEvent`, `ActiveScanEvent`, `ScanPrecision`.
+- Example app gains a **Debug Geofence** card (visible in the Status tab) showing GPS policy banner (green ✅ / red ⛔), live entry/exit timestamps with 1Hz ticking ages, capture counter, last fix coordinates, and a rolling 30-event log with color-coded chips.
+
+### Battery impact
+
+For apps that spend most of their time outside any beacon region, this release drops CoreLocation + BLE active duty cycle to ~0 outside the region. Expect noticeable battery savings on users who carry the app but rarely encounter beacons.
+
+---
+
 ## [2.3.7] - 2026-02-26
 
 ### Changed

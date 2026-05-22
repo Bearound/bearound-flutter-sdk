@@ -1,76 +1,26 @@
-/// Foreground scan interval configuration.
+/// Scan precision modes.
 ///
-/// Controls how frequently the SDK scans for beacons when the app is in foreground.
-enum ForegroundScanInterval {
-  /// Scan every 5 seconds (continuous mode - no pause between scans)
-  ///
-  /// Note: When using 5-second interval, the SDK uses continuous scanning
-  /// for maximum beacon detection. Other intervals use periodic scanning
-  /// with calculated scan/pause durations.
-  seconds5(5),
-
-  /// Scan every 10 seconds
-  seconds10(10),
-
-  /// Scan every 15 seconds (default)
-  seconds15(15),
-
-  /// Scan every 20 seconds
-  seconds20(20),
-
-  /// Scan every 25 seconds
-  seconds25(25),
-
-  /// Scan every 30 seconds
-  seconds30(30),
-
-  /// Scan every 35 seconds
-  seconds35(35),
-
-  /// Scan every 40 seconds
-  seconds40(40),
-
-  /// Scan every 45 seconds
-  seconds45(45),
-
-  /// Scan every 50 seconds
-  seconds50(50),
-
-  /// Scan every 55 seconds
-  seconds55(55),
-
-  /// Scan every 60 seconds
-  seconds60(60);
-
-  const ForegroundScanInterval(this.seconds);
-
-  /// The interval value in seconds
-  final int seconds;
-}
-
-/// Background scan interval configuration.
+/// Replaces the legacy `ForegroundScanInterval`/`BackgroundScanInterval` enums.
+/// A single precision setting controls the duty cycle for both BLE and CoreLocation
+/// scanning, matching the native iOS/Android v2.4.0 API.
 ///
-/// Controls how frequently the SDK scans for beacons when the app is in background.
-enum BackgroundScanInterval {
-  /// Scan every 15 seconds
-  seconds15(15),
+/// - **High** — continuous BLE+CL scan, sync every 15s
+/// - **Medium** — 3 cycles of 10s scan + 10s pause per 60s window (default)
+/// - **Low** — 1 cycle of 10s scan + 50s pause per 60s window
+enum ScanPrecision {
+  /// Continuous scan, sync every 15s.
+  high('high'),
 
-  /// Scan every 30 seconds (default)
-  seconds30(30),
+  /// 3 cycles of 10s scan + 10s pause per 60s window (default).
+  medium('medium'),
 
-  /// Scan every 60 seconds
-  seconds60(60),
+  /// 1 cycle of 10s scan + 50s pause per 60s window.
+  low('low');
 
-  /// Scan every 90 seconds
-  seconds90(90),
+  const ScanPrecision(this.value);
 
-  /// Scan every 120 seconds
-  seconds120(120);
-
-  const BackgroundScanInterval(this.seconds);
-
-  /// The interval value in seconds
-  final int seconds;
+  /// String value passed across the platform channel.
+  final String value;
 }
 
 /// Maximum queued payloads configuration.

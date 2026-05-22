@@ -9,6 +9,10 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
     private let errorStreamHandler = EventStreamHandler()
     private let syncLifecycleStreamHandler = EventStreamHandler()
     private let backgroundDetectionStreamHandler = EventStreamHandler()
+    // v2.4 — region + location capture lifecycle
+    private let beaconRegionStreamHandler = EventStreamHandler()
+    private let activeScanStreamHandler = EventStreamHandler()
+    private let locationCaptureStreamHandler = EventStreamHandler()
     
     /// Tracks if Flutter explicitly started scanning
     private var isActiveScan = false
@@ -56,6 +60,25 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
         )
         backgroundDetectionChannel.setStreamHandler(instance.backgroundDetectionStreamHandler)
 
+        // v2.4 — region transition + active-scan + location capture channels
+        let beaconRegionChannel = FlutterEventChannel(
+            name: "bearound_flutter_sdk/beacon_region",
+            binaryMessenger: registrar.messenger()
+        )
+        beaconRegionChannel.setStreamHandler(instance.beaconRegionStreamHandler)
+
+        let activeScanChannel = FlutterEventChannel(
+            name: "bearound_flutter_sdk/active_scan",
+            binaryMessenger: registrar.messenger()
+        )
+        activeScanChannel.setStreamHandler(instance.activeScanStreamHandler)
+
+        let locationCaptureChannel = FlutterEventChannel(
+            name: "bearound_flutter_sdk/location_capture",
+            binaryMessenger: registrar.messenger()
+        )
+        locationCaptureChannel.setStreamHandler(instance.locationCaptureStreamHandler)
+
         // Register as delegate
         BeAroundSDK.shared.delegate = instance
         
@@ -83,13 +106,11 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
                 return
             }
 
-            let foregroundSeconds = (args?["foregroundScanInterval"] as? NSNumber)?.intValue ?? 15
-            let backgroundSeconds = (args?["backgroundScanInterval"] as? NSNumber)?.intValue ?? 30
+            let precisionRaw = (args?["scanPrecision"] as? String) ?? "medium"
             let maxQueuedValue = (args?["maxQueuedPayloads"] as? NSNumber)?.intValue ?? 100
 
-            // Map Int values to native iOS enums
-            let foregroundInterval = mapToForegroundScanInterval(foregroundSeconds)
-            let backgroundInterval = mapToBackgroundScanInterval(backgroundSeconds)
+            // Map values to native iOS enums
+            let scanPrecision = mapToScanPrecision(precisionRaw)
             let maxQueuedPayloads = mapToMaxQueuedPayloads(maxQueuedValue)
 
             // FIX: If SDK was already scanning (auto-restored), stop it first
@@ -101,8 +122,7 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
 
             BeAroundSDK.shared.configure(
                 businessToken: businessToken,
-                foregroundScanInterval: foregroundInterval,
-                backgroundScanInterval: backgroundInterval,
+                scanPrecision: scanPrecision,
                 maxQueuedPayloads: maxQueuedPayloads
             )
             BeAroundSDK.shared.delegate = self
@@ -372,6 +392,60 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
         }
     }
 
+    // v2.4 — Beacon region + location capture lifecycle
+
+    public func didEnterBeaconRegion() {
+        DispatchQueue.main.async { [weak self] in
+            self?.beaconRegionStreamHandler.eventSink?(["type": "enter"])
+        }
+    }
+
+    public func didExitBeaconRegion() {
+        DispatchQueue.main.async { [weak self] in
+            self?.beaconRegionStreamHandler.eventSink?(["type": "exit"])
+        }
+    }
+
+    public func didChangeActiveScanState(isActive: Bool) {
+        DispatchQueue.main.async { [weak self] in
+            self?.activeScanStreamHandler.eventSink?(["isActive": isActive])
+        }
+    }
+
+    public func didStartLocationCapture(reason: String) {
+        let payload: [String: Any] = [
+            "type": "started",
+            "reason": reason
+        ]
+        DispatchQueue.main.async { [weak self] in
+            self?.locationCaptureStreamHandler.eventSink?(payload)
+        }
+    }
+
+    public func didCompleteLocationCapture(_ result: BeAroundLocationCapture) {
+        var payload: [String: Any] = [
+            "type": "completed",
+            "reason": result.reason,
+            "outcome": result.outcome,
+            "hasFix": result.hasFix,
+            "timestamp": Int(result.timestamp.timeIntervalSince1970 * 1000)
+        ]
+        if let loc = result.location {
+            payload["location"] = [
+                "latitude": loc.coordinate.latitude,
+                "longitude": loc.coordinate.longitude,
+                "horizontalAccuracy": loc.horizontalAccuracy,
+                "altitude": loc.altitude,
+                "speed": loc.speed,
+                "course": loc.course,
+                "timestamp": Int(loc.timestamp.timeIntervalSince1970 * 1000)
+            ]
+        }
+        DispatchQueue.main.async { [weak self] in
+            self?.locationCaptureStreamHandler.eventSink?(payload)
+        }
+    }
+
     // MARK: - Mapping Helpers
 
     private func mapProximity(_ proximity: BeaconProximity) -> String {
@@ -410,32 +484,12 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
         return payload
     }
 
-    private func mapToForegroundScanInterval(_ seconds: Int) -> ForegroundScanInterval {
-        switch seconds {
-        case 5: return .seconds5
-        case 10: return .seconds10
-        case 15: return .seconds15
-        case 20: return .seconds20
-        case 25: return .seconds25
-        case 30: return .seconds30
-        case 35: return .seconds35
-        case 40: return .seconds40
-        case 45: return .seconds45
-        case 50: return .seconds50
-        case 55: return .seconds55
-        case 60: return .seconds60
-        default: return .seconds15  // Default fallback
-        }
-    }
-
-    private func mapToBackgroundScanInterval(_ seconds: Int) -> BackgroundScanInterval {
-        switch seconds {
-        case 15: return .seconds15
-        case 30: return .seconds30
-        case 60: return .seconds60
-        case 90: return .seconds90
-        case 120: return .seconds120
-        default: return .seconds30  // Default fallback
+    private func mapToScanPrecision(_ value: String) -> ScanPrecision {
+        switch value.lowercased() {
+        case "high": return .high
+        case "medium": return .medium
+        case "low": return .low
+        default: return .medium
         }
     }
 
