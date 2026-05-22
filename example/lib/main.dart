@@ -554,8 +554,7 @@ class _BeaconHomePageState extends State<BeaconHomePage>
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
-          Text('Foreground: ${_foregroundScanInterval.seconds}s'),
-          Text('Background: ${_backgroundScanInterval.seconds}s'),
+          Text('Precisão: ${_scanPrecision.value}'),
           Text('Fila de retry: ${_maxQueuedPayloads.value} batches'),
           const SizedBox(height: 8),
           const Text(

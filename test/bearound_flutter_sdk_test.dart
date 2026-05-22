@@ -36,8 +36,7 @@ void main() {
 
       await BearoundFlutterSdk.configure(
         businessToken: businessToken,
-        foregroundScanInterval: ForegroundScanInterval.seconds20,
-        backgroundScanInterval: BackgroundScanInterval.seconds90,
+        scanPrecision: ScanPrecision.high,
         maxQueuedPayloads: MaxQueuedPayloads.large,
       );
 
@@ -47,8 +46,7 @@ void main() {
         methodCalls.first.arguments,
         equals({
           'businessToken': businessToken,
-          'foregroundScanInterval': 20,
-          'backgroundScanInterval': 90,
+          'scanPrecision': 'high',
           'maxQueuedPayloads': 200,
         }),
       );
@@ -63,8 +61,7 @@ void main() {
         methodCalls.first.arguments,
         equals({
           'businessToken': 'test-token',
-          'foregroundScanInterval': 15,
-          'backgroundScanInterval': 30,
+          'scanPrecision': 'medium',
           'maxQueuedPayloads': 100,
         }),
       );
@@ -104,45 +101,27 @@ void main() {
       );
     });
 
-    test(
-      'configure with minimum foreground scan interval (5 seconds)',
-      () async {
-        await BearoundFlutterSdk.configure(
-          businessToken: 'test-token',
-          foregroundScanInterval: ForegroundScanInterval.seconds5,
-        );
-
-        expect(
-          methodCalls.first.arguments['foregroundScanInterval'],
-          equals(5),
-        );
-      },
-    );
-
-    test(
-      'configure with maximum foreground scan interval (60 seconds)',
-      () async {
-        await BearoundFlutterSdk.configure(
-          businessToken: 'test-token',
-          foregroundScanInterval: ForegroundScanInterval.seconds60,
-        );
-
-        expect(
-          methodCalls.first.arguments['foregroundScanInterval'],
-          equals(60),
-        );
-      },
-    );
-
-    test('configure with different background scan intervals', () async {
+    test('configure with scanPrecision=low', () async {
       await BearoundFlutterSdk.configure(
         businessToken: 'test-token',
-        backgroundScanInterval: BackgroundScanInterval.seconds120,
+        scanPrecision: ScanPrecision.low,
       );
 
       expect(
-        methodCalls.first.arguments['backgroundScanInterval'],
-        equals(120),
+        methodCalls.first.arguments['scanPrecision'],
+        equals('low'),
+      );
+    });
+
+    test('configure with scanPrecision=high', () async {
+      await BearoundFlutterSdk.configure(
+        businessToken: 'test-token',
+        scanPrecision: ScanPrecision.high,
+      );
+
+      expect(
+        methodCalls.first.arguments['scanPrecision'],
+        equals('high'),
       );
     });
 
