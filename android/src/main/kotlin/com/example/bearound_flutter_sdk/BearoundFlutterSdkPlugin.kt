@@ -5,11 +5,11 @@ import android.os.Handler
 import android.os.Looper
 import io.bearound.sdk.BeAroundSDK
 import io.bearound.sdk.interfaces.BeAroundSDKListener
-import io.bearound.sdk.models.BackgroundScanInterval
 import io.bearound.sdk.models.Beacon
 import io.bearound.sdk.models.BeaconMetadata
-import io.bearound.sdk.models.ForegroundScanInterval
+import io.bearound.sdk.models.LocationCaptureResult
 import io.bearound.sdk.models.MaxQueuedPayloads
+import io.bearound.sdk.models.ScanPrecision
 import io.bearound.sdk.models.UserProperties
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.EventChannel
@@ -26,12 +26,18 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
   private lateinit var errorEventChannel: EventChannel
   private lateinit var syncLifecycleEventChannel: EventChannel
   private lateinit var backgroundDetectionEventChannel: EventChannel
+  private lateinit var beaconRegionEventChannel: EventChannel
+  private lateinit var activeScanEventChannel: EventChannel
+  private lateinit var locationCaptureEventChannel: EventChannel
 
   private var beaconsEventSink: EventChannel.EventSink? = null
   private var scanningEventSink: EventChannel.EventSink? = null
   private var errorEventSink: EventChannel.EventSink? = null
   private var syncLifecycleEventSink: EventChannel.EventSink? = null
   private var backgroundDetectionEventSink: EventChannel.EventSink? = null
+  private var beaconRegionEventSink: EventChannel.EventSink? = null
+  private var activeScanEventSink: EventChannel.EventSink? = null
+  private var locationCaptureEventSink: EventChannel.EventSink? = null
 
   private lateinit var context: Context
   private val mainHandler = Handler(Looper.getMainLooper())
@@ -99,6 +105,25 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
         backgroundDetectionEventSink = null
       }
     })
+
+    // v2.4 — region transition + active-scan + location capture channels
+    beaconRegionEventChannel = EventChannel(binding.binaryMessenger, "bearound_flutter_sdk/beacon_region")
+    beaconRegionEventChannel.setStreamHandler(object : EventChannel.StreamHandler {
+      override fun onListen(arguments: Any?, events: EventChannel.EventSink?) { beaconRegionEventSink = events }
+      override fun onCancel(arguments: Any?) { beaconRegionEventSink = null }
+    })
+
+    activeScanEventChannel = EventChannel(binding.binaryMessenger, "bearound_flutter_sdk/active_scan")
+    activeScanEventChannel.setStreamHandler(object : EventChannel.StreamHandler {
+      override fun onListen(arguments: Any?, events: EventChannel.EventSink?) { activeScanEventSink = events }
+      override fun onCancel(arguments: Any?) { activeScanEventSink = null }
+    })
+
+    locationCaptureEventChannel = EventChannel(binding.binaryMessenger, "bearound_flutter_sdk/location_capture")
+    locationCaptureEventChannel.setStreamHandler(object : EventChannel.StreamHandler {
+      override fun onListen(arguments: Any?, events: EventChannel.EventSink?) { locationCaptureEventSink = events }
+      override fun onCancel(arguments: Any?) { locationCaptureEventSink = null }
+    })
   }
 
   override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
@@ -108,6 +133,9 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
     errorEventChannel.setStreamHandler(null)
     syncLifecycleEventChannel.setStreamHandler(null)
     backgroundDetectionEventChannel.setStreamHandler(null)
+    beaconRegionEventChannel.setStreamHandler(null)
+    activeScanEventChannel.setStreamHandler(null)
+    locationCaptureEventChannel.setStreamHandler(null)
 
     sdk?.listener = null
     sdk = null
@@ -116,6 +144,9 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
     errorEventSink = null
     syncLifecycleEventSink = null
     backgroundDetectionEventSink = null
+    beaconRegionEventSink = null
+    activeScanEventSink = null
+    locationCaptureEventSink = null
   }
 
   override fun onMethodCall(call: MethodCall, result: Result) {
@@ -123,18 +154,16 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
       "configure" -> {
         val args = call.arguments as? Map<*, *>
         val businessToken = (args?.get("businessToken") as? String)?.trim()
-        
+
         if (businessToken.isNullOrEmpty()) {
           result.error("INVALID_ARGUMENT", "businessToken is required", null)
           return
         }
-        
-        val foregroundSeconds = (args?.get("foregroundScanInterval") as? Number)?.toInt() ?: 15
-        val backgroundSeconds = (args?.get("backgroundScanInterval") as? Number)?.toInt() ?: 30
+
+        val precisionRaw = (args?.get("scanPrecision") as? String) ?: "medium"
         val maxQueuedValue = (args?.get("maxQueuedPayloads") as? Number)?.toInt() ?: 100
 
-        val foregroundInterval = mapToForegroundScanInterval(foregroundSeconds)
-        val backgroundInterval = mapToBackgroundScanInterval(backgroundSeconds)
+        val scanPrecision = mapToScanPrecision(precisionRaw)
         val maxQueuedPayloads = mapToMaxQueuedPayloads(maxQueuedValue)
 
         val wasScanning = sdk?.isScanning ?: false
@@ -146,15 +175,14 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
 
         sdk?.configure(
           businessToken = businessToken,
-          foregroundScanInterval = foregroundInterval,
-          backgroundScanInterval = backgroundInterval,
+          scanPrecision = scanPrecision,
           maxQueuedPayloads = maxQueuedPayloads
         )
 
         if (wasScanning) {
           sdk?.startScanning()
         }
-        
+
         result.success(null)
       }
       "startScanning" -> {
@@ -236,7 +264,55 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
     )
     mainHandler.post { backgroundDetectionEventSink?.success(payload) }
   }
-  
+
+  // v2.4 — Beacon region + location capture lifecycle
+
+  override fun onEnterBeaconRegion() {
+    val payload = mapOf("type" to "enter")
+    mainHandler.post { beaconRegionEventSink?.success(payload) }
+  }
+
+  override fun onExitBeaconRegion() {
+    val payload = mapOf("type" to "exit")
+    mainHandler.post { beaconRegionEventSink?.success(payload) }
+  }
+
+  override fun onActiveScanStateChanged(isActive: Boolean) {
+    val payload = mapOf("isActive" to isActive)
+    mainHandler.post { activeScanEventSink?.success(payload) }
+  }
+
+  override fun onStartLocationCapture(reason: String) {
+    val payload = mapOf(
+      "type" to "started",
+      "reason" to reason
+    )
+    mainHandler.post { locationCaptureEventSink?.success(payload) }
+  }
+
+  override fun onCompleteLocationCapture(result: LocationCaptureResult) {
+    val payload = mutableMapOf<String, Any?>(
+      "type" to "completed",
+      "reason" to result.reason,
+      "outcome" to result.outcome,
+      "hasFix" to result.hasFix,
+      "timestamp" to result.timestamp.time
+    )
+    result.location?.let { loc ->
+      val locMap = mutableMapOf<String, Any?>(
+        "latitude" to loc.latitude,
+        "longitude" to loc.longitude,
+        "timestamp" to loc.time
+      )
+      if (loc.hasAccuracy()) locMap["horizontalAccuracy"] = loc.accuracy.toDouble()
+      if (loc.hasAltitude()) locMap["altitude"] = loc.altitude
+      if (loc.hasSpeed()) locMap["speed"] = loc.speed.toDouble()
+      if (loc.hasBearing()) locMap["course"] = loc.bearing.toDouble()
+      payload["location"] = locMap
+    }
+    mainHandler.post { locationCaptureEventSink?.success(payload) }
+  }
+
   // endregion
 
   private fun mapBeacon(beacon: Beacon): Map<String, Any?> {
@@ -284,32 +360,12 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
     )
   }
 
-  private fun mapToForegroundScanInterval(seconds: Int): ForegroundScanInterval {
-    return when (seconds) {
-      5 -> ForegroundScanInterval.SECONDS_5
-      10 -> ForegroundScanInterval.SECONDS_10
-      15 -> ForegroundScanInterval.SECONDS_15
-      20 -> ForegroundScanInterval.SECONDS_20
-      25 -> ForegroundScanInterval.SECONDS_25
-      30 -> ForegroundScanInterval.SECONDS_30
-      35 -> ForegroundScanInterval.SECONDS_35
-      40 -> ForegroundScanInterval.SECONDS_40
-      45 -> ForegroundScanInterval.SECONDS_45
-      50 -> ForegroundScanInterval.SECONDS_50
-      55 -> ForegroundScanInterval.SECONDS_55
-      60 -> ForegroundScanInterval.SECONDS_60
-      else -> ForegroundScanInterval.SECONDS_15  // Default fallback
-    }
-  }
-
-  private fun mapToBackgroundScanInterval(seconds: Int): BackgroundScanInterval {
-    return when (seconds) {
-      15 -> BackgroundScanInterval.SECONDS_15
-      30 -> BackgroundScanInterval.SECONDS_30
-      60 -> BackgroundScanInterval.SECONDS_60
-      90 -> BackgroundScanInterval.SECONDS_90
-      120 -> BackgroundScanInterval.SECONDS_120
-      else -> BackgroundScanInterval.SECONDS_30  // Default fallback
+  private fun mapToScanPrecision(value: String): ScanPrecision {
+    return when (value.lowercase(Locale.US)) {
+      "high" -> ScanPrecision.HIGH
+      "medium" -> ScanPrecision.MEDIUM
+      "low" -> ScanPrecision.LOW
+      else -> ScanPrecision.MEDIUM
     }
   }
 

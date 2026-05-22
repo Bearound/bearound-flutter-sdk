@@ -36,15 +36,27 @@ class _BeaconHomePageState extends State<BeaconHomePage>
   bool _isScanning = false;
   String _status = 'Parado';
 
-  ForegroundScanInterval _foregroundScanInterval =
-      ForegroundScanInterval.seconds15;
-  BackgroundScanInterval _backgroundScanInterval =
-      BackgroundScanInterval.seconds30;
+  ScanPrecision _scanPrecision = ScanPrecision.medium;
   MaxQueuedPayloads _maxQueuedPayloads = MaxQueuedPayloads.medium;
 
   List<Beacon> _detectedBeacons = [];
   final List<String> _logs = [];
   String? _lastError;
+
+  // v2.4 — Geofence Debug state
+  bool _isInBeaconRegion = false;
+  DateTime? _lastEnteredRegionAt;
+  DateTime? _lastExitedRegionAt;
+  bool _isActiveScanRunning = false;
+  bool _isCapturingLocation = false;
+  String _lastCaptureOpenReason = '—';
+  String _lastCaptureOutcome = '—';
+  CapturedLocation? _lastCapturedLocation;
+  DateTime? _lastCaptureCompletedAt;
+  int _locationCaptureCount = 0;
+  final List<_GeofenceEvent> _geofenceEvents = [];
+  Timer? _tickTimer;
+  DateTime _nowTick = DateTime.now();
 
   StreamSubscription<List<Beacon>>? _beaconsSubscription;
   StreamSubscription<bool>? _scanningSubscription;
@@ -52,6 +64,9 @@ class _BeaconHomePageState extends State<BeaconHomePage>
   StreamSubscription<SyncLifecycleEvent>? _syncLifecycleSubscription;
   StreamSubscription<BackgroundDetectionEvent>?
   _backgroundDetectionSubscription;
+  StreamSubscription<BeaconRegionEvent>? _beaconRegionSubscription;
+  StreamSubscription<ActiveScanEvent>? _activeScanSubscription;
+  StreamSubscription<LocationCaptureResult>? _locationCaptureSubscription;
 
   @override
   void initState() {
@@ -59,16 +74,24 @@ class _BeaconHomePageState extends State<BeaconHomePage>
     WidgetsBinding.instance.addObserver(this);
     _startListening();
     _initializeSdk();
+    // 1Hz tick so "X seg atrás" ages render live in the Debug Geofence card.
+    _tickTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() => _nowTick = DateTime.now());
+    });
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _tickTimer?.cancel();
     _beaconsSubscription?.cancel();
     _scanningSubscription?.cancel();
     _errorSubscription?.cancel();
     _syncLifecycleSubscription?.cancel();
     _backgroundDetectionSubscription?.cancel();
+    _beaconRegionSubscription?.cancel();
+    _activeScanSubscription?.cancel();
+    _locationCaptureSubscription?.cancel();
     super.dispose();
   }
 
@@ -99,16 +122,13 @@ class _BeaconHomePageState extends State<BeaconHomePage>
     try {
       await BearoundFlutterSdk.configure(
         businessToken: "your-business-token-here",
-        foregroundScanInterval: _foregroundScanInterval,
-        backgroundScanInterval: _backgroundScanInterval,
+        scanPrecision: _scanPrecision,
         maxQueuedPayloads: _maxQueuedPayloads,
       );
 
       _addLog(
-        '⚙️ Configurado: FG ${_foregroundScanInterval.seconds}s, '
-        'BG ${_backgroundScanInterval.seconds}s, '
-        'Queue ${_maxQueuedPayloads.value} '
-        '(BLE metadata e scan periódico são automáticos em v2.2.0)',
+        '⚙️ Configurado: precision ${_scanPrecision.value}, '
+        'queue ${_maxQueuedPayloads.value}',
       );
     } catch (error) {
       setState(() {
@@ -190,7 +210,100 @@ class _BeaconHomePageState extends State<BeaconHomePage>
           _addLog('🌙 Background: ${event.beaconCount} beacon(s) detectado(s)');
         });
 
+    // v2.4.0: Beacon region transitions
+    _beaconRegionSubscription = BearoundFlutterSdk.beaconRegionStream.listen((
+      event,
+    ) {
+      setState(() {
+        _isInBeaconRegion = event.isEnter;
+        if (event.isEnter) {
+          _lastEnteredRegionAt = DateTime.now();
+        } else {
+          _lastExitedRegionAt = DateTime.now();
+        }
+      });
+      _pushGeofenceEvent(
+        event.isEnter
+            ? _GeofenceEventKind.regionEnter
+            : _GeofenceEventKind.regionExit,
+        event.isEnter
+            ? 'iOS/Android reportou entrada na zona do beacon'
+            : 'Saiu da zona do beacon',
+      );
+    });
+
+    // v2.4.0: Active scan state
+    _activeScanSubscription = BearoundFlutterSdk.activeScanStream.listen((
+      event,
+    ) {
+      setState(() => _isActiveScanRunning = event.isActive);
+      _pushGeofenceEvent(
+        event.isActive
+            ? _GeofenceEventKind.scanActive
+            : _GeofenceEventKind.scanPaused,
+        event.isActive
+            ? 'Scan ativo (ranging + BLE) LIGADO'
+            : 'Scan ativo DESLIGADO — só region monitoring',
+      );
+    });
+
+    // v2.4.0: Location capture lifecycle
+    _locationCaptureSubscription = BearoundFlutterSdk.locationCaptureStream
+        .listen((event) {
+          if (event.isStarted) {
+            setState(() {
+              _isCapturingLocation = true;
+              _lastCaptureOpenReason = event.reason;
+            });
+            _pushGeofenceEvent(
+              _GeofenceEventKind.captureStarted,
+              'Janela GPS aberta — motivo: ${event.reason}',
+            );
+          } else {
+            setState(() {
+              _isCapturingLocation = false;
+              _lastCaptureOutcome = event.outcome;
+              _lastCapturedLocation = event.location;
+              _lastCaptureCompletedAt = DateTime.fromMillisecondsSinceEpoch(
+                event.timestamp,
+              );
+              _locationCaptureCount += 1;
+            });
+            if (event.hasFix && event.location != null) {
+              final loc = event.location!;
+              final acc = loc.horizontalAccuracy?.toInt();
+              _pushGeofenceEvent(
+                _GeofenceEventKind.captureFix,
+                'Fix: ${loc.latitude.toStringAsFixed(5)}, ${loc.longitude.toStringAsFixed(5)} '
+                '±${acc ?? "?"}m | abriu: ${event.reason} | fechou: ${event.outcome}',
+              );
+            } else {
+              _pushGeofenceEvent(
+                _GeofenceEventKind.captureNoFix,
+                'Sem fix — abriu: ${event.reason} | fechou: ${event.outcome}',
+              );
+            }
+          }
+        });
+
     debugPrint('[DEBUG] ✅ Todos os streams inicializados');
+  }
+
+  void _pushGeofenceEvent(_GeofenceEventKind kind, String detail) {
+    if (!mounted) return;
+    setState(() {
+      _geofenceEvents.insert(
+        0,
+        _GeofenceEvent(kind: kind, timestamp: DateTime.now(), detail: detail),
+      );
+      if (_geofenceEvents.length > 30) {
+        _geofenceEvents.removeRange(30, _geofenceEvents.length);
+      }
+    });
+  }
+
+  void _clearGeofenceLog() {
+    setState(() => _geofenceEvents.clear());
   }
 
   void _addLog(String log) {
@@ -216,6 +329,17 @@ class _BeaconHomePageState extends State<BeaconHomePage>
     // No need to call _applyConfiguration() here, it would restart the scan twice
     try {
       await BearoundFlutterSdk.startScanning();
+      // Reset geofence/capture session counters for a fresh debug session
+      setState(() {
+        _geofenceEvents.clear();
+        _locationCaptureCount = 0;
+        _lastEnteredRegionAt = null;
+        _lastExitedRegionAt = null;
+        _lastCaptureOpenReason = '—';
+        _lastCaptureOutcome = '—';
+        _lastCapturedLocation = null;
+        _lastCaptureCompletedAt = null;
+      });
       _addLog('🚀 Scanner iniciado');
     } catch (error) {
       setState(() {
@@ -278,8 +402,7 @@ class _BeaconHomePageState extends State<BeaconHomePage>
                   context,
                   MaterialPageRoute(
                     builder: (context) => SettingsPage(
-                      initialForegroundScanInterval: _foregroundScanInterval,
-                      initialBackgroundScanInterval: _backgroundScanInterval,
+                      initialScanPrecision: _scanPrecision,
                       initialMaxQueuedPayloads: _maxQueuedPayloads,
                     ),
                   ),
@@ -287,8 +410,7 @@ class _BeaconHomePageState extends State<BeaconHomePage>
 
                 if (result != null) {
                   setState(() {
-                    _foregroundScanInterval = result.foregroundScanInterval;
-                    _backgroundScanInterval = result.backgroundScanInterval;
+                    _scanPrecision = result.scanPrecision;
                     _maxQueuedPayloads = result.maxQueuedPayloads;
                   });
                   if (_hasPermission) {
@@ -382,11 +504,13 @@ class _BeaconHomePageState extends State<BeaconHomePage>
   }
 
   Widget _buildStatusTab() {
-    return Padding(
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          _buildGeofenceDebugCard(),
+          const SizedBox(height: 16),
           const Text(
             'Status do SDK',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
@@ -568,4 +692,320 @@ class _BeaconHomePageState extends State<BeaconHomePage>
       ),
     );
   }
+
+  // v2.4 — Geofence Debug card with policy banner, counters, live ages, and rolling log.
+  Widget _buildGeofenceDebugCard() {
+    final inZone = _isInBeaconRegion;
+    final bg = inZone ? const Color(0xFF0F2B14) : const Color(0xFF2A0F0F);
+    final border =
+        inZone ? const Color(0xFF2E7D32) : const Color(0xFFC62828);
+    final titleColor =
+        inZone ? const Color(0xFFA5D6A7) : const Color(0xFFEF9A9A);
+    final emoji = inZone ? '✅' : '⛔';
+    final title = inZone ? 'GPS LIBERADO' : 'GPS BLOQUEADO';
+    final body = !inZone
+        ? 'Sem beacon detectado. Localização NÃO está sendo lida.'
+        : _isCapturingLocation
+            ? 'Capturando agora — janela aberta porque você entrou na zona.'
+            : 'Dentro da zona. GPS já capturou o que precisava; agora está em standby.';
+
+    return Card(
+      color: Colors.grey.shade100,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'Debug Geofence',
+                    style:
+                        TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                if (_geofenceEvents.isNotEmpty)
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline, size: 20),
+                    onPressed: _clearGeofenceLog,
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            // Policy banner
+            Container(
+              decoration: BoxDecoration(
+                color: bg,
+                border: Border.all(color: border),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(emoji, style: const TextStyle(fontSize: 18)),
+                      const SizedBox(width: 8),
+                      Text(
+                        title,
+                        style: TextStyle(
+                          color: titleColor,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    body,
+                    style: TextStyle(color: titleColor, fontSize: 12),
+                  ),
+                  const SizedBox(height: 6),
+                  _policyCounterRow(
+                    '📊 Capturas nesta sessão:',
+                    '$_locationCaptureCount',
+                  ),
+                  const SizedBox(height: 4),
+                  _policyCounterRow(
+                    '🛡️ Capturas fora da zona:',
+                    '0 ✓',
+                    valueColor: const Color(0xFFA5D6A7),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            _statusRow(
+              'Zona do beacon',
+              inZone ? 'DENTRO' : 'fora',
+              inZone ? Colors.green : Colors.grey,
+            ),
+            if (_lastEnteredRegionAt != null)
+              _detailRow(
+                'Entrou às',
+                '${_fmtTime(_lastEnteredRegionAt!)}  (${_fmtAge(_nowTick.difference(_lastEnteredRegionAt!))})',
+              ),
+            if (_lastExitedRegionAt != null)
+              _detailRow(
+                'Saiu às',
+                '${_fmtTime(_lastExitedRegionAt!)}  (${_fmtAge(_nowTick.difference(_lastExitedRegionAt!))})',
+              ),
+            _statusRow(
+              'Scan ativo',
+              _isActiveScanRunning ? 'LIGADO' : 'desligado',
+              _isActiveScanRunning ? Colors.green : Colors.grey,
+            ),
+            _statusRow(
+              'Captura GPS',
+              _isCapturingLocation ? 'EM ANDAMENTO…' : 'idle',
+              _isCapturingLocation ? Colors.blue : Colors.grey,
+            ),
+            const Divider(),
+            _detailRow('Última abertura', _lastCaptureOpenReason),
+            _detailRow('Último fechamento', _lastCaptureOutcome),
+            if (_lastCapturedLocation != null)
+              _detailRow(
+                'Última coord',
+                '${_lastCapturedLocation!.latitude.toStringAsFixed(5)}, ${_lastCapturedLocation!.longitude.toStringAsFixed(5)} '
+                '±${_lastCapturedLocation!.horizontalAccuracy?.toInt() ?? "?"}m',
+              )
+            else
+              _detailRow('Última coord', '—'),
+            if (_lastCaptureCompletedAt != null)
+              _detailRow(
+                'Concluído em',
+                '${_fmtTime(_lastCaptureCompletedAt!)}  (${_fmtAge(_nowTick.difference(_lastCaptureCompletedAt!))})',
+              ),
+            if (_geofenceEvents.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              const Text(
+                'Eventos recentes',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 6),
+              for (final event in _geofenceEvents.take(10))
+                _geofenceEventTile(event),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _statusRow(String label, String value, Color color) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(color: Colors.grey.shade700, fontSize: 12),
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _detailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(color: Colors.grey.shade700, fontSize: 11),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              style: const TextStyle(
+                fontFamily: 'monospace',
+                fontSize: 11,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _policyCounterRow(String label, String value, {Color? valueColor}) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(color: Colors.grey.shade400, fontSize: 11),
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              color: valueColor ?? Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 11,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _geofenceEventTile(_GeofenceEvent event) {
+    final (color, title) = switch (event.kind) {
+      _GeofenceEventKind.regionEnter => (Colors.green, 'ENTROU NA ZONA'),
+      _GeofenceEventKind.regionExit => (Colors.orange, 'SAIU DA ZONA'),
+      _GeofenceEventKind.scanActive => (Colors.teal, 'SCAN LIGADO'),
+      _GeofenceEventKind.scanPaused => (Colors.grey, 'SCAN PAUSADO'),
+      _GeofenceEventKind.captureStarted => (Colors.blue, 'GPS DISPARADO'),
+      _GeofenceEventKind.captureFix => (Colors.green, 'FIX OK'),
+      _GeofenceEventKind.captureNoFix => (Colors.red, 'SEM FIX'),
+    };
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            margin: const EdgeInsets.only(top: 4),
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: TextStyle(
+                          color: color,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      '${_fmtTime(event.timestamp)} · ${_fmtAge(_nowTick.difference(event.timestamp))}',
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontFamily: 'monospace',
+                        fontSize: 10,
+                      ),
+                    ),
+                  ],
+                ),
+                Text(event.detail, style: const TextStyle(fontSize: 11)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _fmtTime(DateTime t) {
+    final hh = t.hour.toString().padLeft(2, '0');
+    final mm = t.minute.toString().padLeft(2, '0');
+    final ss = t.second.toString().padLeft(2, '0');
+    return '$hh:$mm:$ss';
+  }
+
+  String _fmtAge(Duration d) {
+    final sec = d.inSeconds.clamp(0, 1 << 30);
+    if (sec < 60) return '${sec}s atrás';
+    if (sec < 3600) return '${sec ~/ 60}min ${sec % 60}s atrás';
+    return '${sec ~/ 3600}h ${(sec % 3600) ~/ 60}min atrás';
+  }
+}
+
+enum _GeofenceEventKind {
+  regionEnter,
+  regionExit,
+  scanActive,
+  scanPaused,
+  captureStarted,
+  captureFix,
+  captureNoFix,
+}
+
+class _GeofenceEvent {
+  final _GeofenceEventKind kind;
+  final DateTime timestamp;
+  final String detail;
+  _GeofenceEvent({
+    required this.kind,
+    required this.timestamp,
+    required this.detail,
+  });
 }
