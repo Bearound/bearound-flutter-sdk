@@ -248,43 +248,44 @@ class _BeaconHomePageState extends State<BeaconHomePage>
     });
 
     // v2.4.0: Location capture lifecycle
-    _locationCaptureSubscription = BearoundFlutterSdk.locationCaptureStream
-        .listen((event) {
-          if (event.isStarted) {
-            setState(() {
-              _isCapturingLocation = true;
-              _lastCaptureOpenReason = event.reason;
-            });
-            _pushGeofenceEvent(
-              _GeofenceEventKind.captureStarted,
-              'Janela GPS aberta — motivo: ${event.reason}',
-            );
-          } else {
-            setState(() {
-              _isCapturingLocation = false;
-              _lastCaptureOutcome = event.outcome;
-              _lastCapturedLocation = event.location;
-              _lastCaptureCompletedAt = DateTime.fromMillisecondsSinceEpoch(
-                event.timestamp,
-              );
-              _locationCaptureCount += 1;
-            });
-            if (event.hasFix && event.location != null) {
-              final loc = event.location!;
-              final acc = loc.horizontalAccuracy?.toInt();
-              _pushGeofenceEvent(
-                _GeofenceEventKind.captureFix,
-                'Fix: ${loc.latitude.toStringAsFixed(5)}, ${loc.longitude.toStringAsFixed(5)} '
-                '±${acc ?? "?"}m | abriu: ${event.reason} | fechou: ${event.outcome}',
-              );
-            } else {
-              _pushGeofenceEvent(
-                _GeofenceEventKind.captureNoFix,
-                'Sem fix — abriu: ${event.reason} | fechou: ${event.outcome}',
-              );
-            }
-          }
+    _locationCaptureSubscription = BearoundFlutterSdk.locationCaptureStream.listen((
+      event,
+    ) {
+      if (event.isStarted) {
+        setState(() {
+          _isCapturingLocation = true;
+          _lastCaptureOpenReason = event.reason;
         });
+        _pushGeofenceEvent(
+          _GeofenceEventKind.captureStarted,
+          'Janela GPS aberta — motivo: ${event.reason}',
+        );
+      } else {
+        setState(() {
+          _isCapturingLocation = false;
+          _lastCaptureOutcome = event.outcome;
+          _lastCapturedLocation = event.location;
+          _lastCaptureCompletedAt = DateTime.fromMillisecondsSinceEpoch(
+            event.timestamp,
+          );
+          _locationCaptureCount += 1;
+        });
+        if (event.hasFix && event.location != null) {
+          final loc = event.location!;
+          final acc = loc.horizontalAccuracy?.toInt();
+          _pushGeofenceEvent(
+            _GeofenceEventKind.captureFix,
+            'Fix: ${loc.latitude.toStringAsFixed(5)}, ${loc.longitude.toStringAsFixed(5)} '
+            '±${acc ?? "?"}m | abriu: ${event.reason} | fechou: ${event.outcome}',
+          );
+        } else {
+          _pushGeofenceEvent(
+            _GeofenceEventKind.captureNoFix,
+            'Sem fix — abriu: ${event.reason} | fechou: ${event.outcome}',
+          );
+        }
+      }
+    });
 
     debugPrint('[DEBUG] ✅ Todos os streams inicializados');
   }
@@ -696,17 +697,17 @@ class _BeaconHomePageState extends State<BeaconHomePage>
   Widget _buildGeofenceDebugCard() {
     final inZone = _isInBeaconRegion;
     final bg = inZone ? const Color(0xFF0F2B14) : const Color(0xFF2A0F0F);
-    final border =
-        inZone ? const Color(0xFF2E7D32) : const Color(0xFFC62828);
-    final titleColor =
-        inZone ? const Color(0xFFA5D6A7) : const Color(0xFFEF9A9A);
+    final border = inZone ? const Color(0xFF2E7D32) : const Color(0xFFC62828);
+    final titleColor = inZone
+        ? const Color(0xFFA5D6A7)
+        : const Color(0xFFEF9A9A);
     final emoji = inZone ? '✅' : '⛔';
     final title = inZone ? 'GPS LIBERADO' : 'GPS BLOQUEADO';
     final body = !inZone
         ? 'Sem beacon detectado. Localização NÃO está sendo lida.'
         : _isCapturingLocation
-            ? 'Capturando agora — janela aberta porque você entrou na zona.'
-            : 'Dentro da zona. GPS já capturou o que precisava; agora está em standby.';
+        ? 'Capturando agora — janela aberta porque você entrou na zona.'
+        : 'Dentro da zona. GPS já capturou o que precisava; agora está em standby.';
 
     return Card(
       color: Colors.grey.shade100,
@@ -720,8 +721,7 @@ class _BeaconHomePageState extends State<BeaconHomePage>
                 const Expanded(
                   child: Text(
                     'Debug Geofence',
-                    style:
-                        TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                 ),
                 if (_geofenceEvents.isNotEmpty)
@@ -758,10 +758,7 @@ class _BeaconHomePageState extends State<BeaconHomePage>
                     ],
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    body,
-                    style: TextStyle(color: titleColor, fontSize: 12),
-                  ),
+                  Text(body, style: TextStyle(color: titleColor, fontSize: 12)),
                   const SizedBox(height: 6),
                   _policyCounterRow(
                     '📊 Capturas nesta sessão:',
@@ -809,7 +806,7 @@ class _BeaconHomePageState extends State<BeaconHomePage>
               _detailRow(
                 'Última coord',
                 '${_lastCapturedLocation!.latitude.toStringAsFixed(5)}, ${_lastCapturedLocation!.longitude.toStringAsFixed(5)} '
-                '±${_lastCapturedLocation!.horizontalAccuracy?.toInt() ?? "?"}m',
+                    '±${_lastCapturedLocation!.horizontalAccuracy?.toInt() ?? "?"}m',
               )
             else
               _detailRow('Última coord', '—'),
@@ -873,10 +870,7 @@ class _BeaconHomePageState extends State<BeaconHomePage>
             child: Text(
               value,
               textAlign: TextAlign.right,
-              style: const TextStyle(
-                fontFamily: 'monospace',
-                fontSize: 11,
-              ),
+              style: const TextStyle(fontFamily: 'monospace', fontSize: 11),
             ),
           ),
         ],
@@ -932,10 +926,7 @@ class _BeaconHomePageState extends State<BeaconHomePage>
             margin: const EdgeInsets.only(top: 4),
             width: 8,
             height: 8,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-            ),
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
           const SizedBox(width: 8),
           Expanded(

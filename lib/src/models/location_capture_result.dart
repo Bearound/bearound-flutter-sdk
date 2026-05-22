@@ -39,7 +39,8 @@ class CapturedLocation {
       altitude: (map['altitude'] as num?)?.toDouble(),
       speed: (map['speed'] as num?)?.toDouble(),
       course: (map['course'] as num?)?.toDouble(),
-      timestamp: (map['timestamp'] as num?)?.toInt() ??
+      timestamp:
+          (map['timestamp'] as num?)?.toInt() ??
           DateTime.now().millisecondsSinceEpoch,
     );
   }

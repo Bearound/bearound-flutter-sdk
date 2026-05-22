@@ -107,10 +107,7 @@ void main() {
         scanPrecision: ScanPrecision.low,
       );
 
-      expect(
-        methodCalls.first.arguments['scanPrecision'],
-        equals('low'),
-      );
+      expect(methodCalls.first.arguments['scanPrecision'], equals('low'));
     });
 
     test('configure with scanPrecision=high', () async {
@@ -119,10 +116,7 @@ void main() {
         scanPrecision: ScanPrecision.high,
       );
 
-      expect(
-        methodCalls.first.arguments['scanPrecision'],
-        equals('high'),
-      );
+      expect(methodCalls.first.arguments['scanPrecision'], equals('high'));
     });
 
     test('configure with different max queued payloads', () async {
