@@ -29,6 +29,9 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
   private lateinit var beaconRegionEventChannel: EventChannel
   private lateinit var activeScanEventChannel: EventChannel
   private lateinit var locationCaptureEventChannel: EventChannel
+  // v2.6 — Two Eyes
+  private lateinit var bluetoothZoneEventChannel: EventChannel
+  private lateinit var bluetoothScanModeEventChannel: EventChannel
 
   private var beaconsEventSink: EventChannel.EventSink? = null
   private var scanningEventSink: EventChannel.EventSink? = null
@@ -38,6 +41,8 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
   private var beaconRegionEventSink: EventChannel.EventSink? = null
   private var activeScanEventSink: EventChannel.EventSink? = null
   private var locationCaptureEventSink: EventChannel.EventSink? = null
+  private var bluetoothZoneEventSink: EventChannel.EventSink? = null
+  private var bluetoothScanModeEventSink: EventChannel.EventSink? = null
 
   private lateinit var context: Context
   private val mainHandler = Handler(Looper.getMainLooper())
@@ -124,6 +129,19 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
       override fun onListen(arguments: Any?, events: EventChannel.EventSink?) { locationCaptureEventSink = events }
       override fun onCancel(arguments: Any?) { locationCaptureEventSink = null }
     })
+
+    // v2.6 — Two Eyes (BLE-only zone + duty cycle mode)
+    bluetoothZoneEventChannel = EventChannel(binding.binaryMessenger, "bearound_flutter_sdk/bluetooth_zone")
+    bluetoothZoneEventChannel.setStreamHandler(object : EventChannel.StreamHandler {
+      override fun onListen(arguments: Any?, events: EventChannel.EventSink?) { bluetoothZoneEventSink = events }
+      override fun onCancel(arguments: Any?) { bluetoothZoneEventSink = null }
+    })
+
+    bluetoothScanModeEventChannel = EventChannel(binding.binaryMessenger, "bearound_flutter_sdk/bluetooth_scan_mode")
+    bluetoothScanModeEventChannel.setStreamHandler(object : EventChannel.StreamHandler {
+      override fun onListen(arguments: Any?, events: EventChannel.EventSink?) { bluetoothScanModeEventSink = events }
+      override fun onCancel(arguments: Any?) { bluetoothScanModeEventSink = null }
+    })
   }
 
   override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
@@ -136,6 +154,8 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
     beaconRegionEventChannel.setStreamHandler(null)
     activeScanEventChannel.setStreamHandler(null)
     locationCaptureEventChannel.setStreamHandler(null)
+    bluetoothZoneEventChannel.setStreamHandler(null)
+    bluetoothScanModeEventChannel.setStreamHandler(null)
 
     sdk?.listener = null
     sdk = null
@@ -311,6 +331,26 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
       payload["location"] = locMap
     }
     mainHandler.post { locationCaptureEventSink?.success(payload) }
+  }
+
+  // v2.6 — Two Eyes (BLE-only zone + duty cycle mode)
+
+  override fun onEnterBluetoothZone() {
+    val payload = mapOf("type" to "enter")
+    mainHandler.post { bluetoothZoneEventSink?.success(payload) }
+  }
+
+  override fun onExitBluetoothZone() {
+    val payload = mapOf("type" to "exit")
+    mainHandler.post { bluetoothZoneEventSink?.success(payload) }
+  }
+
+  override fun onChangeBluetoothScanMode(mode: io.bearound.sdk.BluetoothScanMode, nextIdleScanAtEpochMs: Long?) {
+    val payload = mutableMapOf<String, Any?>("mode" to mode.name.lowercase())
+    if (nextIdleScanAtEpochMs != null) {
+      payload["nextIdleScanAtEpochMs"] = nextIdleScanAtEpochMs
+    }
+    mainHandler.post { bluetoothScanModeEventSink?.success(payload) }
   }
 
   // endregion

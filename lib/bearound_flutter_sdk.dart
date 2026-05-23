@@ -51,6 +51,13 @@ class BearoundFlutterSdk {
   static const EventChannel _locationCaptureChannel = EventChannel(
     'bearound_flutter_sdk/location_capture',
   );
+  // v2.6 — Two Eyes (BLE-only zone + duty cycle mode)
+  static const EventChannel _bluetoothZoneChannel = EventChannel(
+    'bearound_flutter_sdk/bluetooth_zone',
+  );
+  static const EventChannel _bluetoothScanModeChannel = EventChannel(
+    'bearound_flutter_sdk/bluetooth_scan_mode',
+  );
 
   static Stream<List<Beacon>>? _beaconsStream;
   static Stream<bool>? _scanningStream;
@@ -60,6 +67,8 @@ class BearoundFlutterSdk {
   static Stream<BeaconRegionEvent>? _beaconRegionStream;
   static Stream<ActiveScanEvent>? _activeScanStream;
   static Stream<LocationCaptureResult>? _locationCaptureStream;
+  static Stream<BluetoothZoneEvent>? _bluetoothZoneStream;
+  static Stream<BluetoothScanModeEvent>? _bluetoothScanModeStream;
 
   /// Solicita as permissões necessárias para operação do SDK.
   /// No iOS, chama requestAlwaysAuthorization() via código nativo.
@@ -233,6 +242,35 @@ class BearoundFlutterSdk {
           return LocationCaptureResult.fromMap(_asMap(event));
         });
     return _locationCaptureStream!;
+  }
+
+  /// Stream da presença BLE-only — o "olho Bluetooth" (v2.6.0).
+  ///
+  /// Funciona independentemente de Location. Quando o usuário tem BT ligado
+  /// mas Location desligado, este é o único stream de presença que fica vivo.
+  /// Disparos: `enter` no primeiro beacon visto, `exit` após 10s de graça
+  /// sem detecção.
+  static Stream<BluetoothZoneEvent> get bluetoothZoneStream {
+    _bluetoothZoneStream ??= _bluetoothZoneChannel
+        .receiveBroadcastStream()
+        .map((event) {
+          return BluetoothZoneEvent.fromMap(_asMap(event));
+        });
+    return _bluetoothZoneStream!;
+  }
+
+  /// Stream do modo do duty cycle do BT eye (v2.6.0).
+  ///
+  /// Flipa entre `idle` (scanner off, peek a cada 5min) e `active` (scan
+  /// contínuo, tick 10s). Use `nextIdleScanAtEpochMs` para renderizar um
+  /// countdown ao vivo de quando o próximo peek vai rodar.
+  static Stream<BluetoothScanModeEvent> get bluetoothScanModeStream {
+    _bluetoothScanModeStream ??= _bluetoothScanModeChannel
+        .receiveBroadcastStream()
+        .map((event) {
+          return BluetoothScanModeEvent.fromMap(_asMap(event));
+        });
+    return _bluetoothScanModeStream!;
   }
 
   static Map<String, dynamic> _asMap(Object? event) {

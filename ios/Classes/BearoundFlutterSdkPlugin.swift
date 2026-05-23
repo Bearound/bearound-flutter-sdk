@@ -13,6 +13,9 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
     private let beaconRegionStreamHandler = EventStreamHandler()
     private let activeScanStreamHandler = EventStreamHandler()
     private let locationCaptureStreamHandler = EventStreamHandler()
+    // v2.6 — Two Eyes
+    private let bluetoothZoneStreamHandler = EventStreamHandler()
+    private let bluetoothScanModeStreamHandler = EventStreamHandler()
     
     /// Tracks if Flutter explicitly started scanning
     private var isActiveScan = false
@@ -78,6 +81,19 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
             binaryMessenger: registrar.messenger()
         )
         locationCaptureChannel.setStreamHandler(instance.locationCaptureStreamHandler)
+
+        // v2.6 — Two Eyes — BLE-only zone presence + duty cycle mode
+        let bluetoothZoneChannel = FlutterEventChannel(
+            name: "bearound_flutter_sdk/bluetooth_zone",
+            binaryMessenger: registrar.messenger()
+        )
+        bluetoothZoneChannel.setStreamHandler(instance.bluetoothZoneStreamHandler)
+
+        let bluetoothScanModeChannel = FlutterEventChannel(
+            name: "bearound_flutter_sdk/bluetooth_scan_mode",
+            binaryMessenger: registrar.messenger()
+        )
+        bluetoothScanModeChannel.setStreamHandler(instance.bluetoothScanModeStreamHandler)
 
         // Register as delegate
         BeAroundSDK.shared.delegate = instance
@@ -443,6 +459,30 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
         }
         DispatchQueue.main.async { [weak self] in
             self?.locationCaptureStreamHandler.eventSink?(payload)
+        }
+    }
+
+    // v2.6 — Two Eyes (BLE-only zone + duty cycle mode)
+
+    public func didEnterBluetoothZone() {
+        DispatchQueue.main.async { [weak self] in
+            self?.bluetoothZoneStreamHandler.eventSink?(["type": "enter"])
+        }
+    }
+
+    public func didExitBluetoothZone() {
+        DispatchQueue.main.async { [weak self] in
+            self?.bluetoothZoneStreamHandler.eventSink?(["type": "exit"])
+        }
+    }
+
+    public func didChangeBluetoothScanMode(_ mode: BluetoothScanMode, nextIdleScanAt: Date?) {
+        var payload: [String: Any] = ["mode": mode.rawValue]
+        if let next = nextIdleScanAt {
+            payload["nextIdleScanAtEpochMs"] = Int(next.timeIntervalSince1970 * 1000)
+        }
+        DispatchQueue.main.async { [weak self] in
+            self?.bluetoothScanModeStreamHandler.eventSink?(payload)
         }
     }
 
