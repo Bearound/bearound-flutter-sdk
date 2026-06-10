@@ -210,7 +210,6 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
 
         val precisionRaw = (args?.get("scanPrecision") as? String) ?: "high"
         val maxQueuedValue = (args?.get("maxQueuedPayloads") as? Number)?.toInt() ?: 100
-        val technology = call.argument<String>("technology") ?: "flutter"
 
         val scanPrecision = mapToScanPrecision(precisionRaw)
         val maxQueuedPayloads = mapToMaxQueuedPayloads(maxQueuedValue)
@@ -223,7 +222,7 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
           businessToken = businessToken,
           scanPrecision = scanPrecision,
           maxQueuedPayloads = maxQueuedPayloads,
-          technology = technology
+          technology = "flutter"
         )
 
         if (wasScanning) sdk.startScanning()

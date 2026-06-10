@@ -48,7 +48,6 @@ void main() {
           'businessToken': businessToken,
           'scanPrecision': 'high',
           'maxQueuedPayloads': 200,
-          'technology': 'flutter',
         }),
       );
     });
@@ -65,7 +64,6 @@ void main() {
           'businessToken': 'test-token',
           'scanPrecision': 'high',
           'maxQueuedPayloads': 100,
-          'technology': 'flutter',
         }),
       );
     });

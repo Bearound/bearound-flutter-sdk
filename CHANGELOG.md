@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.0] - 2026-06-10
+
+### Added
+
+- **`sdk.technology` field** in the `/ingest` payload, identifying the
+  originating SDK across the suite (`ios-native` | `android-native` |
+  `react-native` | `flutter`). The Flutter bridge always reports `flutter`
+  via a hardcoded native constant — it is not a `configure()` parameter and
+  is not versioned.
+
+### Changed
+
+- **Native SDKs aligned to v3.3.0** ("two eyes" alignment across the suite):
+  - Android: `com.github.Bearound:bearound-android-sdk:3.3.0`
+  - iOS: `BearoundSDK 3.3.0`
+- **Version is now a single source of truth**: the iOS podspec
+  (`ios/bearound_flutter_sdk.podspec`) reads `s.version` directly from
+  `pubspec.yaml` — there is no longer a version literal to keep in sync in the
+  podspec.
+
+---
+
 ## [2.4.0] - 2026-05-22
 
 ### ⚠️ Breaking Changes

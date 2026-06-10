@@ -97,7 +97,10 @@ class _SettingsPageState extends State<SettingsPage> {
             value: _maxQueuedPayloads,
             isExpanded: true,
             items: MaxQueuedPayloads.values.map((size) {
-              return DropdownMenuItem(value: size, child: Text(_queueLabel(size)));
+              return DropdownMenuItem(
+                value: size,
+                child: Text(_queueLabel(size)),
+              );
             }).toList(),
             onChanged: (value) {
               if (value != null) setState(() => _maxQueuedPayloads = value);
@@ -108,8 +111,10 @@ class _SettingsPageState extends State<SettingsPage> {
             Card(
               child: ListTile(
                 title: const Text('Versão do SDK nativo'),
-                trailing: Text(widget.sdkVersion,
-                    style: const TextStyle(fontFamily: 'monospace')),
+                trailing: Text(
+                  widget.sdkVersion,
+                  style: const TextStyle(fontFamily: 'monospace'),
+                ),
               ),
             ),
           const SizedBox(height: 16),

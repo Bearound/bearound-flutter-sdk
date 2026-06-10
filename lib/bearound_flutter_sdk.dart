@@ -41,10 +41,6 @@ export 'src/models/user_properties.dart';
 /// disponíveis apenas em uma plataforma são no-op silenciosos na outra, e
 /// streams iOS-only (Bluetooth zone/scan mode) nunca emitem na plataforma
 /// errada.
-/// Single source of truth for the bridge's `technology` tag sent to the native
-/// SDK. Internal — not exposed as a public `configure` parameter.
-const _sdkTechnology = 'flutter';
-
 class BearoundFlutterSdk {
   BearoundFlutterSdk._();
 
@@ -148,7 +144,6 @@ class BearoundFlutterSdk {
       'businessToken': businessToken.trim(),
       'scanPrecision': scanPrecision.value,
       'maxQueuedPayloads': maxQueuedPayloads.value,
-      'technology': _sdkTechnology,
     };
 
     await _channel.invokeMethod('configure', args);
@@ -229,15 +224,15 @@ class BearoundFlutterSdk {
   /// Precisão de scan ativa (`'high' | 'medium' | 'low'`), ou `''` se ainda
   /// não configurada.
   static Future<String> getCurrentScanPrecision() async {
-    final result =
-        await _channel.invokeMethod<String>('getCurrentScanPrecision');
+    final result = await _channel.invokeMethod<String>(
+      'getCurrentScanPrecision',
+    );
     return result ?? '';
   }
 
   /// String de diagnóstico BLE. **iOS-only**; Android retorna `''`.
   static Future<String> getBleDiagnosticInfo() async {
-    final result =
-        await _channel.invokeMethod<String>('getBleDiagnosticInfo');
+    final result = await _channel.invokeMethod<String>('getBleDiagnosticInfo');
     return result ?? '';
   }
 
@@ -262,8 +257,9 @@ class BearoundFlutterSdk {
 
   /// Status atual da autorização de localização.
   static Future<AuthorizationStatus> getAuthorizationStatus() async {
-    final result =
-        await _channel.invokeMethod<String>('getAuthorizationStatus');
+    final result = await _channel.invokeMethod<String>(
+      'getAuthorizationStatus',
+    );
     return AuthorizationStatus.fromString(result);
   }
 
@@ -289,8 +285,7 @@ class BearoundFlutterSdk {
     if (decoded is! List) return const [];
     return decoded
         .whereType<Map>()
-        .map((e) =>
-            PersistedLogEntry.fromJson(Map<String, dynamic>.from(e)))
+        .map((e) => PersistedLogEntry.fromJson(Map<String, dynamic>.from(e)))
         .toList();
   }
 
@@ -331,8 +326,9 @@ class BearoundFlutterSdk {
 
   /// Se o foreground service está ativo. iOS resolve sempre `false`.
   static Future<bool> isForegroundScanningEnabled() async {
-    final result =
-        await _channel.invokeMethod<bool>('isForegroundScanningEnabled');
+    final result = await _channel.invokeMethod<bool>(
+      'isForegroundScanningEnabled',
+    );
     return result ?? false;
   }
 
@@ -435,34 +431,37 @@ class BearoundFlutterSdk {
   /// Stream de entradas/saídas da zona Bluetooth (CBCentralManager).
   /// **iOS-only** — no Android nunca emite.
   static Stream<BluetoothZoneEvent> get bluetoothZoneStream {
-    _bluetoothZoneStream ??=
-        _bluetoothZoneChannel.receiveBroadcastStream().map((event) {
-      return BluetoothZoneEvent.fromMap(_asMap(event));
-    });
+    _bluetoothZoneStream ??= _bluetoothZoneChannel.receiveBroadcastStream().map(
+      (event) {
+        return BluetoothZoneEvent.fromMap(_asMap(event));
+      },
+    );
     return _bluetoothZoneStream!;
   }
 
   /// Stream de mudanças do duty-cycle do scanner Bluetooth (`idle` / `active`).
   /// **iOS-only** — no Android nunca emite.
   static Stream<BluetoothScanModeEvent> get bluetoothScanModeStream {
-    _bluetoothScanModeStream ??=
-        _bluetoothScanModeChannel.receiveBroadcastStream().map((event) {
-      return BluetoothScanModeEvent.fromMap(_asMap(event));
-    });
+    _bluetoothScanModeStream ??= _bluetoothScanModeChannel
+        .receiveBroadcastStream()
+        .map((event) {
+          return BluetoothScanModeEvent.fromMap(_asMap(event));
+        });
     return _bluetoothScanModeStream!;
   }
 
   /// Stream do estado do adaptador Bluetooth (poweredOn/off/unauthorized/...).
   /// Emite em ambas as plataformas — use para destravar o olho Bluetooth.
   static Stream<BluetoothState> get bluetoothStateStream {
-    _bluetoothStateStream ??=
-        _bluetoothStateChannel.receiveBroadcastStream().map((event) {
-      if (event is String) {
-        return BluetoothState.fromString(event);
-      }
-      final payload = _asMap(event);
-      return BluetoothState.fromString(payload['state'] as String?);
-    });
+    _bluetoothStateStream ??= _bluetoothStateChannel
+        .receiveBroadcastStream()
+        .map((event) {
+          if (event is String) {
+            return BluetoothState.fromString(event);
+          }
+          final payload = _asMap(event);
+          return BluetoothState.fromString(payload['state'] as String?);
+        });
     return _bluetoothStateStream!;
   }
 

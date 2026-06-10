@@ -207,13 +207,15 @@ class _BeaconHomePageState extends State<BeaconHomePage>
     _scanningSub = BearoundFlutterSdk.scanningStream.listen(_onScanning);
     _errorSub = BearoundFlutterSdk.errorStream.listen(_onError);
     _syncSub = BearoundFlutterSdk.syncLifecycleStream.listen(_onSync);
-    _bgDetectionSub =
-        BearoundFlutterSdk.backgroundDetectionStream.listen(_onBackground);
+    _bgDetectionSub = BearoundFlutterSdk.backgroundDetectionStream.listen(
+      _onBackground,
+    );
     _regionSub = BearoundFlutterSdk.beaconRegionStream.listen(_onRegion);
     _activeScanSub = BearoundFlutterSdk.activeScanStream.listen(_onActiveScan);
     _btZoneSub = BearoundFlutterSdk.bluetoothZoneStream.listen(_onBtZone);
-    _btScanModeSub =
-        BearoundFlutterSdk.bluetoothScanModeStream.listen(_onBtScanMode);
+    _btScanModeSub = BearoundFlutterSdk.bluetoothScanModeStream.listen(
+      _onBtScanMode,
+    );
     _btStateSub = BearoundFlutterSdk.bluetoothStateStream.listen((state) {
       if (mounted) setState(() => _bluetoothState = state);
     });
@@ -266,8 +268,9 @@ class _BeaconHomePageState extends State<BeaconHomePage>
       });
     } else if (event.isCompleted) {
       final startedAt = _syncStartedAt;
-      final duration =
-          startedAt != null ? DateTime.now().difference(startedAt) : Duration.zero;
+      final duration = startedAt != null
+          ? DateTime.now().difference(startedAt)
+          : Duration.zero;
       setState(() {
         _lastSyncTime = DateTime.now();
         _lastSyncCount = event.beaconCount;
@@ -304,7 +307,9 @@ class _BeaconHomePageState extends State<BeaconHomePage>
       }
     });
     _pushGeofenceEvent(
-      event.isEnter ? GeofenceEventKind.regionEnter : GeofenceEventKind.regionExit,
+      event.isEnter
+          ? GeofenceEventKind.regionEnter
+          : GeofenceEventKind.regionExit,
       event.isEnter
           ? 'iOS/Android reportou entrada na zona do beacon'
           : 'Saiu da zona do beacon',
@@ -315,7 +320,9 @@ class _BeaconHomePageState extends State<BeaconHomePage>
     if (!mounted) return;
     setState(() => _isActiveScanRunning = event.isActive);
     _pushGeofenceEvent(
-      event.isActive ? GeofenceEventKind.scanActive : GeofenceEventKind.scanPaused,
+      event.isActive
+          ? GeofenceEventKind.scanActive
+          : GeofenceEventKind.scanPaused,
       event.isActive
           ? 'Scan ativo (ranging + BLE) LIGADO'
           : 'Scan ativo DESLIGADO — só region monitoring',
@@ -456,8 +463,11 @@ class _BeaconHomePageState extends State<BeaconHomePage>
             lastExit: _lastExitedRegionAt,
             enterCount: _locationEnterCount,
             beaconsNow: _detectedBeacons
-                .where((b) => b.discoverySources
-                    .contains(BeaconDiscoverySource.coreLocation))
+                .where(
+                  (b) => b.discoverySources.contains(
+                    BeaconDiscoverySource.coreLocation,
+                  ),
+                )
                 .length,
             totalDetected: _locationKeys.length,
             modeLabel: _isActiveScanRunning ? 'RANGING' : 'REGION',
@@ -471,9 +481,13 @@ class _BeaconHomePageState extends State<BeaconHomePage>
             lastExit: _lastBtExitAt,
             enterCount: _btZoneEnterCount,
             beaconsNow: _detectedBeacons
-                .where((b) => b.discoverySources.any((s) =>
-                    s == BeaconDiscoverySource.serviceUUID ||
-                    s == BeaconDiscoverySource.name))
+                .where(
+                  (b) => b.discoverySources.any(
+                    (s) =>
+                        s == BeaconDiscoverySource.serviceUUID ||
+                        s == BeaconDiscoverySource.name,
+                  ),
+                )
                 .length,
             totalDetected: _bluetoothKeys.length,
             modeLabel: _btScanMode == BluetoothScanMode.active
@@ -510,16 +524,22 @@ class _BeaconHomePageState extends State<BeaconHomePage>
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('BeAroundScan',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            Text(_status,
-                style: const TextStyle(fontSize: 11, color: Colors.grey)),
+            const Text(
+              'BeAroundScan',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            Text(
+              _status,
+              style: const TextStyle(fontSize: 11, color: Colors.grey),
+            ),
           ],
         ),
         actions: [
           IconButton(
-            icon: Icon(_isScanning ? Icons.wifi_tethering : Icons.wifi_off,
-                color: _isScanning ? Colors.green : Colors.grey),
+            icon: Icon(
+              _isScanning ? Icons.wifi_tethering : Icons.wifi_off,
+              color: _isScanning ? Colors.green : Colors.grey,
+            ),
             onPressed: null,
           ),
         ],
@@ -543,8 +563,10 @@ class _BeaconHomePageState extends State<BeaconHomePage>
           const SizedBox(height: 12),
           if (_lastScanTime != null)
             Center(
-              child: Text('Última atualização: ${_fmtTime(_lastScanTime!)}',
-                  style: const TextStyle(color: Colors.grey)),
+              child: Text(
+                'Última atualização: ${_fmtTime(_lastScanTime!)}',
+                style: const TextStyle(color: Colors.grey),
+              ),
             ),
           const SizedBox(height: 12),
           if (_detectedBeacons.isEmpty)
@@ -553,11 +575,14 @@ class _BeaconHomePageState extends State<BeaconHomePage>
               child: Center(
                 child: Column(
                   children: [
-                    Text('Aguardando próximos scans',
-                        style: TextStyle(
-                            color: Colors.grey,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold)),
+                    Text(
+                      'Aguardando próximos scans',
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -583,9 +608,13 @@ class _BeaconHomePageState extends State<BeaconHomePage>
           ),
           const SizedBox(width: 8),
           IconButton.outlined(
-              onPressed: _openLog, icon: const Icon(Icons.list_alt)),
+            onPressed: _openLog,
+            icon: const Icon(Icons.list_alt),
+          ),
           IconButton.outlined(
-              onPressed: _openSettings, icon: const Icon(Icons.settings)),
+            onPressed: _openSettings,
+            icon: const Icon(Icons.settings),
+          ),
         ],
       ),
     );
@@ -599,8 +628,10 @@ class _BeaconHomePageState extends State<BeaconHomePage>
         color: Colors.red.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Text(_lastError ?? '',
-          style: const TextStyle(color: Colors.redAccent)),
+      child: Text(
+        _lastError ?? '',
+        style: const TextStyle(color: Colors.redAccent),
+      ),
     );
   }
 
@@ -612,16 +643,17 @@ class _BeaconHomePageState extends State<BeaconHomePage>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Permissões',
-                style:
-                    TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            const Text(
+              'Permissões',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
             const SizedBox(height: 12),
             _permRow(
-                'Localização',
-                _locationGranted ? 'Concedida' : 'Negada',
-                _locationGranted ? Colors.green : Colors.red),
-            _permRow('Bluetooth', btLabel,
-                _bluetoothColor(_bluetoothState)),
+              'Localização',
+              _locationGranted ? 'Concedida' : 'Negada',
+              _locationGranted ? Colors.green : Colors.red,
+            ),
+            _permRow('Bluetooth', btLabel, _bluetoothColor(_bluetoothState)),
             // NOTE: push is app-level now — notification/ATT/IDFA permission rows
             // were removed since the SDK no longer manages them.
             const SizedBox(height: 8),
@@ -663,13 +695,16 @@ class _BeaconHomePageState extends State<BeaconHomePage>
           ),
           const SizedBox(width: 8),
           Expanded(
-              child: Text(label, style: const TextStyle(color: Colors.grey))),
-          Text(value,
-              style: TextStyle(
-                color: color,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-              )),
+            child: Text(label, style: const TextStyle(color: Colors.grey)),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              color: color,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ],
       ),
     );
@@ -682,9 +717,10 @@ class _BeaconHomePageState extends State<BeaconHomePage>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Informações do Scan',
-                style:
-                    TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            const Text(
+              'Informações do Scan',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
             const SizedBox(height: 8),
             _infoRow('Precisão', _scanPrecision.value),
             _infoRow('Fila Retry', '${_maxQueuedPayloads.value}'),
@@ -692,9 +728,10 @@ class _BeaconHomePageState extends State<BeaconHomePage>
             const Text(
               '✨ Sync automático: eventos em syncLifecycleStream',
               style: TextStyle(
-                  color: Colors.grey,
-                  fontSize: 12,
-                  fontStyle: FontStyle.italic),
+                color: Colors.grey,
+                fontSize: 12,
+                fontStyle: FontStyle.italic,
+              ),
             ),
           ],
         ),
@@ -709,32 +746,37 @@ class _BeaconHomePageState extends State<BeaconHomePage>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Informações do Sync',
-                style:
-                    TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            const Text(
+              'Informações do Sync',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
             const SizedBox(height: 8),
             _infoRow(
-                'Último sync', _lastSyncTime != null ? _fmtTime(_lastSyncTime!) : '--'),
+              'Último sync',
+              _lastSyncTime != null ? _fmtTime(_lastSyncTime!) : '--',
+            ),
             _infoRow('Beacons sincronizados', '$_lastSyncCount'),
             _infoRow(
-                'Duração',
-                _lastSyncDuration == null
-                    ? '--'
-                    : _lastSyncDuration!.inMilliseconds >= 1000
-                        ? '${(_lastSyncDuration!.inMilliseconds / 1000).toStringAsFixed(1)}s'
-                        : '${_lastSyncDuration!.inMilliseconds}ms'),
+              'Duração',
+              _lastSyncDuration == null
+                  ? '--'
+                  : _lastSyncDuration!.inMilliseconds >= 1000
+                  ? '${(_lastSyncDuration!.inMilliseconds / 1000).toStringAsFixed(1)}s'
+                  : '${_lastSyncDuration!.inMilliseconds}ms',
+            ),
             _infoRow(
-                'Resultado',
-                _lastSyncSuccess == true
-                    ? 'Sucesso'
-                    : _lastSyncSuccess == false
-                        ? 'Falha'
-                        : 'Aguardando…',
-                valueColor: _lastSyncSuccess == true
-                    ? Colors.green
-                    : _lastSyncSuccess == false
-                        ? Colors.red
-                        : Colors.grey),
+              'Resultado',
+              _lastSyncSuccess == true
+                  ? 'Sucesso'
+                  : _lastSyncSuccess == false
+                  ? 'Falha'
+                  : 'Aguardando…',
+              valueColor: _lastSyncSuccess == true
+                  ? Colors.green
+                  : _lastSyncSuccess == false
+                  ? Colors.red
+                  : Colors.grey,
+            ),
           ],
         ),
       ),
@@ -745,8 +787,9 @@ class _BeaconHomePageState extends State<BeaconHomePage>
     final inZone = _isInBeaconRegion;
     final bg = inZone ? const Color(0xFF0F2B14) : const Color(0xFF2A0F0F);
     final border = inZone ? const Color(0xFF2E7D32) : const Color(0xFFC62828);
-    final titleColor =
-        inZone ? const Color(0xFFA5D6A7) : const Color(0xFFEF9A9A);
+    final titleColor = inZone
+        ? const Color(0xFFA5D6A7)
+        : const Color(0xFFEF9A9A);
     final emoji = inZone ? '✅' : '⛔';
     final title = inZone ? 'NA ZONA DO BEACON' : 'FORA DA ZONA';
     final body = inZone
@@ -762,17 +805,18 @@ class _BeaconHomePageState extends State<BeaconHomePage>
             Row(
               children: [
                 const Expanded(
-                  child: Text('Debug Geofence',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 16)),
+                  child: Text(
+                    'Debug Geofence',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
                 ),
                 if (_geofenceEvents.isNotEmpty)
                   TextButton(
-                    onPressed: () =>
-                        setState(() => _geofenceEvents.clear()),
-                    child: const Text('Limpar',
-                        style:
-                            TextStyle(color: Colors.grey, fontSize: 12)),
+                    onPressed: () => setState(() => _geofenceEvents.clear()),
+                    child: const Text(
+                      'Limpar',
+                      style: TextStyle(color: Colors.grey, fontSize: 12),
+                    ),
                   ),
               ],
             ),
@@ -790,40 +834,57 @@ class _BeaconHomePageState extends State<BeaconHomePage>
                     children: [
                       Text(emoji, style: const TextStyle(fontSize: 18)),
                       const SizedBox(width: 8),
-                      Text(title,
-                          style: TextStyle(
-                            color: titleColor,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                          )),
+                      Text(
+                        title,
+                        style: TextStyle(
+                          color: titleColor,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
                     ],
                   ),
                   Padding(
                     padding: const EdgeInsets.only(top: 4),
-                    child: Text(body,
-                        style: TextStyle(color: titleColor, fontSize: 12)),
+                    child: Text(
+                      body,
+                      style: TextStyle(color: titleColor, fontSize: 12),
+                    ),
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 8),
-            _infoRow('Zona do beacon', inZone ? 'DENTRO' : 'fora',
-                valueColor: inZone ? Colors.green : Colors.grey),
+            _infoRow(
+              'Zona do beacon',
+              inZone ? 'DENTRO' : 'fora',
+              valueColor: inZone ? Colors.green : Colors.grey,
+            ),
             if (_lastEnteredRegionAt != null)
-              _infoRow('Entrou às',
-                  '${_fmtTime(_lastEnteredRegionAt!)} (${_fmtAge(_nowTick.difference(_lastEnteredRegionAt!))})'),
+              _infoRow(
+                'Entrou às',
+                '${_fmtTime(_lastEnteredRegionAt!)} (${_fmtAge(_nowTick.difference(_lastEnteredRegionAt!))})',
+              ),
             if (_lastExitedRegionAt != null)
-              _infoRow('Saiu às',
-                  '${_fmtTime(_lastExitedRegionAt!)} (${_fmtAge(_nowTick.difference(_lastExitedRegionAt!))})'),
-            _infoRow('Scan ativo', _isActiveScanRunning ? 'LIGADO' : 'desligado',
-                valueColor: _isActiveScanRunning ? Colors.green : Colors.grey),
+              _infoRow(
+                'Saiu às',
+                '${_fmtTime(_lastExitedRegionAt!)} (${_fmtAge(_nowTick.difference(_lastExitedRegionAt!))})',
+              ),
+            _infoRow(
+              'Scan ativo',
+              _isActiveScanRunning ? 'LIGADO' : 'desligado',
+              valueColor: _isActiveScanRunning ? Colors.green : Colors.grey,
+            ),
             if (_geofenceEvents.isNotEmpty) ...[
               const Divider(),
-              const Text('Eventos recentes',
-                  style: TextStyle(
-                      color: Colors.grey,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold)),
+              const Text(
+                'Eventos recentes',
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               const SizedBox(height: 6),
               for (final event in _geofenceEvents.take(10))
                 _geofenceEventTile(event),
@@ -855,19 +916,23 @@ class _BeaconHomePageState extends State<BeaconHomePage>
                 Row(
                   children: [
                     Expanded(
-                      child: Text(geofenceEventTitle(event.kind),
-                          style: TextStyle(
-                              color: color,
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold)),
+                      child: Text(
+                        geofenceEventTitle(event.kind),
+                        style: TextStyle(
+                          color: color,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                     Text(
-                        '${_fmtTime(event.timestamp)} · ${_fmtAge(_nowTick.difference(event.timestamp))}',
-                        style: const TextStyle(
-                          color: Colors.grey,
-                          fontFamily: 'monospace',
-                          fontSize: 10,
-                        )),
+                      '${_fmtTime(event.timestamp)} · ${_fmtAge(_nowTick.difference(event.timestamp))}',
+                      style: const TextStyle(
+                        color: Colors.grey,
+                        fontFamily: 'monospace',
+                        fontSize: 10,
+                      ),
+                    ),
                   ],
                 ),
                 Text(event.detail, style: const TextStyle(fontSize: 11)),
@@ -886,15 +951,17 @@ class _BeaconHomePageState extends State<BeaconHomePage>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Controle',
-                style:
-                    TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            const Text(
+              'Controle',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
             const SizedBox(height: 12),
             if (!_isScanning)
               FilledButton.icon(
                 onPressed: _startScan,
                 style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF1976D2)),
+                  backgroundColor: const Color(0xFF1976D2),
+                ),
                 icon: const Icon(Icons.play_arrow),
                 label: const Text('Iniciar Scan'),
               )
@@ -902,13 +969,13 @@ class _BeaconHomePageState extends State<BeaconHomePage>
               FilledButton.icon(
                 onPressed: _stopScan,
                 style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFFC0392B)),
+                  backgroundColor: const Color(0xFFC0392B),
+                ),
                 icon: const Icon(Icons.stop),
                 label: const Text('Parar Scan'),
               ),
             const SizedBox(height: 16),
-            const Text('Scan Precision',
-                style: TextStyle(color: Colors.grey)),
+            const Text('Scan Precision', style: TextStyle(color: Colors.grey)),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
@@ -925,8 +992,10 @@ class _BeaconHomePageState extends State<BeaconHomePage>
               ],
             ),
             const SizedBox(height: 12),
-            const Text('Max Queued Payloads',
-                style: TextStyle(color: Colors.grey)),
+            const Text(
+              'Max Queued Payloads',
+              style: TextStyle(color: Colors.grey),
+            ),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
@@ -963,25 +1032,37 @@ class _BeaconHomePageState extends State<BeaconHomePage>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Beacon ${beacon.major}.${beacon.minor}',
-                          style: const TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 15)),
-                      Text(beacon.uuid,
-                          style: const TextStyle(
-                              color: Colors.grey, fontSize: 11)),
+                      Text(
+                        'Beacon ${beacon.major}.${beacon.minor}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                        ),
+                      ),
+                      Text(
+                        beacon.uuid,
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 11,
+                        ),
+                      ),
                     ],
                   ),
                 ),
-                Text('${beacon.rssi} dB',
-                    style: const TextStyle(color: Colors.grey)),
+                Text(
+                  '${beacon.rssi} dB',
+                  style: const TextStyle(color: Colors.grey),
+                ),
               ],
             ),
             const SizedBox(height: 4),
             Wrap(
               spacing: 8,
               children: [
-                _chip(_proximityLabel(beacon.proximity),
-                    _proximityColor(beacon.proximity)),
+                _chip(
+                  _proximityLabel(beacon.proximity),
+                  _proximityColor(beacon.proximity),
+                ),
                 if (beacon.accuracy > 0)
                   _chip('${beacon.accuracy.toStringAsFixed(1)}m', Colors.grey),
                 if (beacon.isStale) _chip('stale', Colors.orange),
@@ -996,16 +1077,21 @@ class _BeaconHomePageState extends State<BeaconHomePage>
                   for (final source in sources)
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 6, vertical: 1),
+                        horizontal: 6,
+                        vertical: 1,
+                      ),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(4),
                         border: Border.all(color: _sourceColor(source)),
                       ),
-                      child: Text(_sourceLabel(source),
-                          style: TextStyle(
-                              fontSize: 10,
-                              color: _sourceColor(source),
-                              fontWeight: FontWeight.bold)),
+                      child: Text(
+                        _sourceLabel(source),
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: _sourceColor(source),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                 ],
               ),
@@ -1015,19 +1101,30 @@ class _BeaconHomePageState extends State<BeaconHomePage>
               Wrap(
                 spacing: 8,
                 children: [
-                  Text('🔋 ${m.batteryLevel}mV',
-                      style: TextStyle(
-                          color: _batteryColor(m.batteryLevel), fontSize: 11)),
-                  Text('🌡 ${m.temperature}°C',
-                      style: const TextStyle(color: Colors.grey, fontSize: 11)),
-                  Text('🚶 ${m.movements}',
-                      style: const TextStyle(color: Colors.grey, fontSize: 11)),
-                  Text('v${m.firmwareVersion}',
-                      style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                  Text(
+                    '🔋 ${m.batteryLevel}mV',
+                    style: TextStyle(
+                      color: _batteryColor(m.batteryLevel),
+                      fontSize: 11,
+                    ),
+                  ),
+                  Text(
+                    '🌡 ${m.temperature}°C',
+                    style: const TextStyle(color: Colors.grey, fontSize: 11),
+                  ),
+                  Text(
+                    '🚶 ${m.movements}',
+                    style: const TextStyle(color: Colors.grey, fontSize: 11),
+                  ),
+                  Text(
+                    'v${m.firmwareVersion}',
+                    style: const TextStyle(color: Colors.grey, fontSize: 11),
+                  ),
                   if (beacon.txPower != null)
-                    Text('tx ${beacon.txPower}',
-                        style:
-                            const TextStyle(color: Colors.grey, fontSize: 11)),
+                    Text(
+                      'tx ${beacon.txPower}',
+                      style: const TextStyle(color: Colors.grey, fontSize: 11),
+                    ),
                 ],
               ),
             ],
@@ -1050,11 +1147,15 @@ class _BeaconHomePageState extends State<BeaconHomePage>
       child: Row(
         children: [
           Expanded(
-              child: Text(label, style: const TextStyle(color: Colors.grey))),
-          Text(value,
-              style: TextStyle(
-                  color: valueColor ?? Colors.white,
-                  fontWeight: FontWeight.w600)),
+            child: Text(label, style: const TextStyle(color: Colors.grey)),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              color: valueColor ?? Colors.white,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ],
       ),
     );
@@ -1067,9 +1168,14 @@ class _BeaconHomePageState extends State<BeaconHomePage>
         color: color.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(4),
       ),
-      child: Text(text,
-          style: TextStyle(
-              color: color, fontSize: 11, fontWeight: FontWeight.w600)),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: color,
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
     );
   }
 

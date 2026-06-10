@@ -41,8 +41,12 @@ class TwoEyesModal extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: _summary('Location', const Color(0xFF4CAF50),
-                    location.isInZone, '${location.beaconsNow} agora'),
+                child: _summary(
+                  'Location',
+                  const Color(0xFF4CAF50),
+                  location.isInZone,
+                  '${location.beaconsNow} agora',
+                ),
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -62,12 +66,16 @@ class TwoEyesModal extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                  child: EyeCard(
-                      eye: EyeKind.location, data: location, now: now)),
+                child: EyeCard(eye: EyeKind.location, data: location, now: now),
+              ),
               const SizedBox(width: 10),
               Expanded(
-                  child: EyeCard(
-                      eye: EyeKind.bluetooth, data: bluetooth, now: now)),
+                child: EyeCard(
+                  eye: EyeKind.bluetooth,
+                  data: bluetooth,
+                  now: now,
+                ),
+              ),
             ],
           ),
           if (Platform.isAndroid)
@@ -96,19 +104,30 @@ class TwoEyesModal extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Como ler',
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                    )),
+                const Text(
+                  'Como ler',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
                 const SizedBox(height: 8),
-                _legend(const Color(0xFF4CAF50), 'Location',
-                    'iBeacon region monitoring (kernel level). Funciona mesmo com BT bloqueado no app.'),
-                _legend(const Color(0xFF2196F3), 'Bluetooth',
-                    'Scan BLE ativo. STANDBY = peek de 10s a cada 5min. ATIVO = scan contínuo.'),
-                _legend(const Color(0xFFFF9800), 'Wake-up',
-                    'Quando Location entra na zona, o olho BT acorda pra ATIVO imediatamente.'),
+                _legend(
+                  const Color(0xFF4CAF50),
+                  'Location',
+                  'iBeacon region monitoring (kernel level). Funciona mesmo com BT bloqueado no app.',
+                ),
+                _legend(
+                  const Color(0xFF2196F3),
+                  'Bluetooth',
+                  'Scan BLE ativo. STANDBY = peek de 10s a cada 5min. ATIVO = scan contínuo.',
+                ),
+                _legend(
+                  const Color(0xFFFF9800),
+                  'Wake-up',
+                  'Quando Location entra na zona, o olho BT acorda pra ATIVO imediatamente.',
+                ),
               ],
             ),
           ),
@@ -116,17 +135,21 @@ class TwoEyesModal extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Eventos ao vivo',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  )),
+              const Text(
+                'Eventos ao vivo',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               if (events.isNotEmpty)
                 TextButton(
                   onPressed: onClearLog,
-                  child: const Text('Limpar',
-                      style: TextStyle(color: Colors.grey, fontSize: 12)),
+                  child: const Text(
+                    'Limpar',
+                    style: TextStyle(color: Colors.grey, fontSize: 12),
+                  ),
                 ),
             ],
           ),
@@ -136,9 +159,10 @@ class TwoEyesModal extends StatelessWidget {
               child: Text(
                 'Nenhum evento ainda — aproxime de um beacon para disparar.',
                 style: TextStyle(
-                    color: Colors.grey,
-                    fontStyle: FontStyle.italic,
-                    fontSize: 11),
+                  color: Colors.grey,
+                  fontStyle: FontStyle.italic,
+                  fontSize: 11,
+                ),
                 textAlign: TextAlign.center,
               ),
             )
@@ -170,18 +194,22 @@ class TwoEyesModal extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 4),
-              Text(title,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  )),
+              Text(
+                title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ],
           ),
           Padding(
             padding: const EdgeInsets.only(top: 2),
-            child: Text(detail,
-                style: const TextStyle(color: Colors.grey, fontSize: 10)),
+            child: Text(
+              detail,
+              style: const TextStyle(color: Colors.grey, fontSize: 10),
+            ),
           ),
         ],
       ),
@@ -205,17 +233,20 @@ class TwoEyesModal extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                    )),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 Padding(
                   padding: const EdgeInsets.only(top: 1),
-                  child: Text(text,
-                      style:
-                          const TextStyle(color: Colors.grey, fontSize: 11)),
+                  child: Text(
+                    text,
+                    style: const TextStyle(color: Colors.grey, fontSize: 11),
+                  ),
                 ),
               ],
             ),
@@ -246,26 +277,31 @@ class TwoEyesModal extends StatelessWidget {
                 Row(
                   children: [
                     Expanded(
-                      child: Text(geofenceEventTitle(event.kind),
-                          style: TextStyle(
-                            color: color,
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                          )),
+                      child: Text(
+                        geofenceEventTitle(event.kind),
+                        style: TextStyle(
+                          color: color,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
-                    Text(_fmtTime(event.timestamp),
-                        style: const TextStyle(
-                          color: Colors.grey,
-                          fontFamily: 'monospace',
-                          fontSize: 10,
-                        )),
+                    Text(
+                      _fmtTime(event.timestamp),
+                      style: const TextStyle(
+                        color: Colors.grey,
+                        fontFamily: 'monospace',
+                        fontSize: 10,
+                      ),
+                    ),
                   ],
                 ),
                 Padding(
                   padding: const EdgeInsets.only(top: 2),
-                  child: Text(event.detail,
-                      style:
-                          const TextStyle(color: Colors.white70, fontSize: 11)),
+                  child: Text(
+                    event.detail,
+                    style: const TextStyle(color: Colors.white70, fontSize: 11),
+                  ),
                 ),
               ],
             ),

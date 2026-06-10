@@ -136,7 +136,6 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
 
             let precisionRaw = (args?["scanPrecision"] as? String) ?? "high"
             let maxQueuedValue = (args?["maxQueuedPayloads"] as? NSNumber)?.intValue ?? 100
-            let technology = (args?["technology"] as? String) ?? "flutter"
 
             let scanPrecision = mapToScanPrecision(precisionRaw)
             let maxQueuedPayloads = mapToMaxQueuedPayloads(maxQueuedValue)
@@ -150,7 +149,7 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
                 businessToken: businessToken,
                 scanPrecision: scanPrecision,
                 maxQueuedPayloads: maxQueuedPayloads,
-                technology: technology
+                technology: "flutter"
             )
             BeAroundSDK.shared.delegate = self
             configured = true

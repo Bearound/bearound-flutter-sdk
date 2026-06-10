@@ -78,14 +78,18 @@ class _LogModalState extends State<LogModal> {
   Widget build(BuildContext context) {
     final filtered = _entries.where(_matchesFilter).toList();
     final counts = {
-      AppStateBucket.foreground:
-          _entries.where((e) => e.state == PersistedLogState.foreground).length,
-      AppStateBucket.background:
-          _entries.where((e) => e.state == PersistedLogState.background).length,
-      AppStateBucket.backgroundLocked:
-          _entries.where((e) => e.state == PersistedLogState.backgroundLocked).length,
-      AppStateBucket.terminated:
-          _entries.where((e) => e.state == PersistedLogState.terminated).length,
+      AppStateBucket.foreground: _entries
+          .where((e) => e.state == PersistedLogState.foreground)
+          .length,
+      AppStateBucket.background: _entries
+          .where((e) => e.state == PersistedLogState.background)
+          .length,
+      AppStateBucket.backgroundLocked: _entries
+          .where((e) => e.state == PersistedLogState.backgroundLocked)
+          .length,
+      AppStateBucket.terminated: _entries
+          .where((e) => e.state == PersistedLogState.terminated)
+          .length,
     };
 
     return Scaffold(
@@ -95,15 +99,9 @@ class _LogModalState extends State<LogModal> {
           if (_entries.isNotEmpty)
             TextButton(
               onPressed: _clear,
-              child: const Text(
-                'Apagar',
-                style: TextStyle(color: Colors.red),
-              ),
+              child: const Text('Apagar', style: TextStyle(color: Colors.red)),
             ),
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _refresh,
-          ),
+          IconButton(icon: const Icon(Icons.refresh), onPressed: _refresh),
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('Fechar'),
@@ -118,18 +116,29 @@ class _LogModalState extends State<LogModal> {
                   padding: const EdgeInsets.all(12),
                   child: Row(
                     children: [
-                      _summary('FG', counts[AppStateBucket.foreground]!,
-                          appStateColor(AppStateBucket.foreground)),
+                      _summary(
+                        'FG',
+                        counts[AppStateBucket.foreground]!,
+                        appStateColor(AppStateBucket.foreground),
+                      ),
                       const SizedBox(width: 8),
-                      _summary('BG', counts[AppStateBucket.background]!,
-                          appStateColor(AppStateBucket.background)),
+                      _summary(
+                        'BG',
+                        counts[AppStateBucket.background]!,
+                        appStateColor(AppStateBucket.background),
+                      ),
                       const SizedBox(width: 8),
-                      _summary('BG🔒',
-                          counts[AppStateBucket.backgroundLocked]!,
-                          appStateColor(AppStateBucket.backgroundLocked)),
+                      _summary(
+                        'BG🔒',
+                        counts[AppStateBucket.backgroundLocked]!,
+                        appStateColor(AppStateBucket.backgroundLocked),
+                      ),
                       const SizedBox(width: 8),
-                      _summary('Terminated', counts[AppStateBucket.terminated]!,
-                          appStateColor(AppStateBucket.terminated)),
+                      _summary(
+                        'Terminated',
+                        counts[AppStateBucket.terminated]!,
+                        appStateColor(AppStateBucket.terminated),
+                      ),
                     ],
                   ),
                 ),
@@ -169,8 +178,9 @@ class _LogModalState extends State<LogModal> {
                             final entry = filtered[index];
                             final bucket = _toBucket(entry.state);
                             final color = appStateColor(bucket);
-                            final time =
-                                DateTime.fromMillisecondsSinceEpoch(entry.timestamp);
+                            final time = DateTime.fromMillisecondsSinceEpoch(
+                              entry.timestamp,
+                            );
                             return ListTile(
                               leading: Container(
                                 margin: const EdgeInsets.only(top: 6),

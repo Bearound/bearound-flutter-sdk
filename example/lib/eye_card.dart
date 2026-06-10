@@ -42,12 +42,12 @@ class EyeCard extends StatelessWidget {
     required this.now,
   });
 
-  Color get _color =>
-      eye == EyeKind.location ? const Color(0xFF4CAF50) : const Color(0xFF2196F3);
+  Color get _color => eye == EyeKind.location
+      ? const Color(0xFF4CAF50)
+      : const Color(0xFF2196F3);
   String get _title => eye == EyeKind.location ? '👁 Location' : '👁 Bluetooth';
-  String get _sub => eye == EyeKind.location
-      ? 'CoreLocation region'
-      : 'CBCentralManager BLE';
+  String get _sub =>
+      eye == EyeKind.location ? 'CoreLocation region' : 'CBCentralManager BLE';
 
   @override
   Widget build(BuildContext context) {
@@ -62,22 +62,27 @@ class EyeCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(_title,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                )),
-            Text(_sub,
-                style: const TextStyle(color: Colors.grey, fontSize: 10)),
+            Text(
+              _title,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            Text(
+              _sub,
+              style: const TextStyle(color: Colors.grey, fontSize: 10),
+            ),
             const SizedBox(height: 20),
             const Center(
               child: Text(
                 'N/A nesta plataforma',
                 style: TextStyle(
-                    color: Colors.grey,
-                    fontStyle: FontStyle.italic,
-                    fontSize: 11),
+                  color: Colors.grey,
+                  fontStyle: FontStyle.italic,
+                  fontSize: 11,
+                ),
               ),
             ),
           ],
@@ -91,7 +96,9 @@ class EyeCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: inZone ? _color.withValues(alpha: 0.08) : const Color(0xFF141414),
+        color: inZone
+            ? _color.withValues(alpha: 0.08)
+            : const Color(0xFF141414),
         border: Border.all(color: inZone ? _color : const Color(0xFF1F1F1F)),
         borderRadius: BorderRadius.circular(10),
       ),
@@ -109,16 +116,17 @@ class EyeCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 6),
-              Text(_title,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  )),
+              Text(
+                _title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ],
           ),
-          Text(_sub,
-              style: const TextStyle(color: Colors.grey, fontSize: 10)),
+          Text(_sub, style: const TextStyle(color: Colors.grey, fontSize: 10)),
           const SizedBox(height: 8),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -143,8 +151,10 @@ class EyeCard extends StatelessWidget {
           Row(
             children: [
               const Expanded(
-                child: Text('Modo',
-                    style: TextStyle(color: Colors.grey, fontSize: 11)),
+                child: Text(
+                  'Modo',
+                  style: TextStyle(color: Colors.grey, fontSize: 11),
+                ),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -168,22 +178,31 @@ class EyeCard extends StatelessWidget {
               ),
             ],
           ),
-          Text(data.cadenceLabel,
-              style: const TextStyle(color: Colors.grey, fontSize: 10)),
+          Text(
+            data.cadenceLabel,
+            style: const TextStyle(color: Colors.grey, fontSize: 10),
+          ),
           if (countdown != null)
             Padding(
               padding: const EdgeInsets.only(top: 4),
-              child: Text('Próx. scan em $countdown',
-                  style: const TextStyle(
-                      color: Colors.white70,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 11)),
+              child: Text(
+                'Próx. scan em $countdown',
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 11,
+                ),
+              ),
             ),
           const Divider(color: Color(0xFF1F1F1F)),
-          Text('Entrou: ${_fmt(data.lastEnter)}',
-              style: const TextStyle(color: Colors.grey, fontSize: 10)),
-          Text('Saiu: ${_fmt(data.lastExit)}',
-              style: const TextStyle(color: Colors.grey, fontSize: 10)),
+          Text(
+            'Entrou: ${_fmt(data.lastEnter)}',
+            style: const TextStyle(color: Colors.grey, fontSize: 10),
+          ),
+          Text(
+            'Saiu: ${_fmt(data.lastExit)}',
+            style: const TextStyle(color: Colors.grey, fontSize: 10),
+          ),
         ],
       ),
     );
@@ -195,15 +214,19 @@ class EyeCard extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: Text(label,
-                style: const TextStyle(color: Colors.grey, fontSize: 11)),
+            child: Text(
+              label,
+              style: const TextStyle(color: Colors.grey, fontSize: 11),
+            ),
           ),
-          Text(value,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-              )),
+          Text(
+            value,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ],
       ),
     );
