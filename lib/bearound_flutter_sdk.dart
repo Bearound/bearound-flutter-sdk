@@ -41,6 +41,10 @@ export 'src/models/user_properties.dart';
 /// disponíveis apenas em uma plataforma são no-op silenciosos na outra, e
 /// streams iOS-only (Bluetooth zone/scan mode) nunca emitem na plataforma
 /// errada.
+/// Single source of truth for the bridge's `technology` tag sent to the native
+/// SDK. Internal — not exposed as a public `configure` parameter.
+const _sdkTechnology = 'flutter';
+
 class BearoundFlutterSdk {
   BearoundFlutterSdk._();
 
@@ -144,6 +148,7 @@ class BearoundFlutterSdk {
       'businessToken': businessToken.trim(),
       'scanPrecision': scanPrecision.value,
       'maxQueuedPayloads': maxQueuedPayloads.value,
+      'technology': _sdkTechnology,
     };
 
     await _channel.invokeMethod('configure', args);

@@ -2,9 +2,14 @@
 # To learn more about a Podspec see http://guides.cocoapods.org/syntax/podspec.html.
 # Run `pod lib lint bearound_flutter_sdk.podspec` to validate before publishing.
 #
+require 'yaml'
+
+# Single source of truth for the version: read it from pubspec.yaml (repo root).
+pubspec = YAML.load_file(File.join(__dir__, '..', 'pubspec.yaml'))
+
 Pod::Spec.new do |s|
   s.name             = 'bearound_flutter_sdk'
-  s.version          = '3.3.0'
+  s.version          = pubspec['version'].to_s
   s.summary          = 'BearoundSDK secure BLE beacon detection and indoor positioning by Bearound.'
   s.description      = <<-DESC
 Official SDKs for integrating Bearound's secure BLE beacon detection and indoor location technology across Android, iOS, React Native, and Flutter.
