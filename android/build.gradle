@@ -68,8 +68,8 @@ android {
 }
 
 dependencies {
-    // Dev: 3.0.1 = locally-published SDK (mavenLocal) with the SDK-level
-    // notification/log/prefs + closed-state subsystem. Flutter inherits it
-    // natively (no plugin code needed for those). Revert to published for release.
-    api 'com.github.Bearound:bearound-android-sdk:3.1.0-local'
+    // Published native Android SDK 3.3.0 — adds configure(technology:) so the
+    // Flutter bridge can tag the /ingest payload with sdk.technology="flutter".
+    // NOTE: native 3.3.0 must publish to JitPack first; plugin CI fails until then.
+    api 'com.github.Bearound:bearound-android-sdk:3.3.0'
 }

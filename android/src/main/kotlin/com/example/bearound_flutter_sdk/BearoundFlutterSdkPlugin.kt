@@ -221,7 +221,8 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
         sdk.configure(
           businessToken = businessToken,
           scanPrecision = scanPrecision,
-          maxQueuedPayloads = maxQueuedPayloads
+          maxQueuedPayloads = maxQueuedPayloads,
+          technology = "flutter"
         )
 
         if (wasScanning) sdk.startScanning()

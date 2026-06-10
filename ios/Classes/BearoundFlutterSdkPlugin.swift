@@ -148,7 +148,8 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
             BeAroundSDK.shared.configure(
                 businessToken: businessToken,
                 scanPrecision: scanPrecision,
-                maxQueuedPayloads: maxQueuedPayloads
+                maxQueuedPayloads: maxQueuedPayloads,
+                technology: "flutter"
             )
             BeAroundSDK.shared.delegate = self
             configured = true
