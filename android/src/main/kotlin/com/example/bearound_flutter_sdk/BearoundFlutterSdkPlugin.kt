@@ -1,14 +1,24 @@
 package com.example.bearound_flutter_sdk
 
+import android.Manifest
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothManager
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import androidx.core.content.ContextCompat
 import io.bearound.sdk.BeAroundSDK
 import io.bearound.sdk.interfaces.BeAroundSDKListener
 import io.bearound.sdk.models.Beacon
 import io.bearound.sdk.models.BeaconMetadata
-import io.bearound.sdk.models.LocationCaptureResult
+import io.bearound.sdk.models.ForegroundScanConfig
 import io.bearound.sdk.models.MaxQueuedPayloads
+import io.bearound.sdk.models.NotificationContent
 import io.bearound.sdk.models.ScanPrecision
 import io.bearound.sdk.models.UserProperties
 import io.flutter.embedding.engine.plugins.FlutterPlugin
@@ -21,6 +31,7 @@ import java.util.Locale
 
 class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKListener {
   private lateinit var methodChannel: MethodChannel
+
   private lateinit var beaconsEventChannel: EventChannel
   private lateinit var scanningEventChannel: EventChannel
   private lateinit var errorEventChannel: EventChannel
@@ -28,7 +39,9 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
   private lateinit var backgroundDetectionEventChannel: EventChannel
   private lateinit var beaconRegionEventChannel: EventChannel
   private lateinit var activeScanEventChannel: EventChannel
-  private lateinit var locationCaptureEventChannel: EventChannel
+  private lateinit var bluetoothZoneEventChannel: EventChannel
+  private lateinit var bluetoothScanModeEventChannel: EventChannel
+  private lateinit var bluetoothStateEventChannel: EventChannel
 
   private var beaconsEventSink: EventChannel.EventSink? = null
   private var scanningEventSink: EventChannel.EventSink? = null
@@ -37,11 +50,31 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
   private var backgroundDetectionEventSink: EventChannel.EventSink? = null
   private var beaconRegionEventSink: EventChannel.EventSink? = null
   private var activeScanEventSink: EventChannel.EventSink? = null
-  private var locationCaptureEventSink: EventChannel.EventSink? = null
+
+  // iOS-only event channels — kept here so the Dart layer sees the same channel
+  // names on both platforms. They never emit on Android.
+  private var bluetoothZoneEventSink: EventChannel.EventSink? = null
+  private var bluetoothScanModeEventSink: EventChannel.EventSink? = null
+
+  // Bluetooth adapter state — emitted live so JS/Dart mirrors the iOS "Bluetooth eye".
+  private var bluetoothStateEventSink: EventChannel.EventSink? = null
 
   private lateinit var context: Context
   private val mainHandler = Handler(Looper.getMainLooper())
   private var sdk: BeAroundSDK? = null
+
+  // Dynamic foreground-notification content set from Dart; returned synchronously
+  // to the native SDK via onProvideNotificationContent.
+  @Volatile
+  private var foregroundNotificationContent: NotificationContent? = null
+
+  private val btStateReceiver = object : BroadcastReceiver() {
+    override fun onReceive(context: Context?, intent: Intent?) {
+      mainHandler.post {
+        bluetoothStateEventSink?.success(mapOf("state" to currentBluetoothState()))
+      }
+    }
+  }
 
   override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
     context = binding.applicationContext
@@ -53,60 +86,34 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
 
     beaconsEventChannel = EventChannel(binding.binaryMessenger, "bearound_flutter_sdk/beacons")
     beaconsEventChannel.setStreamHandler(object : EventChannel.StreamHandler {
-      override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
-        beaconsEventSink = events
-      }
-
-      override fun onCancel(arguments: Any?) {
-        beaconsEventSink = null
-      }
+      override fun onListen(arguments: Any?, events: EventChannel.EventSink?) { beaconsEventSink = events }
+      override fun onCancel(arguments: Any?) { beaconsEventSink = null }
     })
 
     scanningEventChannel = EventChannel(binding.binaryMessenger, "bearound_flutter_sdk/scanning")
     scanningEventChannel.setStreamHandler(object : EventChannel.StreamHandler {
-      override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
-        scanningEventSink = events
-      }
-
-      override fun onCancel(arguments: Any?) {
-        scanningEventSink = null
-      }
+      override fun onListen(arguments: Any?, events: EventChannel.EventSink?) { scanningEventSink = events }
+      override fun onCancel(arguments: Any?) { scanningEventSink = null }
     })
 
     errorEventChannel = EventChannel(binding.binaryMessenger, "bearound_flutter_sdk/errors")
     errorEventChannel.setStreamHandler(object : EventChannel.StreamHandler {
-      override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
-        errorEventSink = events
-      }
-
-      override fun onCancel(arguments: Any?) {
-        errorEventSink = null
-      }
+      override fun onListen(arguments: Any?, events: EventChannel.EventSink?) { errorEventSink = events }
+      override fun onCancel(arguments: Any?) { errorEventSink = null }
     })
 
     syncLifecycleEventChannel = EventChannel(binding.binaryMessenger, "bearound_flutter_sdk/sync_lifecycle")
     syncLifecycleEventChannel.setStreamHandler(object : EventChannel.StreamHandler {
-      override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
-        syncLifecycleEventSink = events
-      }
-
-      override fun onCancel(arguments: Any?) {
-        syncLifecycleEventSink = null
-      }
+      override fun onListen(arguments: Any?, events: EventChannel.EventSink?) { syncLifecycleEventSink = events }
+      override fun onCancel(arguments: Any?) { syncLifecycleEventSink = null }
     })
 
     backgroundDetectionEventChannel = EventChannel(binding.binaryMessenger, "bearound_flutter_sdk/background_detection")
     backgroundDetectionEventChannel.setStreamHandler(object : EventChannel.StreamHandler {
-      override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
-        backgroundDetectionEventSink = events
-      }
-
-      override fun onCancel(arguments: Any?) {
-        backgroundDetectionEventSink = null
-      }
+      override fun onListen(arguments: Any?, events: EventChannel.EventSink?) { backgroundDetectionEventSink = events }
+      override fun onCancel(arguments: Any?) { backgroundDetectionEventSink = null }
     })
 
-    // v2.4 — region transition + active-scan + location capture channels
     beaconRegionEventChannel = EventChannel(binding.binaryMessenger, "bearound_flutter_sdk/beacon_region")
     beaconRegionEventChannel.setStreamHandler(object : EventChannel.StreamHandler {
       override fun onListen(arguments: Any?, events: EventChannel.EventSink?) { beaconRegionEventSink = events }
@@ -119,11 +126,40 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
       override fun onCancel(arguments: Any?) { activeScanEventSink = null }
     })
 
-    locationCaptureEventChannel = EventChannel(binding.binaryMessenger, "bearound_flutter_sdk/location_capture")
-    locationCaptureEventChannel.setStreamHandler(object : EventChannel.StreamHandler {
-      override fun onListen(arguments: Any?, events: EventChannel.EventSink?) { locationCaptureEventSink = events }
-      override fun onCancel(arguments: Any?) { locationCaptureEventSink = null }
+    // iOS-only event channels — registered for API parity but never emit on Android.
+    bluetoothZoneEventChannel = EventChannel(binding.binaryMessenger, "bearound_flutter_sdk/bluetooth_zone")
+    bluetoothZoneEventChannel.setStreamHandler(object : EventChannel.StreamHandler {
+      override fun onListen(arguments: Any?, events: EventChannel.EventSink?) { bluetoothZoneEventSink = events }
+      override fun onCancel(arguments: Any?) { bluetoothZoneEventSink = null }
     })
+
+    bluetoothScanModeEventChannel = EventChannel(binding.binaryMessenger, "bearound_flutter_sdk/bluetooth_scan_mode")
+    bluetoothScanModeEventChannel.setStreamHandler(object : EventChannel.StreamHandler {
+      override fun onListen(arguments: Any?, events: EventChannel.EventSink?) { bluetoothScanModeEventSink = events }
+      override fun onCancel(arguments: Any?) { bluetoothScanModeEventSink = null }
+    })
+
+    bluetoothStateEventChannel = EventChannel(binding.binaryMessenger, "bearound_flutter_sdk/bluetooth_state")
+    bluetoothStateEventChannel.setStreamHandler(object : EventChannel.StreamHandler {
+      override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
+        bluetoothStateEventSink = events
+        // Emit current state immediately on subscribe.
+        events?.success(mapOf("state" to currentBluetoothState()))
+      }
+
+      override fun onCancel(arguments: Any?) { bluetoothStateEventSink = null }
+    })
+
+    try {
+      ContextCompat.registerReceiver(
+        context,
+        btStateReceiver,
+        IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED),
+        ContextCompat.RECEIVER_EXPORTED
+      )
+    } catch (_: Throwable) {
+      // Receiver registration is best-effort; getBluetoothState() still works.
+    }
   }
 
   override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
@@ -135,7 +171,11 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
     backgroundDetectionEventChannel.setStreamHandler(null)
     beaconRegionEventChannel.setStreamHandler(null)
     activeScanEventChannel.setStreamHandler(null)
-    locationCaptureEventChannel.setStreamHandler(null)
+    bluetoothZoneEventChannel.setStreamHandler(null)
+    bluetoothScanModeEventChannel.setStreamHandler(null)
+    bluetoothStateEventChannel.setStreamHandler(null)
+
+    try { context.unregisterReceiver(btStateReceiver) } catch (_: Throwable) { /* not registered */ }
 
     sdk?.listener = null
     sdk = null
@@ -146,88 +186,155 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
     backgroundDetectionEventSink = null
     beaconRegionEventSink = null
     activeScanEventSink = null
-    locationCaptureEventSink = null
+    bluetoothZoneEventSink = null
+    bluetoothScanModeEventSink = null
+    bluetoothStateEventSink = null
   }
 
   override fun onMethodCall(call: MethodCall, result: Result) {
+    val sdk = this.sdk
+    if (sdk == null) {
+      result.error("SDK_UNAVAILABLE", "BearoundSDK instance not available", null)
+      return
+    }
+
     when (call.method) {
+      // --- Lifecycle ---
       "configure" -> {
         val args = call.arguments as? Map<*, *>
         val businessToken = (args?.get("businessToken") as? String)?.trim()
-
         if (businessToken.isNullOrEmpty()) {
           result.error("INVALID_ARGUMENT", "businessToken is required", null)
           return
         }
 
-        val precisionRaw = (args?.get("scanPrecision") as? String) ?: "medium"
+        val precisionRaw = (args?.get("scanPrecision") as? String) ?: "high"
         val maxQueuedValue = (args?.get("maxQueuedPayloads") as? Number)?.toInt() ?: 100
 
         val scanPrecision = mapToScanPrecision(precisionRaw)
         val maxQueuedPayloads = mapToMaxQueuedPayloads(maxQueuedValue)
 
-        val wasScanning = sdk?.isScanning ?: false
-        if (wasScanning) {
-          sdk?.stopScanning()
-        }
+        val wasScanning = sdk.isScanning
+        if (wasScanning) sdk.stopScanning()
 
-        sdk?.listener = this
-
-        sdk?.configure(
+        sdk.listener = this
+        sdk.configure(
           businessToken = businessToken,
           scanPrecision = scanPrecision,
           maxQueuedPayloads = maxQueuedPayloads
         )
 
-        if (wasScanning) {
-          sdk?.startScanning()
-        }
+        if (wasScanning) sdk.startScanning()
+        result.success(null)
+      }
 
-        result.success(null)
-      }
       "startScanning" -> {
-        sdk?.listener = this
-        sdk?.startScanning()
+        sdk.listener = this
+        val args = call.arguments as? Map<*, *>
+        val fg = (args?.get("foregroundScanConfig") as? Map<*, *>)?.let { mapForegroundScanConfig(it) }
+        if (fg != null) sdk.startScanning(fg) else sdk.startScanning()
         result.success(null)
       }
+
       "stopScanning" -> {
-        sdk?.stopScanning()
+        sdk.stopScanning()
         result.success(null)
       }
-      "isScanning" -> {
-        result.success(sdk?.isScanning ?: false)
-      }
-      "setBluetoothScanning" -> {
-        // v2.2.0: Bluetooth scanning is now automatic - method deprecated
-        result.success(null)
-      }
+
+      "isScanning" -> result.success(sdk.isScanning)
+
       "setUserProperties" -> {
         val args = call.arguments as? Map<*, *> ?: emptyMap<Any, Any>()
-        val properties = mapUserProperties(args)
-        sdk?.setUserProperties(properties)
+        sdk.setUserProperties(mapUserProperties(args))
         result.success(null)
       }
+
       "clearUserProperties" -> {
-        sdk?.clearUserProperties()
+        sdk.clearUserProperties()
         result.success(null)
       }
+
+      // --- Push token ---
+      // iOS-only at the native layer: BeAroundSDK (Android 3.0.0) does not yet
+      // expose a push-token setter, so we validate the arg for API parity and
+      // no-op. Mirrors the Dart-superset convention used by other iOS-only
+      // methods (getBleDiagnosticInfo, getPendingBatchCount).
+      "setPushToken" -> {
+        val token = call.argument<String>("token")
+        if (token == null) {
+          result.error("INVALID_ARGUMENT", "token is required", null)
+        } else {
+          result.success(null)
+        }
+      }
+
+      // --- Diagnostic getters ---
+      "getSdkVersion" -> result.success("") // Android SDK has no public version getter
+      "getCurrentScanPrecision" -> result.success(sdk.currentScanPrecision?.name?.lowercase(Locale.US) ?: "")
+      "getBleDiagnosticInfo" -> result.success("") // iOS-only
+      "getPendingBatchCount" -> result.success(sdk.pendingBatchCount)
+      "isConfigured" -> result.success(sdk.isConfigured)
+      "isLocationAvailable" -> result.success(sdk.isLocationAvailable())
+      "getAuthorizationStatus" -> result.success(sdk.getLocationPermissionStatus())
+      "getBluetoothState" -> result.success(currentBluetoothState())
+
+      // --- Permissions ---
+      "requestPermissions" -> result.success(true) // Android: handled by permission_handler in Dart
+      "checkPermissions" -> result.success(true)
+      "requestLocationAuthorization" -> {
+        // No native call needed on Android — runtime permissions handled in Dart.
+        result.success(null)
+      }
+
+      // Push/notifications são app-level agora. O SDK nativo removeu a API de
+      // notificações da biblioteca, então o bridge não a forwarda mais.
+
+      // --- Persisted log ---
+      "getPersistedLog" -> result.success(sdk.getDetectionLogJson())
+      "clearPersistedLog" -> {
+        sdk.clearDetectionLog()
+        result.success(null)
+      }
+
+      // --- Foreground service scanning (Android-specific) ---
+      "enableForegroundScanning" -> {
+        val args = call.arguments as? Map<*, *> ?: emptyMap<Any, Any>()
+        sdk.enableForegroundScanning(mapForegroundScanConfig(args))
+        result.success(null)
+      }
+      "disableForegroundScanning" -> {
+        sdk.disableForegroundScanning()
+        result.success(null)
+      }
+      "isForegroundScanningEnabled" -> result.success(sdk.isForegroundScanningEnabled)
+      "setForegroundNotificationContent" -> {
+        val args = call.arguments as? Map<*, *>
+        val title = args?.get("title") as? String
+        val text = args?.get("text") as? String
+        foregroundNotificationContent =
+          if (title != null && text != null) NotificationContent(title, text) else null
+        result.success(null)
+      }
+
+      // Backward-compat
+      // TODO(cleanup): removable no-op shim — the native SDK no longer has a
+      // separate Bluetooth-scanning toggle; kept for older Dart callers.
+      "setBluetoothScanning" -> result.success(null)
+
       else -> result.notImplemented()
     }
   }
-  
+
+  // --- BeAroundSDKListener callbacks ---
+
   override fun onBeaconsUpdated(beacons: List<Beacon>) {
-    val payload = mapOf(
-      "beacons" to beacons.map { mapBeacon(it) }
-    )
+    val payload = mapOf("beacons" to beacons.map { mapBeacon(it) })
     mainHandler.post { beaconsEventSink?.success(payload) }
   }
 
   override fun onError(error: Exception) {
     android.util.Log.e("BearoundFlutterSdk", "SDK Error: ${error.message}", error)
-    
-    val payload = mapOf(
-      "message" to (error.message ?: "Unknown error")
-    )
+    val payload = mapOf("message" to (error.message ?: "Unknown error"))
     mainHandler.post { errorEventSink?.success(payload) }
   }
 
@@ -237,17 +344,14 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
   }
 
   override fun onAppStateChanged(isInBackground: Boolean) {
-    // Not needed for Flutter SDK - handled by Flutter framework
+    // Not needed for Flutter SDK — handled by the Flutter framework.
   }
-  
+
   override fun onSyncStarted(beaconCount: Int) {
-    val payload = mapOf(
-      "type" to "started",
-      "beaconCount" to beaconCount
-    )
+    val payload = mapOf("type" to "started", "beaconCount" to beaconCount)
     mainHandler.post { syncLifecycleEventSink?.success(payload) }
   }
-  
+
   override fun onSyncCompleted(beaconCount: Int, success: Boolean, error: Exception?) {
     val payload = mapOf(
       "type" to "completed",
@@ -257,76 +361,59 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
     )
     mainHandler.post { syncLifecycleEventSink?.success(payload) }
   }
-  
+
   override fun onBeaconDetectedInBackground(beaconCount: Int) {
-    val payload = mapOf(
-      "beaconCount" to beaconCount
-    )
+    val payload = mapOf("beaconCount" to beaconCount)
     mainHandler.post { backgroundDetectionEventSink?.success(payload) }
   }
 
-  // v2.4 — Beacon region + location capture lifecycle
+  override fun onProvideNotificationContent(beacons: List<Beacon>): NotificationContent? =
+    foregroundNotificationContent
 
   override fun onEnterBeaconRegion() {
-    val payload = mapOf("type" to "enter")
-    mainHandler.post { beaconRegionEventSink?.success(payload) }
+    mainHandler.post { beaconRegionEventSink?.success(mapOf("type" to "enter")) }
   }
 
   override fun onExitBeaconRegion() {
-    val payload = mapOf("type" to "exit")
-    mainHandler.post { beaconRegionEventSink?.success(payload) }
+    mainHandler.post { beaconRegionEventSink?.success(mapOf("type" to "exit")) }
   }
 
   override fun onActiveScanStateChanged(isActive: Boolean) {
-    val payload = mapOf("isActive" to isActive)
-    mainHandler.post { activeScanEventSink?.success(payload) }
+    mainHandler.post { activeScanEventSink?.success(mapOf("isActive" to isActive)) }
   }
 
-  override fun onStartLocationCapture(reason: String) {
-    val payload = mapOf(
-      "type" to "started",
-      "reason" to reason
-    )
-    mainHandler.post { locationCaptureEventSink?.success(payload) }
-  }
-
-  override fun onCompleteLocationCapture(result: LocationCaptureResult) {
-    val payload = mutableMapOf<String, Any?>(
-      "type" to "completed",
-      "reason" to result.reason,
-      "outcome" to result.outcome,
-      "hasFix" to result.hasFix,
-      "timestamp" to result.timestamp.time
-    )
-    result.location?.let { loc ->
-      val locMap = mutableMapOf<String, Any?>(
-        "latitude" to loc.latitude,
-        "longitude" to loc.longitude,
-        "timestamp" to loc.time
-      )
-      if (loc.hasAccuracy()) locMap["horizontalAccuracy"] = loc.accuracy.toDouble()
-      if (loc.hasAltitude()) locMap["altitude"] = loc.altitude
-      if (loc.hasSpeed()) locMap["speed"] = loc.speed.toDouble()
-      if (loc.hasBearing()) locMap["course"] = loc.bearing.toDouble()
-      payload["location"] = locMap
-    }
-    mainHandler.post { locationCaptureEventSink?.success(payload) }
-  }
-
-  // endregion
+  // --- Mapping helpers ---
 
   private fun mapBeacon(beacon: Beacon): Map<String, Any?> {
-    return mapOf(
+    val map = mutableMapOf<String, Any?>(
       "uuid" to beacon.uuid.toString(),
       "major" to beacon.major,
       "minor" to beacon.minor,
       "rssi" to beacon.rssi,
-      "proximity" to beacon.proximity.name.lowercase(Locale.US),
+      "proximity" to beacon.proximity.toApiString(),
       "accuracy" to beacon.accuracy,
       "timestamp" to beacon.timestamp.time,
       "metadata" to beacon.metadata?.let { mapMetadata(it) },
       "txPower" to beacon.txPower,
+      // Sync metadata.
+      "alreadySynced" to beacon.alreadySynced,
+      "syncedAt" to beacon.syncedAt?.time,
+      // Android-only fields (no iOS equivalent).
+      "isStale" to beacon.isStale,
+      "rssiRaw" to beacon.rssiRaw
     )
+    beacon.rssiSamples?.let { stats ->
+      map["rssiSamples"] = mapOf(
+        "count" to stats.count,
+        "min" to stats.min,
+        "max" to stats.max,
+        "avg" to stats.avg,
+        "stdDev" to stats.stdDev,
+        "firstSeen" to stats.firstSeen,
+        "lastSeen" to stats.lastSeen
+      )
+    }
+    return map
   }
 
   private fun mapMetadata(metadata: BeaconMetadata): Map<String, Any?> {
@@ -337,7 +424,7 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
       "temperature" to metadata.temperature,
       "txPower" to metadata.txPower,
       "rssiFromBLE" to metadata.rssiFromBLE,
-      "isConnectable" to metadata.isConnectable,
+      "isConnectable" to metadata.isConnectable
     )
   }
 
@@ -356,7 +443,18 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
       internalId = internalId,
       email = email,
       name = name,
-      customProperties = customProperties,
+      customProperties = customProperties
+    )
+  }
+
+  private fun mapForegroundScanConfig(args: Map<*, *>): ForegroundScanConfig {
+    val default = ForegroundScanConfig()
+    return ForegroundScanConfig(
+      enabled = true,
+      notificationTitle = (args["notificationTitle"] as? String) ?: default.notificationTitle,
+      notificationText = (args["notificationText"] as? String) ?: default.notificationText,
+      notificationChannelId = args["notificationChannelId"] as? String,
+      notificationChannelName = (args["notificationChannelName"] as? String) ?: default.notificationChannelName
     )
   }
 
@@ -365,7 +463,7 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
       "high" -> ScanPrecision.HIGH
       "medium" -> ScanPrecision.MEDIUM
       "low" -> ScanPrecision.LOW
-      else -> ScanPrecision.MEDIUM
+      else -> ScanPrecision.HIGH
     }
   }
 
@@ -375,7 +473,21 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
       100 -> MaxQueuedPayloads.MEDIUM
       200 -> MaxQueuedPayloads.LARGE
       500 -> MaxQueuedPayloads.XLARGE
-      else -> MaxQueuedPayloads.MEDIUM  // Default fallback
+      else -> MaxQueuedPayloads.MEDIUM
     }
+  }
+
+  private fun currentBluetoothState(): String {
+    val manager = context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
+    val adapter = manager?.adapter ?: return "unsupported"
+    if (!adapter.isEnabled) return "poweredOff"
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+      val granted = ContextCompat.checkSelfPermission(
+        context,
+        Manifest.permission.BLUETOOTH_SCAN
+      ) == PackageManager.PERMISSION_GRANTED
+      if (!granted) return "unauthorized"
+    }
+    return "poweredOn"
   }
 }

@@ -16,6 +16,7 @@ buildscript {
 
 allprojects {
     repositories {
+        mavenLocal()
         google()
         mavenCentral()
         maven { url 'https://jitpack.io' }
@@ -67,5 +68,8 @@ android {
 }
 
 dependencies {
-    api 'com.github.Bearound:bearound-android-sdk:2.4.0'
+    // Dev: 3.0.1 = locally-published SDK (mavenLocal) with the SDK-level
+    // notification/log/prefs + closed-state subsystem. Flutter inherits it
+    // natively (no plugin code needed for those). Revert to published for release.
+    api 'com.github.Bearound:bearound-android-sdk:3.1.0-local'
 }

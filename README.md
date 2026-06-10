@@ -159,6 +159,28 @@ await BearoundFlutterSdk.setUserProperties(
 );
 ```
 
+## Push Token
+
+Forward the device push token (FCM on Android, APNs on iOS) to the native SDK so
+the backend can target the device. The native SDK associates it with the stable
+`deviceId` and sends it on the next sync.
+
+```dart
+// Android: obtain the FCM token (e.g. via firebase_messaging) and forward it.
+final token = await FirebaseMessaging.instance.getToken();
+if (token != null) {
+  await BearoundFlutterSdk.setPushToken(token);
+}
+```
+
+- **iOS:** the native SDK captures the APNs token automatically via an
+  AppDelegate swizzle, so calling `setPushToken` is usually unnecessary. Call it
+  only if you opted out (`BearoundAppDelegateProxyEnabled = NO` in `Info.plist`)
+  and forward the token from
+  `application(_:didRegisterForRemoteNotificationsWithDeviceToken:)`.
+- **Android:** the native SDK 3.0.0 does not yet expose a push-token setter, so
+  `setPushToken` is a silent no-op there today (kept for API parity).
+
 ## API Summary
 
 ### Methods
@@ -166,6 +188,7 @@ await BearoundFlutterSdk.setUserProperties(
 - `configure({businessToken, foregroundScanInterval, backgroundScanInterval, maxQueuedPayloads})`
 - `startScanning() / stopScanning() / isScanning()`
 - `setUserProperties(UserProperties) / clearUserProperties()`
+- `setPushToken(String token)` — forward FCM/APNs token (iOS-only at the native layer)
 
 ### Streams
 

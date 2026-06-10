@@ -1,5 +1,6 @@
 allprojects {
     repositories {
+        mavenLocal() // dev: locally-published Bearound SDK 3.0.1. Remove for release.
         google()
         mavenCentral()
         maven { url = uri("https://jitpack.io")}
