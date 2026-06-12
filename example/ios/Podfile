@@ -33,7 +33,10 @@ target 'Runner' do
   # Override BearoundSDK to consume the local repo (dev mode). This lets the
   # Flutter example pick up changes to the native iOS SDK without waiting for
   # a CocoaPods trunk release. Mirrors the RN example layout.
-  pod 'BearoundSDK', :path => '../../../bearound-ios-sdk'
+  # Opt-in (BEAROUND_LOCAL_PODS=1 pod install) — CI resolve do trunk.
+  if ENV['BEAROUND_LOCAL_PODS'] == '1'
+    pod 'BearoundSDK', :path => '../../../bearound-ios-sdk'
+  end
 
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
   target 'RunnerTests' do

@@ -291,11 +291,10 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
       // notificações da biblioteca, então o bridge não a forwarda mais.
 
       // --- Persisted log ---
-      "getPersistedLog" -> result.success(sdk.getDetectionLogJson())
-      "clearPersistedLog" -> {
-        sdk.clearDetectionLog()
-        result.success(null)
-      }
+      // Detection log é iOS-only (o Android SDK não expõe getDetectionLogJson/
+      // clearDetectionLog) — paridade documentada em EVENT-PARITY.md.
+      "getPersistedLog" -> result.success("[]")
+      "clearPersistedLog" -> result.success(null)
 
       // --- Foreground service scanning (Android-specific) ---
       "enableForegroundScanning" -> {
