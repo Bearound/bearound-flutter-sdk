@@ -54,6 +54,14 @@ jobs:
       - name: Validate pub.dev readiness
         run: flutter pub publish --dry-run
 
+      - name: Verify pubspec version matches release
+        run: |
+          VERSION=${{ steps.get_version.outputs.version }}
+          PUBSPEC_VERSION=$(grep -E '^version:' pubspec.yaml | head -1 | sed -E 's/version:[[:space:]]*//')
+          echo "tag=$VERSION pubspec=$PUBSPEC_VERSION"
+          if [ "$VERSION" != "$PUBSPEC_VERSION" ]; then echo "❌ pubspec ($PUBSPEC_VERSION) != release ($VERSION)"; exit 1; fi
+          echo "✅ pubspec version matches"
+
       - name: Verify changelog
         run: |
           if [ ! -f CHANGELOG.md ]; then

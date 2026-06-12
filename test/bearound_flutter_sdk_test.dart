@@ -57,11 +57,12 @@ void main() {
 
       expect(methodCalls, hasLength(1));
       expect(methodCalls.first.method, equals('configure'));
+      // Default precision is HIGH (iOS-aligned) since 3.x.
       expect(
         methodCalls.first.arguments,
         equals({
           'businessToken': 'test-token',
-          'scanPrecision': 'medium',
+          'scanPrecision': 'high',
           'maxQueuedPayloads': 100,
         }),
       );
@@ -194,6 +195,18 @@ void main() {
 
       expect(methodCalls, hasLength(1));
       expect(methodCalls.first.method, equals('clearUserProperties'));
+    });
+  });
+
+  group('BearoundFlutterSdk Push Token', () {
+    test('setPushToken sends token in the method channel payload', () async {
+      final token = faker.guid.guid();
+
+      await BearoundFlutterSdk.setPushToken(token);
+
+      expect(methodCalls, hasLength(1));
+      expect(methodCalls.first.method, equals('setPushToken'));
+      expect(methodCalls.first.arguments, equals({'token': token}));
     });
   });
 

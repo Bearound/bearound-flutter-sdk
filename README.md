@@ -1,6 +1,6 @@
 # 🐻 Bearound Flutter SDK
 
-Official Flutter plugin for the Bearound native SDKs (Android/iOS) version 2.3.7.
+Official Flutter plugin for the Bearound native SDKs (Android/iOS) version 3.3.0.
 
 ## Features
 
@@ -20,7 +20,7 @@ Add to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  bearound_flutter_sdk: ^2.3.7
+  bearound_flutter_sdk: ^3.3.0
 ```
 
 Run:
@@ -159,6 +159,28 @@ await BearoundFlutterSdk.setUserProperties(
 );
 ```
 
+## Push Token
+
+Forward the device push token (FCM on Android, APNs on iOS) to the native SDK so
+the backend can target the device. The native SDK associates it with the stable
+`deviceId` and sends it on the next sync.
+
+```dart
+// Android: obtain the FCM token (e.g. via firebase_messaging) and forward it.
+final token = await FirebaseMessaging.instance.getToken();
+if (token != null) {
+  await BearoundFlutterSdk.setPushToken(token);
+}
+```
+
+- **iOS:** the native SDK captures the APNs token automatically via an
+  AppDelegate swizzle, so calling `setPushToken` is usually unnecessary. Call it
+  only if you opted out (`BearoundAppDelegateProxyEnabled = NO` in `Info.plist`)
+  and forward the token from
+  `application(_:didRegisterForRemoteNotificationsWithDeviceToken:)`.
+- **Android:** the native SDK 3.0.0 does not yet expose a push-token setter, so
+  `setPushToken` is a silent no-op there today (kept for API parity).
+
 ## API Summary
 
 ### Methods
@@ -166,6 +188,7 @@ await BearoundFlutterSdk.setUserProperties(
 - `configure({businessToken, foregroundScanInterval, backgroundScanInterval, maxQueuedPayloads})`
 - `startScanning() / stopScanning() / isScanning()`
 - `setUserProperties(UserProperties) / clearUserProperties()`
+- `setPushToken(String token)` — forward FCM/APNs token (iOS-only at the native layer)
 
 ### Streams
 
@@ -217,8 +240,8 @@ BearoundFlutterSdk.backgroundDetectionStream.listen((event) {
 ```
 
 **Native SDK Updates:**
-- Android: `v2.3.7`
-- iOS: `v2.3.7`
+- Android: `v3.3.0`
+- iOS: `v3.3.0`
 
 ### From 2.0.1 to 2.1.0
 

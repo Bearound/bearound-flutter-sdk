@@ -7,21 +7,8 @@
 		<string>io.bearound.sdk.sync</string>
 		<string>io.bearound.sdk.processing</string>
 	</array>
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>location</string>
-		<string>bluetooth-central</string>
-		<string>fetch</string>
-		<string>processing</string>
-	</array>
-	<key>NSBluetoothAlwaysUsageDescription</key>
-	<string>O aplicativo usa Bluetooth para detectar e se comunicar com beacons próximos para posicionamento indoor.</string>
-	<key>NSBluetoothPeripheralUsageDescription</key>
-	<string>O aplicativo usa dispositivos Bluetooth periféricos para detectar beacons.</string>
-	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>O aplicativo precisa de acesso à localização sempre ativo para detectar beacons BLE mesmo quando estiver em segundo plano. Isso é necessário para funcionamento contínuo do monitoramento de beacons.</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>O aplicativo precisa de acesso à localização para detectar beacons BLE próximos.</string>
+	<key>CADisableMinimumFrameDurationOnPhone</key>
+	<true/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
@@ -44,6 +31,46 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>O aplicativo usa Bluetooth para detectar e se comunicar com beacons próximos para posicionamento indoor.</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>O aplicativo usa dispositivos Bluetooth periféricos para detectar beacons.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>O aplicativo precisa de acesso à localização sempre ativo para detectar beacons BLE mesmo quando estiver em segundo plano. Isso é necessário para funcionamento contínuo do monitoramento de beacons.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>O aplicativo precisa de acesso à localização para detectar beacons BLE próximos.</string>
+	<key>NSUserTrackingUsageDescription</key>
+	<string>O Bearound usa o identificador de publicidade (IDFA) para correlacionar detecções de beacons com perfis anônimos de uso.</string>
+	<key>UIApplicationSceneManifest</key>
+	<dict>
+		<key>UIApplicationSupportsMultipleScenes</key>
+		<false/>
+		<key>UISceneConfigurations</key>
+		<dict>
+			<key>UIWindowSceneSessionRoleApplication</key>
+			<array>
+				<dict>
+					<key>UISceneClassName</key>
+					<string>UIWindowScene</string>
+					<key>UISceneConfigurationName</key>
+					<string>flutter</string>
+					<key>UISceneDelegateClassName</key>
+					<string>FlutterSceneDelegate</string>
+					<key>UISceneStoryboardFile</key>
+					<string>Main</string>
+				</dict>
+			</array>
+		</dict>
+	</dict>
+	<key>UIApplicationSupportsIndirectInputEvents</key>
+	<true/>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+		<string>bluetooth-central</string>
+		<string>fetch</string>
+		<string>processing</string>
+	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
@@ -61,9 +88,5 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
-	<key>CADisableMinimumFrameDurationOnPhone</key>
-	<true/>
-	<key>UIApplicationSupportsIndirectInputEvents</key>
-	<true/>
 </dict>
 </plist>

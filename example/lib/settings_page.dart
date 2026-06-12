@@ -16,10 +16,12 @@ class SettingsPage extends StatefulWidget {
     super.key,
     required this.initialScanPrecision,
     required this.initialMaxQueuedPayloads,
+    this.sdkVersion = '',
   });
 
   final ScanPrecision initialScanPrecision;
   final MaxQueuedPayloads initialMaxQueuedPayloads;
+  final String sdkVersion;
 
   @override
   State<SettingsPage> createState() => _SettingsPageState();
@@ -47,6 +49,19 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
+  String _queueLabel(MaxQueuedPayloads size) {
+    switch (size) {
+      case MaxQueuedPayloads.small:
+        return 'Pequena (${size.value} batches)';
+      case MaxQueuedPayloads.medium:
+        return 'Média (${size.value} batches)';
+      case MaxQueuedPayloads.large:
+        return 'Grande (${size.value} batches)';
+      case MaxQueuedPayloads.xlarge:
+        return 'Extra Grande (${size.value} batches)';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -69,11 +84,7 @@ class _SettingsPageState extends State<SettingsPage> {
               );
             }).toList(),
             onChanged: (value) {
-              if (value != null) {
-                setState(() {
-                  _scanPrecision = value;
-                });
-              }
+              if (value != null) setState(() => _scanPrecision = value);
             },
           ),
           const SizedBox(height: 24),
@@ -86,32 +97,27 @@ class _SettingsPageState extends State<SettingsPage> {
             value: _maxQueuedPayloads,
             isExpanded: true,
             items: MaxQueuedPayloads.values.map((size) {
-              String label;
-              switch (size) {
-                case MaxQueuedPayloads.small:
-                  label = 'Pequena (${size.value} batches)';
-                  break;
-                case MaxQueuedPayloads.medium:
-                  label = 'Média (${size.value} batches)';
-                  break;
-                case MaxQueuedPayloads.large:
-                  label = 'Grande (${size.value} batches)';
-                  break;
-                case MaxQueuedPayloads.xlarge:
-                  label = 'Extra Grande (${size.value} batches)';
-                  break;
-              }
-              return DropdownMenuItem(value: size, child: Text(label));
+              return DropdownMenuItem(
+                value: size,
+                child: Text(_queueLabel(size)),
+              );
             }).toList(),
             onChanged: (value) {
-              if (value != null) {
-                setState(() {
-                  _maxQueuedPayloads = value;
-                });
-              }
+              if (value != null) setState(() => _maxQueuedPayloads = value);
             },
           ),
           const SizedBox(height: 24),
+          if (widget.sdkVersion.isNotEmpty)
+            Card(
+              child: ListTile(
+                title: const Text('Versão do SDK nativo'),
+                trailing: Text(
+                  widget.sdkVersion,
+                  style: const TextStyle(fontFamily: 'monospace'),
+                ),
+              ),
+            ),
+          const SizedBox(height: 16),
           const Card(
             child: Padding(
               padding: EdgeInsets.all(16.0),
@@ -119,13 +125,13 @@ class _SettingsPageState extends State<SettingsPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '✨ Doutrina v2.4',
+                    '✨ Doutrina v3.0',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   SizedBox(height: 8),
-                  Text('• GPS só liga dentro de uma zona de beacon'),
-                  Text('• Active BLE scan gateado por região'),
-                  Text('• Outside region: kernel-level filter scan só'),
+                  Text('• Default é HIGH — alinhado ao SDK iOS nativo'),
+                  Text('• Dois olhos: Location + Bluetooth independentes'),
+                  Text('• GPS-gating no Android: só dentro da zona'),
                 ],
               ),
             ),
