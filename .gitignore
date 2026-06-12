@@ -128,3 +128,6 @@ app.*.symbols
 # macOS system files
 **/.DS_Store
 .DS_Store
+
+# Example Podfile.lock alterna entre dev-pod local (BEAROUND_LOCAL_PODS) e trunk — não versionar
+example/ios/Podfile.lock
