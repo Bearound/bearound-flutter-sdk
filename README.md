@@ -1,6 +1,6 @@
 # 🐻 Bearound Flutter SDK
 
-Official Flutter plugin for the Bearound native SDKs (Android/iOS) version 3.3.0.
+Official Flutter plugin for the Bearound native SDKs (Android/iOS) version 3.3.1.
 
 ## Features
 
@@ -8,6 +8,7 @@ Official Flutter plugin for the Bearound native SDKs (Android/iOS) version 3.3.0
 - Real-time beacon stream with metadata (battery, firmware, temperature)
 - Sync lifecycle events (sync started/completed callbacks)
 - Background detection events (beacons detected in background)
+- Optional Android foreground service (`connectedDevice`) for resilient background scanning
 - Scanning state and error streams
 - User properties support for enriched beacon events
 - **Native permission handling** - iOS uses `requestAlwaysAuthorization()` directly (no blue GPS indicator)
@@ -20,7 +21,7 @@ Add to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  bearound_flutter_sdk: ^3.3.0
+  bearound_flutter_sdk: ^3.3.1
 ```
 
 Run:
@@ -45,20 +46,37 @@ dependencyResolutionManagement {
 }
 ```
 
-Required permissions:
+**You normally don't need to declare any permissions** — the SDK declares them all and the Android manifest merger injects them into your app automatically. The SDK uses the **`connectedDevice` foreground-service model** (reading data from Bluetooth devices), **not** location.
+
+> ⚠️ If you redeclare `BLUETOOTH_SCAN` in your own manifest, you **must** keep the `neverForLocation` flag. If any declaration omits it, the flag is dropped from the merged manifest and Google treats the app as deriving location:
+>
+> ```xml
+> <uses-permission android:name="android.permission.BLUETOOTH_SCAN"
+>     android:usesPermissionFlags="neverForLocation" tools:targetApi="s" />
+> ```
+
+For reference, the SDK declares:
 
 ```xml
+<!-- Bluetooth -->
 <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
 <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
-<uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
-<uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
-<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-<uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+<uses-permission android:name="android.permission.BLUETOOTH_SCAN"
+    android:usesPermissionFlags="neverForLocation" tools:targetApi="s" />
+
+<!-- Location: legacy only — required for a BLE scan on API <= 30; not requested on API 31+ -->
+<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" android:maxSdkVersion="30" />
+<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" android:maxSdkVersion="30" />
+
+<!-- Foreground service: connectedDevice (BLE) on Android 14+ -->
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
+
+<!-- Misc -->
 <uses-permission android:name="android.permission.INTERNET" />
 <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-<uses-permission android:name="com.google.android.gms.permission.AD_ID" />
+<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 ```
 
 Minimum Android SDK: 23.
@@ -81,8 +99,6 @@ Add the following to `ios/Runner/Info.plist`:
 <string>This app needs location access to detect nearby beacons.</string>
 <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 <string>This app needs location access to detect nearby beacons in background.</string>
-<key>NSUserTrackingUsageDescription</key>
-<string>This app uses tracking permission for beacon detection.</string>
 ```
 
 **Important for terminated app detection:**
@@ -90,7 +106,40 @@ Add the following to `ios/Runner/Info.plist`:
 - User must grant "Always" location permission (not "When In Use")
 - User must enable "Background App Refresh" in device Settings
 
+> ℹ️ The iOS SDK uses a two-eyes model (CoreLocation + CoreBluetooth), so location **is** used on iOS by design. The `neverForLocation` strategy applies to Android only.
+
 Minimum iOS version: 13.0.
+
+## Foreground service & Google Play (Android)
+
+The SDK can run an optional foreground service to keep scanning alive in the background on aggressive OEMs (Xiaomi/Huawei/Samsung). It uses the `connectedDevice` service type — reading data from external Bluetooth devices.
+
+```dart
+// Enable with a custom, location-free notification
+await BearoundFlutterSdk.enableForegroundScanning(
+  const ForegroundScanConfig(
+    notificationTitle: 'Bearound',
+    notificationText: 'Reading data from nearby Bluetooth devices',
+  ),
+);
+
+// Optionally update the notification with live device data
+BearoundFlutterSdk.beaconsStream.listen((beacons) {
+  if (beacons.isEmpty) return;
+  final temp = beacons.first.metadata?.temperature;
+  BearoundFlutterSdk.setForegroundNotificationContent(
+    NotificationContent(
+      title: 'Bearound',
+      text: 'Bluetooth devices: ${beacons.length} · ${temp ?? '--'}°C',
+    ),
+  );
+});
+
+// Stop the foreground service
+await BearoundFlutterSdk.disableForegroundScanning();
+```
+
+> ⚠️ **Google Play requirement:** apps targeting Android 14+ that use the `connectedDevice` foreground service must declare it in Play Console and submit a **demonstration video**. Frame the feature as **reading data from external Bluetooth devices** (show the persistent notification + device data such as battery/temperature) — never as location or proximity, to stay consistent with `neverForLocation`.
 
 ## Quick Start
 
@@ -105,12 +154,11 @@ Future<void> setupSdk() async {
 
   await BearoundFlutterSdk.configure(
     businessToken: 'your-business-token-here',
-    foregroundScanInterval: ForegroundScanInterval.seconds15,  // Default: 15s
-    backgroundScanInterval: BackgroundScanInterval.seconds30,  // Default: 30s
-    maxQueuedPayloads: MaxQueuedPayloads.medium,               // Default: 100
+    scanPrecision: ScanPrecision.high,           // high | medium | low (default: high)
+    maxQueuedPayloads: MaxQueuedPayloads.medium, // small | medium | large | xlarge
   );
   // Note: appId is automatically extracted from the app's package/bundle identifier
-  // Bluetooth metadata and periodic scanning are automatic in v2.2.0
+  // Bluetooth metadata and periodic scanning are automatic
 
   // Listen to beacons
   BearoundFlutterSdk.beaconsStream.listen((beacons) {
@@ -178,15 +226,17 @@ if (token != null) {
   only if you opted out (`BearoundAppDelegateProxyEnabled = NO` in `Info.plist`)
   and forward the token from
   `application(_:didRegisterForRemoteNotificationsWithDeviceToken:)`.
-- **Android:** the native SDK 3.0.0 does not yet expose a push-token setter, so
+- **Android:** the native SDK does not yet expose a push-token setter, so
   `setPushToken` is a silent no-op there today (kept for API parity).
 
 ## API Summary
 
 ### Methods
 
-- `configure({businessToken, foregroundScanInterval, backgroundScanInterval, maxQueuedPayloads})`
+- `configure({businessToken, scanPrecision, maxQueuedPayloads})`
 - `startScanning() / stopScanning() / isScanning()`
+- `enableForegroundScanning([ForegroundScanConfig]) / disableForegroundScanning() / isForegroundScanningEnabled()` — Android-only
+- `setForegroundNotificationContent(NotificationContent)` — Android-only
 - `setUserProperties(UserProperties) / clearUserProperties()`
 - `setPushToken(String token)` — forward FCM/APNs token (iOS-only at the native layer)
 
@@ -200,26 +250,39 @@ if (token != null) {
 
 ### Configuration Enums
 
-- **ForegroundScanInterval**: `seconds5` to `seconds60` (5-second increments)
-- **BackgroundScanInterval**: `seconds15`, `seconds30`, `seconds60`, `seconds90`, `seconds120`
+- **ScanPrecision**: `high` (continuous scan, sync every 15s), `medium` (10s scan + 10s pause per 60s), `low` (10s scan + 50s pause per 60s)
 - **MaxQueuedPayloads**: `small` (50), `medium` (100), `large` (200), `xlarge` (500)
 
 ## Migration Guide
+
+### From 2.4.x to 3.3.x
+
+- `foregroundScanInterval` / `backgroundScanInterval` were replaced by a single `scanPrecision` (`ScanPrecision.high/medium/low`).
+- Native SDKs bumped to **3.3.1** (Android + iOS).
+- Android now uses the `connectedDevice` foreground-service model with `BLUETOOTH_SCAN` (`neverForLocation`) — no background-location permission.
+
+**Before:**
+```dart
+await BearoundFlutterSdk.configure(
+  businessToken: 'token',
+  foregroundScanInterval: ForegroundScanInterval.seconds30, // ❌ removed
+  backgroundScanInterval: BackgroundScanInterval.seconds90, // ❌ removed
+);
+```
+
+**After:**
+```dart
+await BearoundFlutterSdk.configure(
+  businessToken: 'token',
+  scanPrecision: ScanPrecision.high,
+  maxQueuedPayloads: MaxQueuedPayloads.medium,
+);
+```
 
 ### From 2.1.0 to 2.2.0
 
 **Simplified API:** Bluetooth metadata and periodic scanning are now automatic.
 
-**Before (v2.1.0):**
-```dart
-await BearoundFlutterSdk.configure(
-  businessToken: 'token',
-  enableBluetoothScanning: true,  // ❌ Removed
-  enablePeriodicScanning: true,   // ❌ Removed
-);
-```
-
-**After (v2.2.0):**
 ```dart
 await BearoundFlutterSdk.configure(
   businessToken: 'token',
@@ -227,42 +290,16 @@ await BearoundFlutterSdk.configure(
   // ✅ Periodic scanning: automatic (FG: enabled, BG: continuous)
 );
 
-// NEW: Listen to sync lifecycle events
+// Listen to sync lifecycle events
 BearoundFlutterSdk.syncLifecycleStream.listen((event) {
   if (event.isStarted) print('Sync started');
   if (event.isCompleted) print('Sync completed: ${event.success}');
 });
 
-// NEW: Listen to background detections
+// Listen to background detections
 BearoundFlutterSdk.backgroundDetectionStream.listen((event) {
   print('${event.beaconCount} beacons detected in background');
 });
-```
-
-**Native SDK Updates:**
-- Android: `v3.3.0`
-- iOS: `v3.3.0`
-
-### From 2.0.1 to 2.1.0
-
-**Breaking Change:** `syncInterval` parameter replaced with separate foreground/background intervals.
-
-**Before (v2.0.1):**
-```dart
-await BearoundFlutterSdk.configure(
-  businessToken: 'token',
-  syncInterval: const Duration(seconds: 30),
-);
-```
-
-**After (v2.1.0):**
-```dart
-await BearoundFlutterSdk.configure(
-  businessToken: 'token',
-  foregroundScanInterval: ForegroundScanInterval.seconds30,
-  backgroundScanInterval: BackgroundScanInterval.seconds90,
-  maxQueuedPayloads: MaxQueuedPayloads.large,
-);
 ```
 
 ### From 1.x to 2.x
