@@ -61,6 +61,7 @@ class _BeaconHomePageState extends State<BeaconHomePage>
 
   // ---- Scanning state ----
   bool _isScanning = false;
+  bool _useForegroundService = true; // Android: FGS (true) vs oportunista (false)
   String _status = 'Pronto';
   ScanPrecision _scanPrecision = ScanPrecision.high;
   MaxQueuedPayloads _maxQueuedPayloads = MaxQueuedPayloads.medium;
@@ -386,14 +387,11 @@ class _BeaconHomePageState extends State<BeaconHomePage>
     try {
       await BearoundFlutterSdk.startScanning();
 
-      // Android: foreground service para sobreviver em background.
-      if (Platform.isAndroid) {
-        await BearoundFlutterSdk.enableForegroundScanning(
-          const ForegroundScanConfig(
-            notificationTitle: 'Bearound',
-            notificationText: 'Procurando beacons por perto',
-          ),
-        ).catchError((_) => null);
+      // Android: foreground service (opcional) para sobreviver em background.
+      // Desligue _useForegroundService para o modo oportunista (sem FGS/vídeo).
+      // Sem config: a notificação mostra só o nome do app (sem subtítulo).
+      if (Platform.isAndroid && _useForegroundService) {
+        await BearoundFlutterSdk.enableForegroundScanning().catchError((_) => null);
       }
 
       setState(() {
@@ -973,6 +971,25 @@ class _BeaconHomePageState extends State<BeaconHomePage>
                 ),
                 icon: const Icon(Icons.stop),
                 label: const Text('Parar Scan'),
+              ),
+            if (Platform.isAndroid)
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Foreground service'),
+                subtitle: Text(
+                  _useForegroundService
+                      ? 'Contínuo · sobrevive app fechado · exige vídeo no Play'
+                      : 'Oportunista · sem vídeo no Play · pode perder detecções',
+                  style: const TextStyle(fontSize: 11, color: Colors.grey),
+                ),
+                value: _useForegroundService,
+                onChanged: (v) async {
+                  setState(() => _useForegroundService = v);
+                  if (_isScanning) {
+                    await _stopScan();
+                    await _startScan();
+                  }
+                },
               ),
             const SizedBox(height: 16),
             const Text('Scan Precision', style: TextStyle(color: Colors.grey)),

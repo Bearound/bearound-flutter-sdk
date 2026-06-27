@@ -447,12 +447,26 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
     )
   }
 
+  // Host app's own name (android:label), already localized by Android per device
+  // locale. No dependency, no Info.plist/gradle reading needed.
+  private fun appLabel(): String =
+    context.applicationInfo.loadLabel(context.packageManager).toString()
+
+  // Generic, neutral subtitle — no Bluetooth/"reading data" wording. Localized
+  // by the device language (no dependency).
+  private fun defaultSubtitle(): String = when (java.util.Locale.getDefault().language) {
+    "pt" -> "Atualizando conteúdo"
+    "es" -> "Actualizando contenido"
+    else -> "Updating content"
+  }
+
   private fun mapForegroundScanConfig(args: Map<*, *>): ForegroundScanConfig {
     val default = ForegroundScanConfig()
     return ForegroundScanConfig(
       enabled = true,
-      notificationTitle = (args["notificationTitle"] as? String) ?: default.notificationTitle,
-      notificationText = (args["notificationText"] as? String) ?: default.notificationText,
+      // Default title = host app's name; default subtitle = generic & neutral.
+      notificationTitle = (args["notificationTitle"] as? String) ?: appLabel(),
+      notificationText = (args["notificationText"] as? String) ?: defaultSubtitle(),
       notificationChannelId = args["notificationChannelId"] as? String,
       notificationChannelName = (args["notificationChannelName"] as? String) ?: default.notificationChannelName
     )

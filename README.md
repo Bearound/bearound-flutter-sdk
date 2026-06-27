@@ -110,36 +110,99 @@ Add the following to `ios/Runner/Info.plist`:
 
 Minimum iOS version: 13.0.
 
-## Foreground service & Google Play (Android)
+## Scan modes (Android)
 
-The SDK can run an optional foreground service to keep scanning alive in the background on aggressive OEMs (Xiaomi/Huawei/Samsung). It uses the `connectedDevice` service type — reading data from external Bluetooth devices.
+> On **iOS** scanning is always system-managed (region monitoring + `BGTaskScheduler`). These modes are **Android-only**.
+
+The SDK ships **two background-scan strategies**, and **you pick per app** — right at `startScanning()`, with no native changes. Both already exist in the native SDK; you're just choosing which one to turn on.
+
+### At a glance — what you gain
+
+| | 🪶 Opportunistic *(default)* | 🛡️ Foreground service |
+|---|---|---|
+| **Best for** | casual presence, battery-first apps | real-time footfall, mission-critical presence |
+| **You gain** | zero setup · **no Play video** · lowest battery | reliable detection that **survives app-kill & aggressive OEMs** |
+| **You accept** | unpredictable latency · misses in deep background | persistent notification + Play demo video |
+
+### Quick pick
+
+- Can't (or won't) submit a Play demo video, and occasional detection is fine → **🪶 Opportunistic**
+- Need real-time presence that survives the app being killed on Xiaomi/Huawei/Samsung → **🛡️ Foreground service**
+- In between → Foreground service if you can submit the video; otherwise Opportunistic
+
+### Mode 1 — Opportunistic (no foreground service) · *default*
+
+**What you gain:** no `FOREGROUND_SERVICE_CONNECTED_DEVICE` permission, **no Play demonstration video**, and the lowest battery footprint.
 
 ```dart
-// Enable with a custom, location-free notification
-await BearoundFlutterSdk.enableForegroundScanning(
-  const ForegroundScanConfig(
-    notificationTitle: 'Bearound',
-    notificationText: 'Reading data from nearby Bluetooth devices',
-  ),
-);
-
-// Optionally update the notification with live device data
-BearoundFlutterSdk.beaconsStream.listen((beacons) {
-  if (beacons.isEmpty) return;
-  final temp = beacons.first.metadata?.temperature;
-  BearoundFlutterSdk.setForegroundNotificationContent(
-    NotificationContent(
-      title: 'Bearound',
-      text: 'Bluetooth devices: ${beacons.length} · ${temp ?? '--'}°C',
-    ),
-  );
-});
-
-// Stop the foreground service
-await BearoundFlutterSdk.disableForegroundScanning();
+await BearoundFlutterSdk.startScanning();
 ```
 
-> ⚠️ **Google Play requirement:** apps targeting Android 14+ that use the `connectedDevice` foreground service must declare it in Play Console and submit a **demonstration video**. Frame the feature as **reading data from external Bluetooth devices** (show the persistent notification + device data such as battery/temperature) — never as location or proximity, to stay consistent with `neverForLocation`.
+The OS delivers beacons through a `PendingIntent` scan (`BluetoothScanReceiver`), re-armed by `AlarmManager` (`ScanWatchdogReceiver`) — it keeps working with the app **killed**, but the system decides *when* (opportunistic, throttled).
+
+To fully drop the Play video, also remove the FGS permission the native SDK injects via manifest merge:
+
+```xml
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE"
+    tools:node="remove" />
+```
+
+### Mode 2 — Foreground service (`connectedDevice`)
+
+**What you gain:** continuous, low-latency detection that **survives app-kill and aggressive OEMs** (Xiaomi/Huawei/Samsung) — the reliable path for footfall/presence analytics.
+
+```dart
+// By default the notification shows the host app's own name (localized by the
+// device) + a generic, localized subtitle ("Atualizando conteúdo" / "Updating
+// content") — nothing about Bluetooth or reading data. Just enable it:
+await BearoundFlutterSdk.startScanning(
+  foregroundScanConfig: const ForegroundScanConfig(),
+);
+
+// Want a custom title/subtitle instead? Pass them explicitly:
+// await BearoundFlutterSdk.startScanning(
+//   foregroundScanConfig: const ForegroundScanConfig(
+//     notificationTitle: 'My App', notificationText: 'Bluetooth active',
+//   ),
+// );
+
+await BearoundFlutterSdk.disableForegroundScanning(); // stop the service
+```
+
+> ⚠️ **Google Play:** the `connectedDevice` foreground service requires a Play Console declaration + **demonstration video**. In the **video/declaration**, frame the feature as *reading data from external Bluetooth devices* — never as location or proximity (stays consistent with `neverForLocation`). The persistent notification itself just shows the app name, which is enough to satisfy the perceptibility requirement.
+
+### Trade-off
+
+| | 🪶 Opportunistic | 🛡️ Foreground service |
+|---|---|---|
+| App in foreground | continuous | continuous |
+| App in background | opportunistic, throttled | continuous |
+| App killed / swiped away | relaunched by OS (PendingIntent) | process kept alive |
+| Aggressive OEM (Xiaomi/Huawei) | ❌ killed | ✅ survives |
+| Detection latency | unpredictable (s → min) | low (per `ScanPrecision`) |
+| Presence accuracy | low / medium | **high** |
+| Battery | lower | higher |
+| Persistent notification | none | yes (mandatory) |
+| Extra permission | none | `FOREGROUND_SERVICE_CONNECTED_DEVICE` |
+| **Google Play video** | ❌ not required | ✅ required |
+
+### Scan windows (detection cadence)
+
+`ScanPrecision` governs the duty cycle **while the scan is active** (foreground or FGS):
+
+| Strategy | Typical detection window | Predictable? | Battery |
+|---|---|---|---|
+| FGS + `ScanPrecision.high` | ~1–5 s, continuous | yes | high |
+| FGS + `ScanPrecision.medium` | ~10–20 s (10 s scan + 10 s pause ×3 / 60 s) | yes | medium |
+| FGS + `ScanPrecision.low` | ~60 s (10 s scan + 50 s pause / 60 s) | yes | low |
+| Opportunistic (no FGS) | seconds → several minutes (OS-decided) | no | low |
+| WorkManager (client-side, external) | ≥ 15 min (WorkManager minimum) | yes | very low |
+
+> Windows are approximate, derived from the `ScanPrecision` duty cycle. In **opportunistic** mode `ScanPrecision` only governs cadence while the app is in the foreground; in the background the OS throttles the `PendingIntent` scan.
+
+### Advanced: WorkManager (client-side)
+
+The SDK does **not** bundle WorkManager. For a predictable low-frequency sweep without a foreground service, schedule your own `PeriodicWorkRequest` (minimum interval **15 min**) that calls `startScanning()` for a short window and then `stopScanning()`. This trades latency for battery and avoids the Play video — presence lags by up to the chosen period.
 
 ## Quick Start
 

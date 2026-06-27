@@ -71,5 +71,5 @@ dependencies {
     // Published native Android SDK 3.3.0 — adds configure(technology:) so the
     // Flutter bridge can tag the /ingest payload with sdk.technology="flutter".
     // NOTE: native 3.3.0 must publish to JitPack first; plugin CI fails until then.
-    api 'com.github.Bearound:bearound-android-sdk:3.3.1'
+    api 'com.github.Bearound:bearound-android-sdk:3.4.0'
 }

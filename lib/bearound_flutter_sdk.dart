@@ -153,9 +153,18 @@ class BearoundFlutterSdk {
   // Scanning lifecycle
   // ---------------------------------------------------------------------------
 
-  /// Inicia o scan de beacons após `configure()`. No Android, aceita um
-  /// [foregroundScanConfig] opcional para ativar o foreground service junto.
-  /// No iOS, esse parâmetro é ignorado.
+  /// Inicia o scan de beacons após `configure()`.
+  ///
+  /// Android — dois modos (veja "Scan modes" no README):
+  /// - **Oportunista (default):** chame sem [foregroundScanConfig]. Scan em
+  ///   background via PendingIntent/AlarmManager, sem foreground service e sem
+  ///   vídeo no Google Play. Latência imprevisível; pode não sobreviver a OEMs
+  ///   agressivos (Xiaomi/Huawei).
+  /// - **Foreground service:** passe [foregroundScanConfig] (ou chame depois
+  ///   [enableForegroundScanning]). Scan contínuo que sobrevive ao app fechado;
+  ///   exige a permissão `FOREGROUND_SERVICE_CONNECTED_DEVICE` + vídeo no Play.
+  ///
+  /// No iOS, [foregroundScanConfig] é ignorado (scan gerenciado pelo sistema).
   static Future<void> startScanning({
     ForegroundScanConfig? foregroundScanConfig,
   }) async {
@@ -311,8 +320,11 @@ class BearoundFlutterSdk {
   // Foreground service scanning (Android-only)
   // ---------------------------------------------------------------------------
 
-  /// Habilita o foreground service de scan no Android com notificação
-  /// persistente. iOS: no-op (usa BGTaskScheduler / region monitoring).
+  /// Habilita o foreground service (`connectedDevice`) de scan no Android, com
+  /// notificação persistente — scan contínuo que sobrevive ao app fechado e a
+  /// OEMs agressivos. Exige a permissão `FOREGROUND_SERVICE_CONNECTED_DEVICE` e,
+  /// no Google Play, um vídeo de demonstração. Para não exigir nada disso, use
+  /// só [startScanning] (modo oportunista). iOS: no-op (BGTaskScheduler / region).
   static Future<void> enableForegroundScanning([
     ForegroundScanConfig config = const ForegroundScanConfig(),
   ]) async {

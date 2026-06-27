@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.4.0] - 2026-06-26
+
+### Added
+
+- **Device register on init** (via native SDKs 3.4.0). The device reports to the backend on `startScanning()` even before detecting a beacon, so it appears in the Control Hub on first launch. No API change — handled by the native SDK.
+- **Scan modes documentation.** README documents the two Android background-scan strategies (opportunistic vs `connectedDevice` foreground service) with trade-offs, scan-window cadence, and a WorkManager note.
+
+### Changed
+
+- **Foreground-service notification.** Title defaults to the host app's own name (`android:label`, localized by the device); subtitle is a generic, localized string ("Atualizando conteúdo" / "Updating content") — no Bluetooth or "reading data" wording. Clients can still override both.
+- Bumped native SDKs to **3.4.0** (Android `bearound-android-sdk`, iOS `BearoundSDK`).
+
 ## [3.3.1] - 2026-06-11
 
 ### Changed
