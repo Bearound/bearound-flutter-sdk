@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Push token à prova de ordem (SDKs nativos iOS/Android 3.4.1).** `setPushToken`, quando o scan já está ativo e o token ainda não foi enviado, força um register na hora (`beacons:[]` + token) em vez de esperar o próximo sync. O token chega ao backend independente de o app chamar `setPushToken` antes ou depois de `startScanning` — antes, se o register-on-init já tivesse ocorrido, o device ficava sem push até o próximo register (TTL) ou até detectar um beacon.
 - **Android: push token agora é encaminhado ao SDK nativo.** O handler `setPushToken` do wrapper Android descartava o token (no-op herdado de quando o SDK Android não tinha o setter); agora chama `BeAroundSDK.setPushToken` (disponível no nativo Android ≥ 3.4.0), então o token fornecido pelo app chega ao backend. iOS já encaminhava.
 - **Doc de `setPushToken`**: no iOS, prefira o token **APNs cru** (`getAPNSToken()`) — é o que o backend usa; o swizzle automático falha quando o Firebase está presente.
 
