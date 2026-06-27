@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.4.2] - 2026-06-27
+
+### Fixed
+
+- **Android: removidas `USE_EXACT_ALARM` e `SCHEDULE_EXACT_ALARM` (via SDK nativo 3.4.2).** O SDK não é app de "agenda"/"despertador" e não qualifica para alarme exato no Google Play (a Play Console exige a remoção, senão pede a declaração de "Alarmes exatos"). O watchdog de scan passou a usar alarme **inexato** (`setAndAllowWhileIdle`) — o scan periódico (WorkManager + watchdog) continua funcionando, sem permissão de alarme exato. iOS não afetado.
+
 ## [3.4.1] - 2026-06-27
 
 ### Fixed

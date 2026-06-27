@@ -72,5 +72,5 @@ dependencies {
     // empurra o token na hora quando já escaneando, à prova de ordem) + setPushToken
     // funcional. NOTE: a tag 3.4.1 precisa estar no JitPack antes; o CI do plugin
     // falha até lá.
-    api 'com.github.Bearound:bearound-android-sdk:3.4.1'
+    api 'com.github.Bearound:bearound-android-sdk:3.4.2'
 }
