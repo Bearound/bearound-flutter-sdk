@@ -61,7 +61,8 @@ class _BeaconHomePageState extends State<BeaconHomePage>
 
   // ---- Scanning state ----
   bool _isScanning = false;
-  bool _useForegroundService = true; // Android: FGS (true) vs oportunista (false)
+  bool _useForegroundService =
+      true; // Android: FGS (true) vs oportunista (false)
   String _status = 'Pronto';
   ScanPrecision _scanPrecision = ScanPrecision.high;
   MaxQueuedPayloads _maxQueuedPayloads = MaxQueuedPayloads.medium;
@@ -391,7 +392,9 @@ class _BeaconHomePageState extends State<BeaconHomePage>
       // Desligue _useForegroundService para o modo oportunista (sem FGS/vídeo).
       // Sem config: a notificação mostra só o nome do app (sem subtítulo).
       if (Platform.isAndroid && _useForegroundService) {
-        await BearoundFlutterSdk.enableForegroundScanning().catchError((_) => null);
+        await BearoundFlutterSdk.enableForegroundScanning().catchError(
+          (_) => null,
+        );
       }
 
       setState(() {
