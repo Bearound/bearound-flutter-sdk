@@ -256,15 +256,15 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
       }
 
       // --- Push token ---
-      // iOS-only at the native layer: BeAroundSDK (Android 3.0.0) does not yet
-      // expose a push-token setter, so we validate the arg for API parity and
-      // no-op. Mirrors the Dart-superset convention used by other iOS-only
-      // methods (getBleDiagnosticInfo, getPendingBatchCount).
+      // Encaminha o token (FCM no Android) pro SDK nativo, que o associa ao
+      // device e envia no próximo sync. O SDK também tenta auto-coletar o FCM
+      // via Firebase; esta chamada cobre apps que fornecem o token manualmente.
       "setPushToken" -> {
         val token = call.argument<String>("token")
         if (token == null) {
           result.error("INVALID_ARGUMENT", "token is required", null)
         } else {
+          sdk.setPushToken(token)
           result.success(null)
         }
       }

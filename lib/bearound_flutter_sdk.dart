@@ -206,15 +206,14 @@ class BearoundFlutterSdk {
   /// Encaminha o push token do dispositivo (FCM no Android, APNs no iOS) para o
   /// SDK nativo, que o associa ao `deviceId` e o envia no próximo sync.
   ///
-  /// O app é responsável por obter o token (ex.: `firebase_messaging`
-  /// `getToken()` no Android) e chamar este método. No iOS o SDK nativo já
-  /// captura o token APNs automaticamente via swizzle do AppDelegate; chame
-  /// este método se você optou por desabilitar a captura automática
-  /// (`BearoundAppDelegateProxyEnabled = NO`) e quiser encaminhá-lo manualmente.
+  /// O app é responsável por obter o token e chamar este método:
+  /// - **Android**: o FCM token (`firebase_messaging` `getToken()`).
+  /// - **iOS**: o token **APNs cru** (`getAPNSToken()`), que é o que o backend
+  ///   usa pra push (APNs); o FCM token NÃO serve. O SDK também tenta capturar
+  ///   o APNs via swizzle do AppDelegate, mas isso falha quando o Firebase está
+  ///   presente (ele intercepta o swizzle) — então prefira encaminhar manualmente.
   ///
-  /// **iOS-only no nativo**: o SDK Android 3.0.0 ainda não expõe um setter de
-  /// push token, então no Android esta chamada é um no-op silencioso (mantida
-  /// para paridade de API).
+  /// Encaminhado ao SDK nativo em ambas as plataformas (Android ≥ 3.4.0).
   static Future<void> setPushToken(String token) async {
     await _channel.invokeMethod('setPushToken', {'token': token});
   }

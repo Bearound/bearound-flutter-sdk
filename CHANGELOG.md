@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.4.1] - 2026-06-27
+
+### Fixed
+
+- **Android: push token agora é encaminhado ao SDK nativo.** O handler `setPushToken` do wrapper Android descartava o token (no-op herdado de quando o SDK Android não tinha o setter); agora chama `BeAroundSDK.setPushToken` (disponível no nativo Android ≥ 3.4.0), então o token fornecido pelo app chega ao backend. iOS já encaminhava.
+- **Doc de `setPushToken`**: no iOS, prefira o token **APNs cru** (`getAPNSToken()`) — é o que o backend usa; o swizzle automático falha quando o Firebase está presente.
+
 ## [3.4.0] - 2026-06-26
 
 ### Added
