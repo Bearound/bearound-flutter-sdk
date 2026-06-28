@@ -3,6 +3,7 @@ import 'dart:io' show Platform;
 
 import 'package:bearound_flutter_sdk/bearound_flutter_sdk.dart';
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import 'events.dart';
 import 'eye_card.dart';
@@ -57,6 +58,7 @@ class _BeaconHomePageState extends State<BeaconHomePage>
   // NOTE: push is app-level now — the SDK no longer manages notification
   // permission or posting, so the example doesn't request it either.
   bool _locationGranted = false;
+  bool _notificationsGranted = false;
   BluetoothState _bluetoothState = BluetoothState.unknown;
 
   // ---- Scanning state ----
@@ -157,14 +159,23 @@ class _BeaconHomePageState extends State<BeaconHomePage>
   // Boot
   // ---------------------------------------------------------------------------
 
+  /// Atualiza o status da permissão de Notificações (Android 13+
+  /// POST_NOTIFICATIONS; iOS). 1:1 com o example React Native.
+  Future<void> _refreshNotificationStatus() async {
+    final status = await Permission.notification.status;
+    if (mounted) setState(() => _notificationsGranted = status.isGranted);
+  }
+
   Future<void> _bootstrap() async {
     // Solicita permissões (Location + BT). Não bloqueia — o SDK nativo nunca
     // gateia scan; qualquer olho disponível ativa.
     final granted = await BearoundFlutterSdk.requestPermissions();
     setState(() => _locationGranted = granted);
 
-    // NOTE: push is app-level now — notification permission/posting and ATT/IDFA
-    // are no longer part of the SDK, so the example doesn't request them.
+    // Notificações (Android 13+ POST_NOTIFICATIONS): o foreground service de scan
+    // posta uma notificação persistente, então exibimos o status. O push em si
+    // segue app-level; aqui só refletimos a permissão (1:1 com o example RN).
+    await _refreshNotificationStatus();
 
     // Bluetooth state inicial.
     final bt = await BearoundFlutterSdk.getBluetoothState();
@@ -655,8 +666,11 @@ class _BeaconHomePageState extends State<BeaconHomePage>
               _locationGranted ? Colors.green : Colors.red,
             ),
             _permRow('Bluetooth', btLabel, _bluetoothColor(_bluetoothState)),
-            // NOTE: push is app-level now — notification/ATT/IDFA permission rows
-            // were removed since the SDK no longer manages them.
+            _permRow(
+              'Notificações',
+              _notificationsGranted ? 'Concedida' : 'Negada',
+              _notificationsGranted ? Colors.green : Colors.red,
+            ),
             const SizedBox(height: 8),
             Text(
               _canScan
@@ -672,8 +686,10 @@ class _BeaconHomePageState extends State<BeaconHomePage>
             TextButton.icon(
               onPressed: () async {
                 await BearoundFlutterSdk.requestPermissions();
+                await Permission.notification.request();
                 final bt = await BearoundFlutterSdk.getBluetoothState();
                 if (mounted) setState(() => _bluetoothState = bt);
+                await _refreshNotificationStatus();
               },
               icon: const Icon(Icons.lock_open),
               label: const Text('Solicitar permissões'),

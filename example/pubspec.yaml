@@ -29,6 +29,11 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
 
+  # Status/pedido da permissão de Notificações (Android 13+ POST_NOTIFICATIONS;
+  # iOS). 1:1 com o example React Native — o foreground service de scan posta uma
+  # notificação persistente, então o status da permissão é relevante de exibir.
+  permission_handler: ^12.0.0
+
 dev_dependencies:
   integration_test:
     sdk: flutter
