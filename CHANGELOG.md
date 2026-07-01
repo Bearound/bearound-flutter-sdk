@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.4.3] - 2026-07-01
+
+### Added
+
+- **iOS: notificação local ao processar silent push.** O plugin agora exibe uma notificação "Push → Scan" quando o SDK trata um silent push do backend (callback `didCompletePushScan`), espelhando o app nativo `BeAroundScan`. Depende da configuração de push no app cliente — ver a seção "Push notifications & background wakeup" no README.
+
+### Changed
+
+- **README: guia de setup de push notifications & background wakeup (iOS).** Documenta como habilitar silent push e region/beacon wakeup no Flutter 3.41+: entitlement `aps-environment`, `remote-notification` no `UIBackgroundModes`, a desativação da UIScene (`_UIApplicationSceneManifest`) e o override do `didReceiveRemoteNotification` que contorna o [flutter#155479](https://github.com/flutter/flutter/issues/155479). O `example/` é a implementação de referência (validada em device iOS 26). SDK nativo inalterado (`BearoundSDK 3.4.2`).
+
+---
+
 ## [3.4.2] - 2026-06-27
 
 ### Fixed

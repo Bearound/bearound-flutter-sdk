@@ -3,6 +3,7 @@ import CoreBluetooth
 import CoreLocation
 import Flutter
 import UIKit
+import UserNotifications
 
 public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDelegate, CLLocationManagerDelegate, CBCentralManagerDelegate {
     private let beaconsStreamHandler = EventStreamHandler()
@@ -447,6 +448,32 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
                 detail: "\(beacons.count) beacon(s) detectado(s)"
             )
         }
+    }
+
+    /// Chamado pelo SDK (via swizzle do PushTokenAutoCapture) depois de tratar um
+    /// silent push do Bearound: acordou, escaneou e talvez sincronizou. Mostramos uma
+    /// notificação local para tornar a chegada do push visível no device durante os testes.
+    public func didCompletePushScan(beaconsFound: Int, ingestStarted: Bool, pendingBatches: Int) {
+        NSLog(
+            "[BearoundFlutter] didCompletePushScan beacons=%d ingest=%d pending=%d",
+            beaconsFound, ingestStarted ? 1 : 0, pendingBatches
+        )
+        let syncStatus = ingestStarted ? "enviando \(pendingBatches) lote(s)" : "nada a enviar"
+        PersistentLog.append(
+            type: "Push → Scan",
+            detail: "\(beaconsFound) beacon(s) · \(syncStatus)"
+        )
+        let content = UNMutableNotificationContent()
+        content.title = "Push → Scan ✅"
+        content.body = "\(beaconsFound) beacon(s) detectado(s) · \(syncStatus)"
+        content.sound = .default
+        UNUserNotificationCenter.current().add(
+            UNNotificationRequest(
+                identifier: "bearound.push-scan.\(Int(Date().timeIntervalSince1970))",
+                content: content,
+                trigger: nil
+            )
+        )
     }
 
     private func mapBeacon(_ beacon: Beacon) -> [String: Any] {

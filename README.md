@@ -1,6 +1,6 @@
 # 🐻 Bearound Flutter SDK
 
-Official Flutter plugin for the Bearound native SDKs (Android/iOS) version 3.3.1.
+Official Flutter plugin for the Bearound native SDKs (Android/iOS) version 3.4.2.
 
 ## Features
 
@@ -21,7 +21,7 @@ Add to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  bearound_flutter_sdk: ^3.3.1
+  bearound_flutter_sdk: ^3.4.3
 ```
 
 Run:
@@ -92,6 +92,7 @@ Add the following to `ios/Runner/Info.plist`:
     <string>location</string>
     <string>processing</string>
     <string>bluetooth-central</string>
+    <string>remote-notification</string>
 </array>
 <key>NSBluetoothAlwaysUsageDescription</key>
 <string>This app uses Bluetooth to detect nearby beacons.</string>
@@ -107,6 +108,41 @@ Add the following to `ios/Runner/Info.plist`:
 - User must enable "Background App Refresh" in device Settings
 
 > ℹ️ The iOS SDK uses a two-eyes model (CoreLocation + CoreBluetooth), so location **is** used on iOS by design. The `neverForLocation` strategy applies to Android only.
+
+#### Push notifications & background wakeup
+
+The backend can trigger a background BLE scan via **silent push**, and iOS relaunches a closed
+app when it enters a beacon region. On **Flutter 3.41+** this requires three extra steps in
+**your app target** — the `example/` app is the working reference; copy from `example/ios/Runner/`.
+
+**1. Push entitlement** — create `ios/Runner/Runner.entitlements`:
+
+```xml
+<key>aps-environment</key>
+<string>development</string> <!-- or "production" -->
+```
+
+Reference it in the Runner build settings (all configs): `CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;`
+
+**2. Disable the UIScene** — in `ios/Runner/Info.plist`, **rename** `UIApplicationSceneManifest`
+to `_UIApplicationSceneManifest` (keep the `_` prefix — do **not** delete the block, Flutter's
+migrator re-injects it every build). This drops the app back to the legacy AppDelegate life cycle,
+which is what makes silent-push and beacon wakeup work. Keep `UIMainStoryboardFile` and
+`UILaunchStoryboardName` as-is (removing them causes a black screen).
+
+**3. AppDelegate** — legacy mode + forward the silent push to the SDK. Full file:
+[`example/ios/Runner/AppDelegate.swift`](example/ios/Runner/AppDelegate.swift). Key points:
+
+- `class AppDelegate: FlutterAppDelegate` (**no** `FlutterImplicitEngineDelegate`) + `GeneratedPluginRegistrant.register(with: self)`
+- override the **deprecated** `application(_:didReceiveRemoteNotification:)` (without `fetchCompletionHandler`) and call `BeAroundSDK.shared.performBackgroundBLERefreshAndSync(...)` — the modern variant is not delivered on Flutter ([flutter#155479](https://github.com/flutter/flutter/issues/155479))
+- `requestAuthorization(...)` + set `UNUserNotificationCenter.current().delegate = self`
+
+> **iOS rules that are NOT bugs:**
+> - **Silent push never wakes a force-quit app** (Apple rule) — a closed app is relaunched by
+>   **beacon/region wakeup**, and only then processes the backend's silent pushes.
+> - **Environment must match:** `development` entitlement ⇄ APNs **sandbox**; `production` ⇄ APNs
+>   **production**. Wrong environment → APNs returns `sent` but the device never gets it (`BadDeviceToken`).
+> - Requires **Background App Refresh** ON on the device.
 
 Minimum iOS version: 13.0.
 

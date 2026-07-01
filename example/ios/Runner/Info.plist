@@ -41,7 +41,13 @@
 	<string>O aplicativo precisa de acesso à localização para detectar beacons BLE próximos.</string>
 	<key>NSUserTrackingUsageDescription</key>
 	<string>O Bearound usa o identificador de publicidade (IDFA) para correlacionar detecções de beacons com perfis anônimos de uso.</string>
-	<key>UIApplicationSceneManifest</key>
+	<!-- Chave renomeada com prefixo _ para DESATIVAR a UIScene (Flutter 3.41+) e voltar ao
+	     ciclo de vida legado do AppDelegate — sem isso o FlutterSceneDelegate intercepta os
+	     eventos de background (silent push wakeup do app suspenso, region/BLE state restoration)
+	     e o app não acorda como o nativo. NÃO deletar o bloco: o migrador do Flutter re-injeta
+	     em toda build se a substring "UIApplicationSceneManifest" sumir; o prefixo _ o mantém
+	     inerte (iOS ignora chave desconhecida) e o migrador pula. Ref: docs.flutter.dev UISceneDelegate. -->
+	<key>_UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
 		<false/>
@@ -70,6 +76,7 @@
 		<string>bluetooth-central</string>
 		<string>fetch</string>
 		<string>processing</string>
+		<string>remote-notification</string>
 	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
