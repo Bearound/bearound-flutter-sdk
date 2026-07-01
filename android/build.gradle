@@ -68,9 +68,9 @@ android {
 }
 
 dependencies {
-    // Published native Android SDK 3.4.1 — push token register-on-set (setPushToken
-    // empurra o token na hora quando já escaneando, à prova de ordem) + setPushToken
-    // funcional. NOTE: a tag 3.4.1 precisa estar no JitPack antes; o CI do plugin
-    // falha até lá.
-    api 'com.github.Bearound:bearound-android-sdk:3.4.2'
+    // Published native Android SDK 3.4.4 — FGS connectedDevice crash fix (no more
+    // SecurityException/crash-loop when "Nearby devices" is denied on Android 14+) +
+    // background-reliability helpers (battery-opt/OEM autostart, no location, no policy).
+    // NOTE: the tag 3.4.4 must be on JitPack first; the plugin CI fails until then.
+    api 'com.github.Bearound:bearound-android-sdk:3.4.4'
 }
