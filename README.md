@@ -1,6 +1,6 @@
 # 🐻 Bearound Flutter SDK
 
-Official Flutter plugin for the Bearound native SDKs (Android/iOS) version 3.4.2.
+Official Flutter plugin for the Bearound native SDKs — Android **3.4.5** · iOS **3.4.2**.
 
 ## Features
 
@@ -21,7 +21,7 @@ Add to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  bearound_flutter_sdk: ^3.4.3
+  bearound_flutter_sdk: ^3.4.5
 ```
 
 Run:
@@ -55,14 +55,18 @@ dependencyResolutionManagement {
 >     android:usesPermissionFlags="neverForLocation" tools:targetApi="s" />
 > ```
 
-For reference, the SDK declares:
+For reference, the manifest merge injects the following into your app (this is the
+plugin's actual manifest — `android/src/main/AndroidManifest.xml`):
 
 ```xml
-<!-- Bluetooth -->
+<!-- Bluetooth (Android 11 and below) -->
 <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
 <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
+
+<!-- Bluetooth (Android 12+) -->
 <uses-permission android:name="android.permission.BLUETOOTH_SCAN"
     android:usesPermissionFlags="neverForLocation" tools:targetApi="s" />
+<uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
 
 <!-- Location: legacy only — required for a BLE scan on API <= 30; not requested on API 31+ -->
 <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" android:maxSdkVersion="30" />
@@ -77,7 +81,36 @@ For reference, the SDK declares:
 <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+<!-- Advertising ID -->
+<uses-permission android:name="com.google.android.gms.permission.AD_ID" />
+
+<!-- Hardware features -->
+<uses-feature android:name="android.hardware.bluetooth" android:required="true" />
+<uses-feature android:name="android.hardware.bluetooth_le" android:required="true" />
 ```
+
+#### What the manifest merge means for your Play Store listing
+
+Know these **before** submitting to Google Play — they are discovered at review
+time otherwise:
+
+- **`AD_ID`** — your Play Console **Data Safety form** must declare that the app
+  collects the Advertising ID. Apps in the **Families / Designed for Families**
+  program are **not allowed** to carry this permission at all — if that's your
+  case, talk to Bearound before integrating.
+- **`uses-feature android.hardware.bluetooth_le required="true"`** — the Play
+  Store **filters your app out of devices without BLE**. Usually desirable for a
+  beacon product, but be aware your listing's device reach shrinks.
+- **`FOREGROUND_SERVICE_CONNECTED_DEVICE`** — its presence in the merged
+  manifest triggers a Play Console **foreground-service declaration + demo
+  video** for apps targeting SDK 34+. The service itself only runs if you opt in
+  via `foregroundScanConfig` / `enableForegroundScanning()`; if you stay on the
+  opportunistic mode, remove the permission with `tools:node="remove"` (snippet
+  in [Scan modes](#scan-modes-android)) and no declaration/video is needed.
+- **`POST_NOTIFICATIONS`** — declared by the SDK, but on Android 13+ you still
+  need the runtime grant for the foreground-service notification to be visible
+  (`requestPermissions()` already asks for it).
 
 Minimum Android SDK: 23.
 
@@ -94,6 +127,11 @@ Add the following to `ios/Runner/Info.plist`:
     <string>bluetooth-central</string>
     <string>remote-notification</string>
 </array>
+<key>BGTaskSchedulerPermittedIdentifiers</key>
+<array>
+    <string>io.bearound.sdk.sync</string>
+    <string>io.bearound.sdk.processing</string>
+</array>
 <key>NSBluetoothAlwaysUsageDescription</key>
 <string>This app uses Bluetooth to detect nearby beacons.</string>
 <key>NSLocationWhenInUseUsageDescription</key>
@@ -108,6 +146,67 @@ Add the following to `ios/Runner/Info.plist`:
 - User must enable "Background App Refresh" in device Settings
 
 > ℹ️ The iOS SDK uses a two-eyes model (CoreLocation + CoreBluetooth), so location **is** used on iOS by design. The `neverForLocation` strategy applies to Android only.
+
+#### Background tasks (BGTaskScheduler) — required
+
+Without this wiring the SDK still works in foreground, but it **silently
+degrades** in background: the SDK's BGTasks (periodic sync + processing) never
+run and terminated-state uploads never finalize.
+
+The SDK schedules two BGTasks — `io.bearound.sdk.sync` (app refresh) and
+`io.bearound.sdk.processing` (longer execution). Both identifiers must be listed
+in `BGTaskSchedulerPermittedIdentifiers` (snippet above), and the app must call
+`registerBackgroundTasks()` **before the app finishes launching** — i.e. in your
+`AppDelegate`, not from Dart. Wire it in `ios/Runner/AppDelegate.swift` (the
+`example/` app is the working reference):
+
+```swift
+import BearoundSDK
+
+@main
+@objc class AppDelegate: FlutterAppDelegate {
+  override func application(
+    _ application: UIApplication,
+    didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
+  ) -> Bool {
+    GeneratedPluginRegistrant.register(with: self)
+
+    // Register the SDK's BGTasks BEFORE the app finishes launching.
+    BeAroundSDK.shared.registerBackgroundTasks()
+
+    return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+  }
+
+  // Background fetch — iOS periodically wakes the app for a refresh.
+  override func application(
+    _ application: UIApplication,
+    performFetchWithCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void
+  ) {
+    BeAroundSDK.shared.performBackgroundFetch { success in
+      completionHandler(success ? .newData : .noData)
+    }
+  }
+
+  // Background URLSession — iOS relaunches the app to deliver completed
+  // beacon-upload transfers. Forward to the SDK so terminated-state uploads
+  // are finalized (without this they complete in nsurlsessiond but the app
+  // never processes the result).
+  override func application(
+    _ application: UIApplication,
+    handleEventsForBackgroundURLSession identifier: String,
+    completionHandler: @escaping () -> Void
+  ) {
+    BeAroundSDK.shared.handleBackgroundURLSessionEvents(
+      identifier: identifier,
+      completionHandler: completionHandler
+    )
+  }
+}
+```
+
+> Without the `BGTaskSchedulerPermittedIdentifiers` entries,
+> `registerBackgroundTasks()` cannot register the SDK's BGTasks and iOS will
+> never grant them execution time.
 
 #### Push notifications & background wakeup
 
@@ -240,6 +339,44 @@ await BearoundFlutterSdk.disableForegroundScanning(); // stop the service
 
 The SDK does **not** bundle WorkManager. For a predictable low-frequency sweep without a foreground service, schedule your own `PeriodicWorkRequest` (minimum interval **15 min**) that calls `startScanning()` for a short window and then `stopScanning()`. This trades latency for battery and avoids the Play video — presence lags by up to the chosen period.
 
+## Background reliability (Android)
+
+Doze and OEM battery managers (Xiaomi/Huawei/Oppo/Vivo/OnePlus…) are the #1
+cause of "it stopped detecting in background" on Android — they kill or freeze
+the process regardless of scan mode. Since **3.4.5** the plugin exposes the
+native helpers that mitigate both:
+
+| Method | What it does |
+|---|---|
+| `isIgnoringBatteryOptimizations()` | `true` if the app is already exempt from battery optimization (Doze). |
+| `openBatteryOptimizationSettings()` | Opens the battery-optimization Settings screen so the user can exempt the app. Uses the Settings screen — **not** the restricted `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` permission — so it has no Google Play review impact. Returns `true` if the screen opened. |
+| `isAutostartManageable()` | `true` if the device is from an OEM with a known autostart/protected-apps screen (Xiaomi/Huawei/Oppo/Vivo/OnePlus/Letv). `false` on stock Android (Pixel). |
+| `openManufacturerAutostartSettings()` | Opens the manufacturer's autostart/protected-apps screen when one exists. Returns `true` if the screen opened. |
+
+Recommended flow — **check → explain → open Settings**. Never deep-link the user
+to a Settings screen without telling them why first:
+
+```dart
+Future<void> ensureBackgroundReliability() async {
+  // 1. Doze exemption.
+  if (!await BearoundFlutterSdk.isIgnoringBatteryOptimizations()) {
+    // Show your own rationale dialog first ("we need this to keep detecting
+    // nearby devices in background"), then:
+    await BearoundFlutterSdk.openBatteryOptimizationSettings();
+  }
+
+  // 2. OEM autostart / protected apps (Xiaomi, Huawei, ...).
+  if (await BearoundFlutterSdk.isAutostartManageable()) {
+    // Rationale dialog, then:
+    await BearoundFlutterSdk.openManufacturerAutostartSettings();
+  }
+}
+```
+
+> **iOS:** all four methods are safe to call unconditionally — there is no
+> equivalent restriction, so `isIgnoringBatteryOptimizations()` resolves `true`
+> and the other three are no-ops resolving `false`.
+
 ## Quick Start
 
 ```dart
@@ -271,7 +408,8 @@ Future<void> setupSdk() async {
     if (event.isStarted) {
       print('Sync started with ${event.beaconCount} beacons');
     } else if (event.isCompleted) {
-      print('Sync completed: ${event.success ? "success" : "failed"}');
+      // `success` is a bool? (null on 'started' events) — compare explicitly.
+      print('Sync completed: ${event.success == true ? "success" : "failed"}');
     }
   });
 
@@ -308,49 +446,112 @@ await BearoundFlutterSdk.setUserProperties(
 
 ## Push Token
 
-Forward the device push token (FCM on Android, APNs on iOS) to the native SDK so
-the backend can target the device. The native SDK associates it with the stable
-`deviceId` and sends it on the next sync.
+Forward the device push token to the native SDK so the backend can target the
+device (silent-push wake-up). The native SDK associates it with the stable
+`deviceId` and registers it with the backend — immediately if scanning is
+already active, otherwise on the next sync.
+
+**Call `setPushToken` explicitly on both platforms:**
+
+- **Android** (plugin ≥ 3.4.1): pass the **FCM token**. The bridge forwards it
+  to the native SDK (`BeAroundSDK.setPushToken`, available since native Android
+  3.4.0).
+- **iOS:** pass the **raw APNs token** — the backend delivers pushes through
+  APNs, so the FCM token does **not** work here. The SDK does try to capture the
+  APNs token automatically via an AppDelegate swizzle, but that capture **fails
+  when Firebase is present** (Firebase intercepts the swizzle — the most common
+  setup), and the token silently ends up NULL in the backend. Forwarding the raw
+  token explicitly works in every setup, and the call is idempotent.
 
 ```dart
-// Android: obtain the FCM token (e.g. via firebase_messaging) and forward it.
-final token = await FirebaseMessaging.instance.getToken();
-if (token != null) {
-  await BearoundFlutterSdk.setPushToken(token);
+import 'dart:io' show Platform;
+
+if (Platform.isAndroid) {
+  // Android: FCM token (e.g. via firebase_messaging).
+  final token = await FirebaseMessaging.instance.getToken();
+  if (token != null) await BearoundFlutterSdk.setPushToken(token);
+} else if (Platform.isIOS) {
+  // iOS: RAW APNs token — NOT the FCM token.
+  final apnsToken = await FirebaseMessaging.instance.getAPNSToken();
+  if (apnsToken != null) await BearoundFlutterSdk.setPushToken(apnsToken);
 }
 ```
 
-- **iOS:** the native SDK captures the APNs token automatically via an
-  AppDelegate swizzle, so calling `setPushToken` is usually unnecessary. Call it
-  only if you opted out (`BearoundAppDelegateProxyEnabled = NO` in `Info.plist`)
-  and forward the token from
-  `application(_:didRegisterForRemoteNotificationsWithDeviceToken:)`.
-- **Android:** the native SDK does not yet expose a push-token setter, so
-  `setPushToken` is a silent no-op there today (kept for API parity).
+> If you opted out of the SDK's AppDelegate swizzle
+> (`BearoundAppDelegateProxyEnabled = NO` in `Info.plist`), calling
+> `setPushToken` on iOS is not just recommended — it's the only way the token
+> reaches the backend.
 
 ## API Summary
 
+Full cross-platform event/field parity matrix: [EVENT-PARITY.md](EVENT-PARITY.md).
+
 ### Methods
 
-- `configure({businessToken, scanPrecision, maxQueuedPayloads})`
-- `startScanning() / stopScanning() / isScanning()`
-- `enableForegroundScanning([ForegroundScanConfig]) / disableForegroundScanning() / isForegroundScanningEnabled()` — Android-only
-- `setForegroundNotificationContent(NotificationContent)` — Android-only
-- `setUserProperties(UserProperties) / clearUserProperties()`
-- `setPushToken(String token)` — forward FCM/APNs token (iOS-only at the native layer)
+| Method | Platform | Notes |
+|---|---|---|
+| `configure({businessToken, scanPrecision, maxQueuedPayloads})` | Android + iOS | Required before `startScanning()`. Defaults: `ScanPrecision.high`, `MaxQueuedPayloads.medium`. |
+| `startScanning({foregroundScanConfig})` | Android + iOS | `foregroundScanConfig` is Android-only (ignored on iOS). |
+| `stopScanning()` | Android + iOS | |
+| `isScanning()` | Android + iOS | |
+| `requestPermissions()` | Android + iOS | iOS: native `requestAlwaysAuthorization()`; Android: runtime permissions via `permission_handler` (incl. notifications on 13+). |
+| `checkPermissions()` | Android + iOS | |
+| `requestLocationAuthorization({level})` | iOS | Unlocks the Location eye (terminated-app wake-up requires `always`). No-op on Android. |
+| `isIgnoringBatteryOptimizations()` | Android | iOS always resolves `true` (no equivalent restriction). |
+| `openBatteryOptimizationSettings()` | Android | iOS: no-op, resolves `false`. |
+| `isAutostartManageable()` | Android | `false` on stock Android and iOS. |
+| `openManufacturerAutostartSettings()` | Android | iOS/stock: no-op, resolves `false`. |
+| `setUserProperties(UserProperties)` | Android + iOS | |
+| `clearUserProperties()` | Android + iOS | |
+| `setPushToken(String)` | Android + iOS | FCM token on Android, **raw APNs token** on iOS — see [Push Token](#push-token). |
+| `getSdkVersion()` | iOS | Android returns `''` (native SDK exposes no version getter). |
+| `getCurrentScanPrecision()` | Android + iOS | `''` before `configure()`. |
+| `getBleDiagnosticInfo()` | iOS | Android returns `''`. |
+| `getPendingBatchCount()` | Android + iOS | Batches queued for retry after API failures. |
+| `isConfigured()` | Android + iOS | iOS: tracked by the bridge — may read `false` after an auto-restored background relaunch even while `isScanning()` is `true`. |
+| `isLocationAvailable()` | Android + iOS | Device location services on/off. |
+| `getAuthorizationStatus()` | Android + iOS | iOS: mirrors `CLAuthorizationStatus`. Android: derived from *location* permissions only — it does **not** reflect the BLE-scan gate on 12+; prefer `getBluetoothState()`. |
+| `getBluetoothState()` | Android + iOS | `poweredOn/poweredOff/unauthorized/...` — on Android 12+, `unauthorized` means `BLUETOOTH_SCAN` (Nearby devices) is missing. |
+| `getPersistedLog()` / `getPersistedLogRaw()` | iOS | Persisted detection log. Android returns `[]` (native SDK has no persisted log). |
+| `clearPersistedLog()` | iOS | No-op on Android. |
+| `enableForegroundScanning([ForegroundScanConfig])` | Android | iOS: no-op. |
+| `disableForegroundScanning()` | Android | iOS: no-op. |
+| `isForegroundScanningEnabled()` | Android | iOS always resolves `false`. |
+| `setForegroundNotificationContent(NotificationContent)` | Android | iOS: no-op. |
 
 ### Streams
 
-- `beaconsStream` - Detected beacons with metadata
-- `syncLifecycleStream` - Sync started/completed events
-- `backgroundDetectionStream` - Background beacon detections
-- `scanningStream` - Scanning state changes
-- `errorStream` - SDK errors
+| Stream | Platform | Emits |
+|---|---|---|
+| `beaconsStream` | Android + iOS | `List<Beacon>` — detected beacons with metadata (battery, firmware, temperature). |
+| `scanningStream` | Android + iOS | `bool` — scanning state changes. |
+| `errorStream` | Android + iOS | `BearoundError` — SDK errors. **Unbuffered**: subscribe before `startScanning()`. |
+| `syncLifecycleStream` | Android + iOS | `SyncLifecycleEvent` — sync `started`/`completed`. |
+| `backgroundDetectionStream` | Android + iOS | `BackgroundDetectionEvent` — beacon count detected in background. |
+| `beaconRegionStream` | Android + iOS | `BeaconRegionEvent` — beacon-region `enter`/`exit`. |
+| `activeScanStream` | Android + iOS | `ActiveScanEvent` — active scan (ranging + BLE) on/off. |
+| `bluetoothZoneStream` | iOS | `BluetoothZoneEvent` — Bluetooth-eye zone enter/exit (two-eyes model). Never emits on Android. |
+| `bluetoothScanModeStream` | iOS | `BluetoothScanModeEvent` — BLE scanner duty cycle (`idle`/`active`). Never emits on Android. |
+| `bluetoothStateStream` | Android + iOS | `BluetoothState` — Bluetooth adapter state (emits current state on subscribe). |
 
 ### Configuration Enums
 
-- **ScanPrecision**: `high` (continuous scan, sync every 15s), `medium` (10s scan + 10s pause per 60s), `low` (10s scan + 50s pause per 60s)
-- **MaxQueuedPayloads**: `small` (50), `medium` (100), `large` (200), `xlarge` (500)
+- **ScanPrecision**: `high` (continuous scan, sync every 15s — plugin default), `medium` (10s scan + 10s pause per 60s), `low` (10s scan + 50s pause per 60s)
+- **MaxQueuedPayloads**: `small` (50), `medium` (100 — default), `large` (200), `xlarge` (500)
+
+## Troubleshooting
+
+| Symptom | Check | Fix |
+|---|---|---|
+| No beacons detected (any platform) | Is it a **Bearound beacon**? The SDK only detects beacons advertising the proprietary **`0xBEAD` service data** — a generic iBeacon, or an iPhone simulating an iBeacon, is filtered out **by design** (Android scan filter accepts only `0xBEAD`). | Test with a real Bearound beacon. |
+| No beacons detected | `await BearoundFlutterSdk.isConfigured()` returns `false`. | Call `configure()` (and await it) before `startScanning()`. |
+| No beacons on **Android 12+** | `getBluetoothState()` returns `unauthorized` — "Nearby devices" (`BLUETOOTH_SCAN`) was denied. **Granting location does NOT unlock BLE scan on 12+.** | Request the Nearby devices permission (`requestPermissions()` does it) or send the user to app settings. |
+| No beacons on **iOS** | `getBluetoothState()` ≠ `poweredOn`, or `getAuthorizationStatus()` is `denied`/`notDetermined`. | Turn Bluetooth on; call `requestPermissions()` (Location "Always" is required for terminated-app wake-up). |
+| Detection stops in background (**Android**) | Battery optimization active or OEM battery killer (Xiaomi/Huawei/…): `isIgnoringBatteryOptimizations()` / `isAutostartManageable()`. | Follow the [Background reliability](#background-reliability-android) flow; for mission-critical presence use the [foreground-service mode](#mode-2--foreground-service-connecteddevice). |
+| Detection stops in background (**iOS**) | Background App Refresh disabled, or `BGTaskSchedulerPermittedIdentifiers` missing from `Info.plist`. | Enable Background App Refresh in device Settings; add both BGTask identifiers + `registerBackgroundTasks()` ([iOS setup](#background-tasks-bgtaskscheduler--required)). |
+| Errors never show up | `errorStream.listen()` called **after** `startScanning()` — the stream is unbuffered, early errors are lost. | Subscribe to `errorStream` **before** calling `startScanning()`. |
+| Push token NULL in the backend / silent push never arrives (iOS) | Firebase present → the SDK's automatic APNs capture fails (swizzle intercepted). | Always call `setPushToken` with the **raw APNs token** ([Push Token](#push-token)). |
+| App not woken when terminated (iOS) | Force-quit apps are **never** woken by silent push (Apple rule); relaunch happens via **beacon-region wakeup** and requires Location "Always" + the legacy AppDelegate setup. | Follow [Push notifications & background wakeup](#push-notifications--background-wakeup); verify the `aps-environment` matches the APNs environment (sandbox vs production). |
 
 ## Migration Guide
 
