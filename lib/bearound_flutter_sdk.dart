@@ -35,7 +35,8 @@ export 'src/models/scan_interval_configuration.dart';
 export 'src/models/sync_lifecycle_event.dart';
 export 'src/models/user_properties.dart';
 
-/// SDK principal do Bearound para integração com o SDK nativo 3.0.0.
+/// SDK principal do Bearound para integração com os SDKs nativos (Android/iOS —
+/// versões pinadas em `android/build.gradle` e `ios/bearound_flutter_sdk.podspec`).
 ///
 /// A interface Dart é o superconjunto das APIs nativas iOS e Android. Métodos
 /// disponíveis apenas em uma plataforma são no-op silenciosos na outra, e
@@ -256,7 +257,8 @@ class BearoundFlutterSdk {
   ///   o APNs via swizzle do AppDelegate, mas isso falha quando o Firebase está
   ///   presente (ele intercepta o swizzle) — então prefira encaminhar manualmente.
   ///
-  /// Encaminhado ao SDK nativo em ambas as plataformas (Android ≥ 3.4.0).
+  /// Encaminhado ao SDK nativo em ambas as plataformas — no Android desde o
+  /// plugin 3.4.1 (setter disponível no SDK nativo Android ≥ 3.4.0).
   static Future<void> setPushToken(String token) async {
     await _channel.invokeMethod('setPushToken', {'token': token});
   }
@@ -287,8 +289,8 @@ class BearoundFlutterSdk {
     return result ?? '';
   }
 
-  /// Número de batches em fila aguardando retry. **iOS-only**; Android
-  /// retorna `0`.
+  /// Número de batches em fila aguardando retry após falha de API. Funciona em
+  /// **ambas** as plataformas (Android ≥ 3.4.x expõe `pendingBatchCount`).
   static Future<int> getPendingBatchCount() async {
     final result = await _channel.invokeMethod<num>('getPendingBatchCount');
     return result?.toInt() ?? 0;
@@ -330,6 +332,9 @@ class BearoundFlutterSdk {
 
   /// Log de detecção persistido pelo SDK (sobrevive ao fechamento do app).
   /// Retorna entradas tipadas via [PersistedLogEntry].
+  ///
+  /// **iOS-only por ora**: o SDK nativo Android não expõe log persistido, então
+  /// o Android retorna sempre lista vazia (`[]`).
   static Future<List<PersistedLogEntry>> getPersistedLog() async {
     final raw = await _channel.invokeMethod<String>('getPersistedLog') ?? '[]';
     final decoded = jsonDecode(raw);
@@ -342,7 +347,7 @@ class BearoundFlutterSdk {
 
   /// Versão "crua" do log persistido (lista de mapas), para consumidores que
   /// preferem renderizar JSON livre. Mantida por conveniência — prefira
-  /// [getPersistedLog].
+  /// [getPersistedLog]. **iOS-only por ora** (Android retorna `[]`).
   static Future<List<Map<String, dynamic>>> getPersistedLogRaw() async {
     final raw = await _channel.invokeMethod<String>('getPersistedLog') ?? '[]';
     final decoded = jsonDecode(raw);
@@ -353,7 +358,7 @@ class BearoundFlutterSdk {
         .toList();
   }
 
-  /// Limpa o log persistido do SDK.
+  /// Limpa o log persistido do SDK. **iOS-only por ora** (no-op no Android).
   static Future<void> clearPersistedLog() async {
     await _channel.invokeMethod('clearPersistedLog');
   }
