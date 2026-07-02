@@ -48,6 +48,7 @@ void main() {
           'businessToken': businessToken,
           'scanPrecision': 'high',
           'maxQueuedPayloads': 200,
+          'debugNotifications': false,
         }),
       );
     });
@@ -58,12 +59,14 @@ void main() {
       expect(methodCalls, hasLength(1));
       expect(methodCalls.first.method, equals('configure'));
       // Default precision is HIGH (iOS-aligned) since 3.x.
+      // Debug notifications default OFF.
       expect(
         methodCalls.first.arguments,
         equals({
           'businessToken': 'test-token',
           'scanPrecision': 'high',
           'maxQueuedPayloads': 100,
+          'debugNotifications': false,
         }),
       );
     });

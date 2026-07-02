@@ -136,10 +136,16 @@ class BearoundFlutterSdk {
   ///
   /// O [maxQueuedPayloads] configura o tamanho da fila de retry para falhas de
   /// API (padrão: `medium` = 100 batches).
+  ///
+  /// O [debugNotifications] (iOS-only, **default `false`**) controla se o SDK
+  /// posta uma notificação local *visível* a cada scan disparado por silent push.
+  /// É um auxílio de QA — mantenha `false` em produção. Também ajustável em
+  /// runtime via [setDebugNotificationsEnabled]. No Android é ignorado.
   static Future<void> configure({
     required String businessToken,
     ScanPrecision scanPrecision = ScanPrecision.high,
     MaxQueuedPayloads maxQueuedPayloads = MaxQueuedPayloads.medium,
+    bool debugNotifications = false,
   }) async {
     if (businessToken.trim().isEmpty) {
       throw ArgumentError.value(
@@ -153,9 +159,17 @@ class BearoundFlutterSdk {
       'businessToken': businessToken.trim(),
       'scanPrecision': scanPrecision.value,
       'maxQueuedPayloads': maxQueuedPayloads.value,
+      'debugNotifications': debugNotifications,
     };
 
     await _channel.invokeMethod('configure', args);
+  }
+
+  /// Liga/desliga em runtime a notificação local *visível* de debug postada a
+  /// cada scan por silent push (iOS-only, **default `false`**). Deixe `false`
+  /// em produção — no Android é no-op.
+  static Future<void> setDebugNotificationsEnabled(bool enabled) async {
+    await _channel.invokeMethod('setDebugNotificationsEnabled', enabled);
   }
 
   // ---------------------------------------------------------------------------

@@ -22,6 +22,13 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
     /// Tracks if Flutter explicitly started scanning.
     private var isActiveScan = false
 
+    /// When true, the bridge posts a *visible* local notification on every
+    /// silent-push-triggered scan (`didCompletePushScan`). Debug/QA aid only —
+    /// DEFAULT OFF so production users of third-party host apps never see it.
+    /// Toggle from Dart via the `setDebugNotificationsEnabled` method channel or
+    /// the `debugNotifications` argument of `configure`.
+    private var debugNotificationsEnabled = false
+
     /// Tracks whether `configure()` has been called from Flutter. Mirrors the
     /// RN bridge — the native SDK keeps configuration state private, so the
     /// bridge tracks it locally.
@@ -138,6 +145,12 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
             let precisionRaw = (args?["scanPrecision"] as? String) ?? "high"
             let maxQueuedValue = (args?["maxQueuedPayloads"] as? NSNumber)?.intValue ?? 100
 
+            // Optional debug flag — keeps the visible "Push → Scan" notification
+            // off unless the host explicitly opts in. Absent argument = unchanged.
+            if let debugFlag = args?["debugNotifications"] as? Bool {
+                debugNotificationsEnabled = debugFlag
+            }
+
             let scanPrecision = mapToScanPrecision(precisionRaw)
             let maxQueuedPayloads = mapToMaxQueuedPayloads(maxQueuedValue)
 
@@ -158,6 +171,18 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
             if wasScanning {
                 let appState = UIApplication.shared.applicationState
                 if appState == .active {
+                    // Kick the native SDK into its foreground scan cadence. The
+                    // Flutter method-channel bridge attaches after the app's real
+                    // `willEnterForeground` has already fired, so the native SDK
+                    // (which keys its duty cycle off that lifecycle signal) never
+                    // sees a foreground transition on a cold Flutter start and
+                    // stays in the idle background cadence. Re-posting the
+                    // notification here — only when the app is genuinely `.active`
+                    // — hands it that signal. Validated on device 2026-06-30.
+                    // TODO(native): replace with an explicit
+                    // `BeAroundSDK.shared.enterForeground()` API so the bridge
+                    // stops posting an app-global UIKit notification (blast radius:
+                    // every analytics/player SDK in the host observes it).
                     NotificationCenter.default.post(name: UIApplication.willEnterForegroundNotification, object: nil)
                 }
                 BeAroundSDK.shared.startScanning()
@@ -174,6 +199,15 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
             BeAroundSDK.shared.delegate = self
             let appState = UIApplication.shared.applicationState
             if appState == .active {
+                // Same rationale as in `configure`: the bridge attaches after the
+                // app's real `willEnterForeground` fired, so the native SDK never
+                // sees a foreground transition on a cold Flutter start and stays
+                // in the idle background cadence. Re-post the signal — only when
+                // genuinely `.active` — so it enters the foreground scan cadence.
+                // Validated on device 2026-06-30. Do NOT remove until the native
+                // SDK exposes an explicit foreground hook.
+                // TODO(native): replace with `BeAroundSDK.shared.enterForeground()`
+                // to avoid posting an app-global UIKit notification.
                 NotificationCenter.default.post(name: UIApplication.willEnterForegroundNotification, object: nil)
             }
             BeAroundSDK.shared.startScanning()
@@ -221,6 +255,15 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
 
         case "clearUserProperties":
             BeAroundSDK.shared.clearUserProperties()
+            result(nil)
+
+        // MARK: - Debug
+        case "setDebugNotificationsEnabled":
+            // Toggles the visible "Push → Scan" local notification. Default OFF.
+            let enabled = (call.arguments as? Bool)
+                ?? ((call.arguments as? [String: Any])?["enabled"] as? Bool)
+                ?? false
+            debugNotificationsEnabled = enabled
             result(nil)
 
         // MARK: - Push token
@@ -474,6 +517,9 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
             type: "Push → Scan",
             detail: "\(beaconsFound) beacon(s) · \(syncStatus)"
         )
+        // Visible local notification is a debug/QA aid only — gated behind an
+        // opt-in flag (default OFF) so production users never see it.
+        guard debugNotificationsEnabled else { return }
         let content = UNMutableNotificationContent()
         content.title = "Push → Scan ✅"
         content.body = "\(beaconsFound) beacon(s) detectado(s) · \(syncStatus)"
