@@ -316,6 +316,12 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
         result.success(null)
       }
 
+      // --- Background reliability (Doze + OEM battery killers) — Android-only ---
+      "isIgnoringBatteryOptimizations" -> result.success(sdk.isIgnoringBatteryOptimizations())
+      "openBatteryOptimizationSettings" -> result.success(sdk.openBatteryOptimizationSettings())
+      "isAutostartManageable" -> result.success(sdk.isAutostartManageable())
+      "openManufacturerAutostartSettings" -> result.success(sdk.openManufacturerAutostartSettings())
+
       // Backward-compat
       // TODO(cleanup): removable no-op shim — the native SDK no longer has a
       // separate Bluetooth-scanning toggle; kept for older Dart callers.

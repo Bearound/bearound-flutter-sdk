@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.4.5] - 2026-07-01
+
+### Added
+
+- **Background-reliability API (Android):** `isIgnoringBatteryOptimizations()`, `openBatteryOptimizationSettings()`, `isAutostartManageable()`, `openManufacturerAutostartSettings()` — exposes the native helpers to keep the process eligible to wake under Doze and aggressive OEM battery managers (Xiaomi/Huawei/Oppo/Vivo/OnePlus/Letv). No location, no Google Play policy impact (uses the Settings screen, not the restricted permission). No-op on iOS (no equivalent restriction).
+
+### Changed
+
+- **Bumped native Android SDK to 3.4.5.** Two Android crash/robustness fixes: (1) a second FGS crash mode — `ForegroundServiceStartNotAllowedException` when the foreground service is started from the background on Android 14+ (the 3.4.4 fix only covered the permission-missing `SecurityException`); (2) `checkPermissions` now requires `BLUETOOTH_SCAN` on Android 12+, so the location-only path stops attempting a scan the OS blocks (no more caught-`SecurityException` log spam). iOS pin unchanged (BearoundSDK 3.4.2).
+
 ## [3.4.4] - 2026-07-01
 
 ### Changed

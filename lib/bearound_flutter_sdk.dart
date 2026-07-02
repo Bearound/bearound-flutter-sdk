@@ -186,6 +186,49 @@ class BearoundFlutterSdk {
   }
 
   // ---------------------------------------------------------------------------
+  // Background reliability (Android-only: Doze + OEM battery killers)
+  // ---------------------------------------------------------------------------
+
+  /// Se o app já está isento da otimização de bateria (Doze) do Android.
+  /// Android-only; retorna `true` no iOS (não há essa restrição).
+  static Future<bool> isIgnoringBatteryOptimizations() async {
+    final result = await _channel.invokeMethod<bool>(
+      'isIgnoringBatteryOptimizations',
+    );
+    return result ?? false;
+  }
+
+  /// Abre a tela de Settings de otimização de bateria para o usuário isentar o
+  /// app — melhora a sobrevivência do scan em background sob Doze. Usa a tela de
+  /// Settings (sem a permissão restrita `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`),
+  /// então não dispara revisão do Google Play. Android-only; `false` (no-op) no
+  /// iOS. Retorna `true` se conseguiu abrir a tela.
+  static Future<bool> openBatteryOptimizationSettings() async {
+    final result = await _channel.invokeMethod<bool>(
+      'openBatteryOptimizationSettings',
+    );
+    return result ?? false;
+  }
+
+  /// Se o device é de um OEM com tela de autostart/apps-protegidos conhecida
+  /// (Xiaomi/Huawei/Oppo/Vivo/OnePlus/Letv). Android-only; `false` no iOS e no
+  /// Android stock (Pixel).
+  static Future<bool> isAutostartManageable() async {
+    final result = await _channel.invokeMethod<bool>('isAutostartManageable');
+    return result ?? false;
+  }
+
+  /// Abre a tela de autostart/apps-protegidos do fabricante, quando existe —
+  /// mitiga OEMs que matam o processo em background mesmo no Android 14+.
+  /// Android-only; `false` em stock/OEM não mapeado ou no iOS.
+  static Future<bool> openManufacturerAutostartSettings() async {
+    final result = await _channel.invokeMethod<bool>(
+      'openManufacturerAutostartSettings',
+    );
+    return result ?? false;
+  }
+
+  // ---------------------------------------------------------------------------
   // User properties
   // ---------------------------------------------------------------------------
 
