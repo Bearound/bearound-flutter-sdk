@@ -288,6 +288,17 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
         case "isForegroundScanningEnabled":
             result(false)
 
+        // MARK: - Background reliability (Android-only; no-op on iOS)
+        // iOS has no user-facing battery-optimization / autostart exemption like Android's
+        // Doze / OEM battery killers. Report "already ignoring optimizations" so hosts
+        // don't prompt, and false for the Android-only open-settings / autostart methods.
+        case "isIgnoringBatteryOptimizations":
+            result(true)
+        case "openBatteryOptimizationSettings",
+             "openManufacturerAutostartSettings",
+             "isAutostartManageable":
+            result(false)
+
         // MARK: - Backward-compat
         // TODO(cleanup): removable no-op shim — the native SDK no longer has a
         // separate Bluetooth-scanning toggle; kept for older Dart callers.
