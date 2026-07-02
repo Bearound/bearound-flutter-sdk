@@ -289,8 +289,9 @@ class BearoundFlutterSdk {
   // Diagnostic / state getters (parity with native public API)
   // ---------------------------------------------------------------------------
 
-  /// Versão do SDK nativo. iOS retorna a versão; Android retorna `''` (o SDK
-  /// Android não expõe um getter público de versão).
+  /// Versão do SDK nativo em ambas as plataformas. iOS retorna
+  /// `BeAroundSDK.version`; Android retorna `io.bearound.sdk.BuildConfig.SDK_VERSION`
+  /// (injetado em build-time). Retorna `''` só se o nativo estiver indisponível.
   static Future<String> getSdkVersion() async {
     final result = await _channel.invokeMethod<String>('getSdkVersion');
     return result ?? '';
