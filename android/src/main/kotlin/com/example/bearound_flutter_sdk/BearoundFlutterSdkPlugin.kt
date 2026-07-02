@@ -269,8 +269,14 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
         }
       }
 
+      // Android OS API level (Build.VERSION.SDK_INT) — lets the Dart permission
+      // layer mirror the native scan gate (BLUETOOTH_SCAN on 12+, location on <12)
+      // without pulling in device_info_plus.
+      "getAndroidSdkInt" -> result.success(Build.VERSION.SDK_INT)
+
       // --- Diagnostic getters ---
-      "getSdkVersion" -> result.success("") // Android SDK has no public version getter
+      // Native SDK version injected at build time (io.bearound.sdk.BuildConfig.SDK_VERSION).
+      "getSdkVersion" -> result.success(io.bearound.sdk.BuildConfig.SDK_VERSION)
       "getCurrentScanPrecision" -> result.success(sdk.currentScanPrecision?.name?.lowercase(Locale.US) ?: "")
       "getBleDiagnosticInfo" -> result.success("") // iOS-only
       "getPendingBatchCount" -> result.success(sdk.pendingBatchCount)
