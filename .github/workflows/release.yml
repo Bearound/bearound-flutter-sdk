@@ -45,6 +45,35 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
+      - name: Validate native Android pin exists on JitPack
+        run: |
+          set -euo pipefail
+          # Extract the pinned bearound-android-sdk version from android/build.gradle
+          # (e.g. api 'com.github.Bearound:bearound-android-sdk:3.4.5').
+          NATIVE_VERSION=$(grep -oE "com\.github\.Bearound:bearound-android-sdk:[0-9A-Za-z.\-]+" android/build.gradle | head -1 | sed -E 's/.*bearound-android-sdk://')
+          if [ -z "$NATIVE_VERSION" ]; then
+            echo "❌ Could not find bearound-android-sdk pin in android/build.gradle"
+            exit 1
+          fi
+          POM_URL="https://jitpack.io/com/github/Bearound/bearound-android-sdk/${NATIVE_VERSION}/bearound-android-sdk-${NATIVE_VERSION}.pom"
+          echo "Validating native pin ${NATIVE_VERSION} → ${POM_URL}"
+          # JitPack builds on-demand: the first request can 404 while it builds.
+          # Retry with backoff so we don't publish a Flutter package whose Android
+          # dependency does not resolve for consumers (pub.dev is immutable).
+          ATTEMPTS=5
+          SLEEP=30
+          for i in $(seq 1 "$ATTEMPTS"); do
+            if curl -sf -o /dev/null "$POM_URL"; then
+              echo "✅ JitPack POM available for bearound-android-sdk:${NATIVE_VERSION}"
+              exit 0
+            fi
+            echo "Attempt $i/$ATTEMPTS: POM not available yet (JitPack may be building). Waiting ${SLEEP}s…"
+            sleep "$SLEEP"
+          done
+          echo "❌ bearound-android-sdk:${NATIVE_VERSION} POM not found on JitPack after ${ATTEMPTS} attempts."
+          echo "   Push the matching tag to bearound-android-sdk and warm the JitPack build before releasing."
+          exit 1
+
       - name: Run all tests
         run: flutter test --coverage
 
