@@ -17,9 +17,15 @@ enum AuthorizationStatus {
     switch (value) {
       case 'always':
       case 'authorizedAlways':
+      // snake_case emitted by the Android native SDK
+      // (`getLocationPermissionStatus()` returns `authorized_always`).
+      case 'authorized_always':
         return AuthorizationStatus.always;
       case 'whenInUse':
       case 'authorizedWhenInUse':
+      // snake_case emitted by the Android native SDK
+      // (`getLocationPermissionStatus()` returns `authorized_when_in_use`).
+      case 'authorized_when_in_use':
         return AuthorizationStatus.whenInUse;
       case 'denied':
         return AuthorizationStatus.denied;
