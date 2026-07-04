@@ -72,5 +72,5 @@ dependencies {
     // SecurityException/crash-loop when "Nearby devices" is denied on Android 14+) +
     // background-reliability helpers (battery-opt/OEM autostart, no location, no policy).
     // NOTE: the tag 3.4.4 must be on JitPack first; the plugin CI fails until then.
-    api 'com.github.Bearound:bearound-android-sdk:3.4.4'
+    api 'com.github.Bearound:bearound-android-sdk:3.4.5'
 }

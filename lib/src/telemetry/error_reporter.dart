@@ -190,20 +190,25 @@ class ErrorReporter {
   // Classification
   // ---------------------------------------------------------------------------
 
-  /// True when [stack] contains a frame from `package:bearound_flutter_sdk`,
-  /// excluding this telemetry file — so a reporter-internal error is never
-  /// classified as an SDK error.
+  /// True ONLY when the error ORIGINATED in our package — never a host-app error.
+  ///
+  /// Ownership is the FIRST application frame (skipping the Dart/Flutter runtime
+  /// and this telemetry file). A host error that merely passes THROUGH one of our
+  /// callbacks has the host frame on top and ours below — the old "any SDK frame
+  /// in the stack" test captured those (a leak of the host app's errors); this
+  /// origin test does not.
   bool _isFromSdk(StackTrace? stack) {
     if (stack == null) return false;
-    final text = stack.toString();
-    if (!text.contains(_sdkPackageMarker)) return false;
-
-    // If the ONLY SDK frames belong to this telemetry file, it is not "ours".
-    for (final line in const LineSplitter().convert(text)) {
-      if (line.contains(_sdkPackageMarker) &&
-          !line.contains(_telemetryFileMarker)) {
-        return true;
-      }
+    for (final line in const LineSplitter().convert(stack.toString())) {
+      final frame = line.trim();
+      if (frame.isEmpty || frame == '<asynchronous suspension>') continue;
+      // Dart/Flutter runtime frames surface the error but never originate it.
+      if (frame.contains('dart:') && !frame.contains('package:')) continue;
+      if (frame.contains('package:flutter/')) continue;
+      // Our own telemetry file never counts as the origin (avoids self-reporting).
+      if (frame.contains(_telemetryFileMarker)) continue;
+      // The first real application frame decides ownership.
+      return frame.contains(_sdkPackageMarker);
     }
     return false;
   }

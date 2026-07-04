@@ -24,6 +24,16 @@ StackTrace _telemetryOnlyStack() => StackTrace.fromString(
   '(package:bearound_flutter_sdk/src/telemetry/error_reporter.dart:150:7)',
 );
 
+/// The critical leak case: a HOST error thrown inside one of our callbacks. The
+/// host frame is on top (the culprit), our frame is below (we merely invoked the
+/// callback). Must NEVER be reported — it is the host app's bug.
+StackTrace _hostViaSdkCallbackStack() => StackTrace.fromString(
+  '#0      _onBeacons (package:example/home.dart:88:9)\n'
+  '#1      BearoundFlutterSdk._emit '
+  '(package:bearound_flutter_sdk/src/events.dart:30:5)\n'
+  '#2      main (package:example/main.dart:10:3)',
+);
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -78,6 +88,23 @@ void main() {
         message: 'telemetry blew up',
         stack: _telemetryOnlyStack(),
         context: 'async',
+      );
+
+      expect(reported, isFalse);
+      expect(bodies, isEmpty);
+    });
+
+    test('ignores a HOST error thrown inside an SDK callback', () async {
+      // The origin (top application frame) is the host — our frame is only below
+      // it because we invoked the callback. Must never be captured.
+      final bodies = <String>[];
+      reporter.transport = (body, token) async => bodies.add(body);
+
+      final reported = await reporter.reportForTest(
+        type: 'Exception',
+        message: 'host callback blew up',
+        stack: _hostViaSdkCallbackStack(),
+        context: 'uncaught',
       );
 
       expect(reported, isFalse);
