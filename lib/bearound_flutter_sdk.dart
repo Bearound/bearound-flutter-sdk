@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 
 import 'src/core/permission_service.dart';
 import 'src/models/active_scan_event.dart';
+import 'src/telemetry/error_reporter.dart';
 import 'src/models/authorization_status.dart';
 import 'src/models/background_detection_event.dart';
 import 'src/models/beacon.dart';
@@ -147,6 +148,21 @@ class BearoundFlutterSdk {
     };
 
     await _channel.invokeMethod('configure', args);
+
+    // Install the Dart-layer error telemetry AFTER the native configure. The
+    // embedded native SDKs already capture native crashes; this covers uncaught
+    // Dart/Flutter errors originating in the plugin. Idempotent and never throws.
+    ErrorReporter.instance.install(businessToken.trim());
+  }
+
+  /// Liga/desliga a telemetria de erros da camada Dart do SDK em runtime
+  /// (**default: ligado**). Captura apenas erros não-tratados originados no
+  /// próprio plugin (`package:bearound_flutter_sdk`) e os envia, fire-and-forget,
+  /// ao ingest da Bearound — nunca intercepta nem quebra o fluxo de erros do app.
+  /// Os crashes nativos (Android/iOS) seguem sendo capturados pelos
+  /// `ErrorReporter` dos SDKs nativos embarcados, independente deste flag.
+  static void setErrorReportingEnabled(bool enabled) {
+    ErrorReporter.instance.setEnabled(enabled);
   }
 
   // ---------------------------------------------------------------------------

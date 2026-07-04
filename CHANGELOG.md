@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Dart-layer error telemetry (`ErrorReporter`).** The plugin now captures uncaught **Dart/Flutter** errors originating in `package:bearound_flutter_sdk` (via chained `FlutterError.onError` + `PlatformDispatcher.onError`) and ships them fire-and-forget to `POST https://ingest.bearound.io/sdk-errors`, matching the Android native `ErrorReporter` contract (`sdk.platform: "flutter"`). Installed automatically on `configure()`. Only errors whose stack contains an SDK frame are reported — host/third-party errors and the telemetry file itself are excluded. Isolated transport (`dart:io HttpClient`, 5 s timeouts), in-memory rate limit (20/h) + 5 min dedupe, stack capped at 8000 chars, permission snapshot via `permission_handler` (read without prompting). The handlers are always chained (the previous `FlutterError.onError` is kept and invoked; `PlatformDispatcher.onError` returns `false`) so the host's error flow is never hijacked or broken. Native crashes keep being captured by the embedded native SDKs — this only adds the Dart layer they cannot see. **No new dependency.**
+- **`BearoundFlutterSdk.setErrorReportingEnabled(bool)`** — public opt-out for the Dart-layer telemetry (default: enabled). No-op for native crash capture, which is independent.
+
 ## [3.4.4] - 2026-07-01
 
 ### Changed

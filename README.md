@@ -338,6 +338,7 @@ if (token != null) {
 - `setForegroundNotificationContent(NotificationContent)` — Android-only
 - `setUserProperties(UserProperties) / clearUserProperties()`
 - `setPushToken(String token)` — forward FCM/APNs token (iOS-only at the native layer)
+- `setErrorReportingEnabled(bool)` — opt out of Dart-layer error telemetry (default: on)
 
 ### Streams
 
@@ -351,6 +352,37 @@ if (token != null) {
 
 - **ScanPrecision**: `high` (continuous scan, sync every 15s), `medium` (10s scan + 10s pause per 60s), `low` (10s scan + 50s pause per 60s)
 - **MaxQueuedPayloads**: `small` (50), `medium` (100), `large` (200), `xlarge` (500)
+
+## Error telemetry
+
+The SDK ships lightweight, isolated crash telemetry so we can spot and fix
+integration issues quickly. It works on two layers:
+
+- **Native (Android/iOS):** the embedded native SDKs already capture native
+  crashes via their own `ErrorReporter`s. Nothing to configure.
+- **Dart (this plugin):** installed automatically on `configure()`, it chains
+  `FlutterError.onError` and `PlatformDispatcher.onError` and reports **only**
+  uncaught errors whose stack trace contains a `package:bearound_flutter_sdk`
+  frame. Errors from your app or third-party packages are never touched.
+
+It is designed to be invisible and safe:
+
+- **Never breaks your app.** The global handlers are always chained — the
+  previous `FlutterError.onError` is kept and still invoked, and
+  `PlatformDispatcher.onError` returns `false` so the platform still sees the
+  error. Nothing is swallowed or hijacked.
+- **Fire-and-forget** delivery to `POST https://ingest.bearound.io/sdk-errors`
+  with short (5 s) timeouts, an in-memory rate limit (20/h) and 5-minute dedupe.
+  Uses `dart:io HttpClient` — no extra dependency.
+- **Minimal payload:** error type/message/stack (capped at 8000 chars), a
+  permission snapshot (Bluetooth/location/notifications, read without
+  prompting), the platform, and a UTC timestamp. No PII.
+
+Opt out at any time (default is on):
+
+```dart
+BearoundFlutterSdk.setErrorReportingEnabled(false);
+```
 
 ## Migration Guide
 
