@@ -521,15 +521,27 @@ class BearoundFlutterSdk {
   static void _ensureErrorBufferSubscribed() {
     if (_errorBufferSubscribed) return;
     _errorBufferSubscribed = true;
-    _rawErrorStream().listen((error) {
-      // Once the first real listener has consumed (and cleared) the buffer, stop
-      // accumulating — live delivery takes over from there.
-      if (_errorBufferReplayed) return;
-      _bufferedErrors.add(error);
-      if (_bufferedErrors.length > _errorReplayBufferSize) {
-        _bufferedErrors.removeAt(0);
-      }
-    });
+    _rawErrorStream().listen(
+      (error) {
+        // Once the first real listener has consumed (and cleared) the buffer,
+        // stop accumulating — live delivery takes over from there.
+        if (_errorBufferReplayed) return;
+        _bufferedErrors.add(error);
+        if (_bufferedErrors.length > _errorReplayBufferSize) {
+          _bufferedErrors.removeAt(0);
+        }
+      },
+      // NEVER-CRASH-THE-HOST: without onError, an EventChannel failure becomes
+      // an unhandled async error attributed to the SDK inside the host app.
+      // Swallow it here (and report it — silent for the user, visible to us).
+      onError: (Object error, StackTrace stack) {
+        ErrorReporter.instance.reportCaught(
+          error,
+          stack,
+          context: 'errorStream',
+        );
+      },
+    );
   }
 
   /// Stream do ciclo de sincronização (`started` / `completed`).

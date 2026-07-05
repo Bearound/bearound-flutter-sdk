@@ -64,6 +64,10 @@ class ErrorReporter {
   /// invoked so the host's error flow is untouched.
   FlutterExceptionHandler? _previousFlutterOnError;
 
+  /// The [PlatformDispatcher.onError] present before [install] chained ours
+  /// (e.g. Crashlytics). Always delegated to, and its return value honored.
+  bool Function(Object, StackTrace)? _previousDispatcherOnError;
+
   // Rate-limit + dedupe state (report can be invoked from any zone/isolate root).
   final List<DateTime> _reportTimestamps = <DateTime>[];
   final Map<String, DateTime> _lastReportedAt = <String, DateTime>{};
@@ -115,6 +119,11 @@ class ErrorReporter {
         }
       };
 
+      // Chain a pre-existing host handler (e.g. Crashlytics): capture it BEFORE
+      // overwriting, always delegate, and honor ITS return value — silently
+      // replacing a handler that returned `true` would break the host's error
+      // flow (golden rule 3).
+      _previousDispatcherOnError = PlatformDispatcher.instance.onError;
       PlatformDispatcher.instance.onError = (Object error, StackTrace stack) {
         try {
           if (_isFromSdk(stack)) {
@@ -128,8 +137,17 @@ class ErrorReporter {
         } catch (_) {
           // Swallow — never break the host.
         }
-        // Returning false lets the error propagate to the platform default;
-        // we do NOT hijack/consume it.
+        final previous = _previousDispatcherOnError;
+        if (previous != null) {
+          try {
+            return previous(error, stack);
+          } catch (_) {
+            // A throwing host handler must not surface through our hook.
+            return false;
+          }
+        }
+        // No previous handler: returning false lets the error propagate to the
+        // platform default; we do NOT hijack/consume it.
         return false;
       };
     } catch (_) {
@@ -292,7 +310,7 @@ class ErrorReporter {
 
   /// Plugin version — kept in sync with `pubspec.yaml`. A literal (rather than a
   /// method-channel call) so the snapshot never blocks on the platform side.
-  static const String _sdkVersion = '3.4.4';
+  static const String _sdkVersion = '3.4.5';
 
   Future<Map<String, dynamic>> _deviceSnapshot() async {
     final device = <String, dynamic>{
@@ -407,6 +425,23 @@ class ErrorReporter {
     _reportTimestamps.clear();
     _lastReportedAt.clear();
     transport = _httpPost;
+  }
+
+  /// Reports an error already CAUGHT inside the SDK's own plumbing (e.g. the
+  /// internal EventChannel subscription) — the call site itself proves the
+  /// origin is ours, so the stack filter is not applied. Fire-and-forget and
+  /// exception-proof: this method never throws into the caller.
+  void reportCaught(Object error, StackTrace? stack, {required String context}) {
+    try {
+      _report(
+        type: error.runtimeType.toString(),
+        message: _messageOf(error, ''),
+        stack: stack,
+        context: context,
+      );
+    } catch (_) {
+      // GOLDEN RULE: telemetry must never interfere with the host's flow.
+    }
   }
 
   /// Test hook: drives the private report path with an explicit stack/context
