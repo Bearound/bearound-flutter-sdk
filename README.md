@@ -518,6 +518,7 @@ Full cross-platform event/field parity matrix: [EVENT-PARITY.md](EVENT-PARITY.md
 | `disableForegroundScanning()` | Android | iOS: no-op. |
 | `isForegroundScanningEnabled()` | Android | iOS always resolves `false`. |
 | `setForegroundNotificationContent(NotificationContent)` | Android | iOS: no-op. |
+| `setErrorReportingEnabled(bool)` | Android + iOS | Opt out of the Dart-layer error telemetry (default: on). Native crash capture is independent. |
 
 ### Streams
 
@@ -552,6 +553,37 @@ Full cross-platform event/field parity matrix: [EVENT-PARITY.md](EVENT-PARITY.md
 | Errors never show up | `errorStream.listen()` called **after** `startScanning()` — the stream is unbuffered, early errors are lost. | Subscribe to `errorStream` **before** calling `startScanning()`. |
 | Push token NULL in the backend / silent push never arrives (iOS) | Firebase present → the SDK's automatic APNs capture fails (swizzle intercepted). | Always call `setPushToken` with the **raw APNs token** ([Push Token](#push-token)). |
 | App not woken when terminated (iOS) | Force-quit apps are **never** woken by silent push (Apple rule); relaunch happens via **beacon-region wakeup** and requires Location "Always" + the legacy AppDelegate setup. | Follow [Push notifications & background wakeup](#push-notifications--background-wakeup); verify the `aps-environment` matches the APNs environment (sandbox vs production). |
+
+## Error telemetry
+
+The SDK ships lightweight, isolated crash telemetry so we can spot and fix
+integration issues quickly. It works on two layers:
+
+- **Native (Android/iOS):** the embedded native SDKs already capture native
+  crashes via their own `ErrorReporter`s. Nothing to configure.
+- **Dart (this plugin):** installed automatically on `configure()`, it chains
+  `FlutterError.onError` and `PlatformDispatcher.onError` and reports **only**
+  uncaught errors whose stack trace contains a `package:bearound_flutter_sdk`
+  frame. Errors from your app or third-party packages are never touched.
+
+It is designed to be invisible and safe:
+
+- **Never breaks your app.** The global handlers are always chained — the
+  previous `FlutterError.onError` is kept and still invoked, and
+  `PlatformDispatcher.onError` returns `false` so the platform still sees the
+  error. Nothing is swallowed or hijacked.
+- **Fire-and-forget** delivery to `POST https://ingest.bearound.io/sdk-errors`
+  with short (5 s) timeouts, an in-memory rate limit (20/h) and 5-minute dedupe.
+  Uses `dart:io HttpClient` — no extra dependency.
+- **Minimal payload:** error type/message/stack (capped at 8000 chars), a
+  permission snapshot (Bluetooth/location/notifications, read without
+  prompting), the platform, and a UTC timestamp. No PII.
+
+Opt out at any time (default is on):
+
+```dart
+BearoundFlutterSdk.setErrorReportingEnabled(false);
+```
 
 ## Migration Guide
 
