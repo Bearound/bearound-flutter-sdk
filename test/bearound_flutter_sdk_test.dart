@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bearound_flutter_sdk/bearound_flutter_sdk.dart';
 import 'package:bearound_flutter_sdk/src/telemetry/error_reporter.dart';
 import 'package:faker/faker.dart';
@@ -220,22 +222,43 @@ void main() {
       final reporter = ErrorReporter.instance;
       reporter.resetForTest();
       final bodies = <String>[];
-      reporter.transport = (body, token) async => bodies.add(body);
+      // reportCaught is fire-and-forget and its _report awaits a permission
+      // snapshot — signal completion via a Completer instead of guessing how
+      // many pumpEventQueue turns the nested awaits need (that was flaky on CI).
+      final twoReported = Completer<void>();
+      reporter.transport = (body, token) async {
+        bodies.add(body);
+        if (bodies.length == 2 && !twoReported.isCompleted) {
+          twoReported.complete();
+        }
+      };
 
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(channel, (MethodCall call) async {
             if (call.method == 'getPersistedLog') return 'not-json{{';
             return null;
           });
+      // Mock permission_handler so the report's permission snapshot resolves
+      // without a platform round-trip (keeps the report deterministic).
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(
+            const MethodChannel('flutter.baseflow.com/permissions/methods'),
+            (call) async => 0,
+          );
 
       // NEVER-CRASH: a FormatException must not escape into the host.
       expect(await BearoundFlutterSdk.getPersistedLog(), isEmpty);
       expect(await BearoundFlutterSdk.getPersistedLogRaw(), isEmpty);
 
       // Doctrine: every silent failure reports (distinct contexts → 2 reports).
-      await pumpEventQueue();
+      await twoReported.future.timeout(const Duration(seconds: 5));
       expect(bodies, hasLength(2));
 
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(
+            const MethodChannel('flutter.baseflow.com/permissions/methods'),
+            null,
+          );
       reporter.resetForTest();
     });
 
