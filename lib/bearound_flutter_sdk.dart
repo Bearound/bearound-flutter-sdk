@@ -377,10 +377,12 @@ class BearoundFlutterSdk {
   /// **iOS-only por ora**: o SDK nativo Android não expõe log persistido, então
   /// o Android retorna sempre lista vazia (`[]`).
   static Future<List<PersistedLogEntry>> getPersistedLog() async {
-    final raw = await _channel.invokeMethod<String>('getPersistedLog') ?? '[]';
-    // NEVER-CRASH-THE-HOST: malformed JSON from the native side must not throw
-    // a FormatException into the host — degrade to empty and report it to us.
+    // NEVER-CRASH-THE-HOST: the method is documented as always-[] on Android —
+    // neither a channel failure (SDK_UNAVAILABLE/BEAROUND_INTERNAL) nor
+    // malformed native JSON may throw into the host. Degrade to [] + report.
     try {
+      final raw =
+          await _channel.invokeMethod<String>('getPersistedLog') ?? '[]';
       final decoded = jsonDecode(raw);
       if (decoded is! List) return const [];
       return decoded
@@ -397,9 +399,11 @@ class BearoundFlutterSdk {
   /// preferem renderizar JSON livre. Mantida por conveniência — prefira
   /// [getPersistedLog]. **iOS-only por ora** (Android retorna `[]`).
   static Future<List<Map<String, dynamic>>> getPersistedLogRaw() async {
-    final raw = await _channel.invokeMethod<String>('getPersistedLog') ?? '[]';
-    // NEVER-CRASH-THE-HOST: same malformed-JSON guard as [getPersistedLog].
+    // NEVER-CRASH-THE-HOST: same full guard as [getPersistedLog] — channel
+    // failure or malformed JSON degrades to [] + report, never throws.
     try {
+      final raw =
+          await _channel.invokeMethod<String>('getPersistedLog') ?? '[]';
       final decoded = jsonDecode(raw);
       if (decoded is! List) return [];
       return decoded
