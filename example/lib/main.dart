@@ -57,7 +57,11 @@ class _BeaconHomePageState extends State<BeaconHomePage>
   // ---- Permission state ----
   // NOTE: push is app-level now — the SDK no longer manages notification
   // permission or posting, so the example doesn't request it either.
+  // Real, separately-read statuses. On Android 12+ the BLE-scan gate is
+  // BLUETOOTH_SCAN ("Nearby devices"), NOT location — so we surface both
+  // instead of collapsing them into one misleading "Localização" row.
   bool _locationGranted = false;
+  bool _bluetoothScanGranted = false;
   bool _notificationsGranted = false;
   BluetoothState _bluetoothState = BluetoothState.unknown;
 
@@ -152,30 +156,50 @@ class _BeaconHomePageState extends State<BeaconHomePage>
     }
   }
 
-  bool get _canScan =>
-      _locationGranted || _bluetoothState == BluetoothState.poweredOn;
+  /// Whether the SDK can actually run a scan, mirroring its native gate:
+  /// Android 12+ needs BLUETOOTH_SCAN granted + the radio on; iOS needs
+  /// location + the radio on. (Android <12 uses location, but that path is
+  /// legacy — the example targets the 12+ reality.)
+  bool get _canScan {
+    if (Platform.isAndroid) {
+      return _bluetoothScanGranted &&
+          _bluetoothState == BluetoothState.poweredOn;
+    }
+    return _locationGranted && _bluetoothState == BluetoothState.poweredOn;
+  }
 
   // ---------------------------------------------------------------------------
   // Boot
   // ---------------------------------------------------------------------------
 
-  /// Atualiza o status da permissão de Notificações (Android 13+
-  /// POST_NOTIFICATIONS; iOS). 1:1 com o example React Native.
-  Future<void> _refreshNotificationStatus() async {
-    final status = await Permission.notification.status;
-    if (mounted) setState(() => _notificationsGranted = status.isGranted);
+  /// Reads the REAL status of each permission independently. Crucially it does
+  /// NOT use the return of `requestPermissions()` for the location row — on
+  /// Android 12+ that call returns the BLUETOOTH_SCAN gate, not location, which
+  /// made the UI show "Localização: Negada" while location was actually granted.
+  Future<void> _refreshPermissions() async {
+    final location = await Permission.location.status;
+    // BLUETOOTH_SCAN is the Android 12+ scan gate; on iOS it is not the model,
+    // so fall back to the location status there.
+    final scan = Platform.isAndroid
+        ? await Permission.bluetoothScan.status
+        : location;
+    final notif = await Permission.notification.status;
+    if (!mounted) return;
+    setState(() {
+      _locationGranted = location.isGranted;
+      _bluetoothScanGranted = scan.isGranted;
+      _notificationsGranted = notif.isGranted;
+    });
   }
 
   Future<void> _bootstrap() async {
     // Solicita permissões (Location + BT). Não bloqueia — o SDK nativo nunca
     // gateia scan; qualquer olho disponível ativa.
-    final granted = await BearoundFlutterSdk.requestPermissions();
-    setState(() => _locationGranted = granted);
+    await BearoundFlutterSdk.requestPermissions();
 
-    // Notificações (Android 13+ POST_NOTIFICATIONS): o foreground service de scan
-    // posta uma notificação persistente, então exibimos o status. O push em si
-    // segue app-level; aqui só refletimos a permissão (1:1 com o example RN).
-    await _refreshNotificationStatus();
+    // Lê o status REAL de cada permissão (location, nearby-devices, notificação)
+    // — sem confundir o gate de scan (BLUETOOTH_SCAN no 12+) com location.
+    await _refreshPermissions();
 
     // Bluetooth state inicial.
     final bt = await BearoundFlutterSdk.getBluetoothState();
@@ -209,6 +233,9 @@ class _BeaconHomePageState extends State<BeaconHomePage>
       _isScanning = running;
       _status = running ? 'Scaneando…' : 'Parado';
     });
+    // Re-read permissions on resume: the user may have changed them in Settings
+    // (e.g. granted "Nearby devices" or Location) while the app was backgrounded.
+    await _refreshPermissions();
   }
 
   // ---------------------------------------------------------------------------
@@ -660,12 +687,23 @@ class _BeaconHomePageState extends State<BeaconHomePage>
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
             const SizedBox(height: 12),
+            // Android 12+: THE scan gate. Labeled as the OS labels it.
+            if (Platform.isAndroid)
+              _permRow(
+                'Nearby devices (BT Scan)',
+                _bluetoothScanGranted ? 'Concedida' : 'Negada',
+                _bluetoothScanGranted ? Colors.green : Colors.red,
+              ),
             _permRow(
               'Localização',
               _locationGranted ? 'Concedida' : 'Negada',
               _locationGranted ? Colors.green : Colors.red,
             ),
-            _permRow('Bluetooth', btLabel, _bluetoothColor(_bluetoothState)),
+            _permRow(
+              'Bluetooth (rádio)',
+              btLabel,
+              _bluetoothColor(_bluetoothState),
+            ),
             _permRow(
               'Notificações',
               _notificationsGranted ? 'Concedida' : 'Negada',
@@ -674,8 +712,10 @@ class _BeaconHomePageState extends State<BeaconHomePage>
             const SizedBox(height: 8),
             Text(
               _canScan
-                  ? '✓ Pronto para detectar (Localização e/ou Bluetooth)'
-                  : '⚠ Conceda Localização ou ligue o Bluetooth',
+                  ? '✓ Pronto para detectar'
+                  : (Platform.isAndroid
+                        ? '⚠ Conceda "Nearby devices" e ligue o Bluetooth'
+                        : '⚠ Conceda Localização e ligue o Bluetooth'),
               style: TextStyle(
                 color: _canScan ? Colors.green : Colors.orange,
                 fontWeight: FontWeight.bold,
@@ -689,7 +729,7 @@ class _BeaconHomePageState extends State<BeaconHomePage>
                 await Permission.notification.request();
                 final bt = await BearoundFlutterSdk.getBluetoothState();
                 if (mounted) setState(() => _bluetoothState = bt);
-                await _refreshNotificationStatus();
+                await _refreshPermissions();
               },
               icon: const Icon(Icons.lock_open),
               label: const Text('Solicitar permissões'),
