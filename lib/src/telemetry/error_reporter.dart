@@ -100,7 +100,10 @@ class ErrorReporter {
           if (_isFromSdk(details.stack)) {
             _report(
               type: details.exception.runtimeType.toString(),
-              message: _messageOf(details.exception, details.summary.toString()),
+              message: _messageOf(
+                details.exception,
+                details.summary.toString(),
+              ),
               stack: details.stack,
               context: 'uncaught',
             );
@@ -431,7 +434,11 @@ class ErrorReporter {
   /// internal EventChannel subscription) — the call site itself proves the
   /// origin is ours, so the stack filter is not applied. Fire-and-forget and
   /// exception-proof: this method never throws into the caller.
-  void reportCaught(Object error, StackTrace? stack, {required String context}) {
+  void reportCaught(
+    Object error,
+    StackTrace? stack, {
+    required String context,
+  }) {
     try {
       _report(
         type: error.runtimeType.toString(),
