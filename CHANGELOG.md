@@ -15,9 +15,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`BearoundFlutterSdk.setErrorReportingEnabled(bool)`** — public opt-out for the Dart-layer telemetry (default: enabled). No-op for native crash capture, which is independent.
 - **Background-reliability API (Android):** `isIgnoringBatteryOptimizations()`, `openBatteryOptimizationSettings()`, `isAutostartManageable()`, `openManufacturerAutostartSettings()` — exposes the native helpers to keep the process eligible to wake under Doze and aggressive OEM battery managers (Xiaomi/Huawei/Oppo/Vivo/OnePlus/Letv). No location, no Google Play policy impact (uses the Settings screen, not the restricted permission). No-op on iOS (no equivalent restriction).
 
+### Fixed
+
+- **Never-crash-the-host hardening (Dart layer).** Three fixes from the cross-platform crash-safety audit: (1) `PlatformDispatcher.onError` now CHAINS a pre-existing host handler (e.g. Crashlytics) instead of silently replacing it — the previous handler is captured, always delegated to, and its return value honored; (2) the plugin's internal error-stream subscription gained an `onError` guard — an `EventChannel` failure no longer surfaces as an unhandled async error attributed to the SDK inside the host app (it is swallowed and reported to error telemetry via the new `ErrorReporter.reportCaught`); (3) telemetry reports were labeled with the previous version (3.4.4) — now 3.4.5. Doctrine: the SDK may fail silently, but it must NEVER crash the host — and every silent failure is reported to `POST /sdk-errors`.
+
 ### Changed
 
-- **Bumped native SDKs to 3.4.5 (Android + iOS).** Android: DX audit + error telemetry + two crash/robustness fixes — (1) a second FGS crash mode (`ForegroundServiceStartNotAllowedException`, started from the background on Android 14+; the 3.4.4 fix only covered the permission-missing `SecurityException`); (2) `checkPermissions` now requires `BLUETOOTH_SCAN` on Android 12+, so the location-only path stops attempting a scan the OS blocks (no more caught-`SecurityException` log spam). iOS: DX audit + error telemetry (BearoundSDK pin 3.4.2 → 3.4.5).
+- **Bumped native SDKs to 3.4.5 (Android + iOS).** Android: DX audit + error telemetry + never-crash-the-host hardening (safe no-op on blank token; graceful degradation on devices without a Bluetooth radio) + two crash/robustness fixes — (1) a second FGS crash mode (`ForegroundServiceStartNotAllowedException`, started from the background on Android 14+; the 3.4.4 fix only covered the permission-missing `SecurityException`); (2) `checkPermissions` now requires `BLUETOOTH_SCAN` on Android 12+, so the location-only path stops attempting a scan the OS blocks (no more caught-`SecurityException` log spam). iOS: DX audit + error telemetry + never-crash-the-host hardening (CoreBluetooth state restoration gated on the host's `bluetooth-central` background mode) (BearoundSDK pin 3.4.2 → 3.4.5).
 
 ## [3.4.4] - 2026-07-01
 
