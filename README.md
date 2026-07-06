@@ -1,6 +1,6 @@
 # 🐻 Bearound Flutter SDK
 
-Official Flutter plugin for the Bearound native SDKs — Android **3.4.5** · iOS **3.4.2**.
+Official Flutter plugin for the Bearound native SDKs — Android **3.4.5** · iOS **3.4.5**.
 
 ## Features
 
@@ -504,7 +504,7 @@ Full cross-platform event/field parity matrix: [EVENT-PARITY.md](EVENT-PARITY.md
 | `setUserProperties(UserProperties)` | Android + iOS | |
 | `clearUserProperties()` | Android + iOS | |
 | `setPushToken(String)` | Android + iOS | FCM token on Android, **raw APNs token** on iOS — see [Push Token](#push-token). |
-| `getSdkVersion()` | iOS | Android returns `''` (native SDK exposes no version getter). |
+| `getSdkVersion()` | Android + iOS | Android returns `BuildConfig.SDK_VERSION` (injected at build time); `''` only if the native layer is unavailable. |
 | `getCurrentScanPrecision()` | Android + iOS | `''` before `configure()`. |
 | `getBleDiagnosticInfo()` | iOS | Android returns `''`. |
 | `getPendingBatchCount()` | Android + iOS | Batches queued for retry after API failures. |
@@ -519,6 +519,7 @@ Full cross-platform event/field parity matrix: [EVENT-PARITY.md](EVENT-PARITY.md
 | `isForegroundScanningEnabled()` | Android | iOS always resolves `false`. |
 | `setForegroundNotificationContent(NotificationContent)` | Android | iOS: no-op. |
 | `setErrorReportingEnabled(bool)` | Android + iOS | Opt out of the Dart-layer error telemetry (default: on). Native crash capture is independent. |
+| `setDebugNotificationsEnabled(bool)` | iOS | QA aid: visible local notification per silent-push scan (default: off — keep off in production). Silent no-op on Android. Also settable via `configure(debugNotifications:)`. |
 
 ### Streams
 
@@ -526,7 +527,7 @@ Full cross-platform event/field parity matrix: [EVENT-PARITY.md](EVENT-PARITY.md
 |---|---|---|
 | `beaconsStream` | Android + iOS | `List<Beacon>` — detected beacons with metadata (battery, firmware, temperature). |
 | `scanningStream` | Android + iOS | `bool` — scanning state changes. |
-| `errorStream` | Android + iOS | `BearoundError` — SDK errors. **Unbuffered**: subscribe before `startScanning()`. |
+| `errorStream` | Android + iOS | `BearoundError` — SDK errors. Replays up to 16 errors emitted before the first listener (buffer arms on first `errorStream` access); subscribing before `startScanning()` is still recommended. |
 | `syncLifecycleStream` | Android + iOS | `SyncLifecycleEvent` — sync `started`/`completed`. |
 | `backgroundDetectionStream` | Android + iOS | `BackgroundDetectionEvent` — beacon count detected in background. |
 | `beaconRegionStream` | Android + iOS | `BeaconRegionEvent` — beacon-region `enter`/`exit`. |
@@ -550,7 +551,7 @@ Full cross-platform event/field parity matrix: [EVENT-PARITY.md](EVENT-PARITY.md
 | No beacons on **iOS** | `getBluetoothState()` ≠ `poweredOn`, or `getAuthorizationStatus()` is `denied`/`notDetermined`. | Turn Bluetooth on; call `requestPermissions()` (Location "Always" is required for terminated-app wake-up). |
 | Detection stops in background (**Android**) | Battery optimization active or OEM battery killer (Xiaomi/Huawei/…): `isIgnoringBatteryOptimizations()` / `isAutostartManageable()`. | Follow the [Background reliability](#background-reliability-android) flow; for mission-critical presence use the [foreground-service mode](#mode-2--foreground-service-connecteddevice). |
 | Detection stops in background (**iOS**) | Background App Refresh disabled, or `BGTaskSchedulerPermittedIdentifiers` missing from `Info.plist`. | Enable Background App Refresh in device Settings; add both BGTask identifiers + `registerBackgroundTasks()` ([iOS setup](#background-tasks-bgtaskscheduler--required)). |
-| Errors never show up | `errorStream.listen()` called **after** `startScanning()` — the stream is unbuffered, early errors are lost. | Subscribe to `errorStream` **before** calling `startScanning()`. |
+| Errors never show up | `errorStream` accessed only **after** the error was emitted — the replay buffer (16 entries) only arms on the first access to the getter. | Access/subscribe to `errorStream` **before** calling `startScanning()`; errors emitted after the buffer armed are replayed to the first listener. |
 | Push token NULL in the backend / silent push never arrives (iOS) | Firebase present → the SDK's automatic APNs capture fails (swizzle intercepted). | Always call `setPushToken` with the **raw APNs token** ([Push Token](#push-token)). |
 | App not woken when terminated (iOS) | Force-quit apps are **never** woken by silent push (Apple rule); relaunch happens via **beacon-region wakeup** and requires Location "Always" + the legacy AppDelegate setup. | Follow [Push notifications & background wakeup](#push-notifications--background-wakeup); verify the `aps-environment` matches the APNs environment (sandbox vs production). |
 
@@ -563,8 +564,10 @@ integration issues quickly. It works on two layers:
   crashes via their own `ErrorReporter`s. Nothing to configure.
 - **Dart (this plugin):** installed automatically on `configure()`, it chains
   `FlutterError.onError` and `PlatformDispatcher.onError` and reports **only**
-  uncaught errors whose stack trace contains a `package:bearound_flutter_sdk`
-  frame. Errors from your app or third-party packages are never touched.
+  uncaught errors whose **first application frame** is in
+  `package:bearound_flutter_sdk` — i.e. errors that *originate* in the plugin.
+  Errors from your app or third-party packages are never touched, including
+  errors thrown inside your own callbacks that merely pass through the SDK.
 
 It is designed to be invisible and safe:
 

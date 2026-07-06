@@ -163,12 +163,14 @@ class BearoundFlutterSdk {
       'debugNotifications': debugNotifications,
     };
 
-    await _channel.invokeMethod('configure', args);
-
-    // Install the Dart-layer error telemetry AFTER the native configure. The
+    // Install the Dart-layer error telemetry BEFORE the native configure — the
+    // session where the native call itself fails is exactly the one that needs
+    // telemetry (installing after would leave the failure path blind). The
     // embedded native SDKs already capture native crashes; this covers uncaught
     // Dart/Flutter errors originating in the plugin. Idempotent and never throws.
     ErrorReporter.instance.install(businessToken.trim());
+
+    await _channel.invokeMethod('configure', args);
   }
 
   /// Liga/desliga a telemetria de erros da camada Dart do SDK em runtime
@@ -376,12 +378,19 @@ class BearoundFlutterSdk {
   /// o Android retorna sempre lista vazia (`[]`).
   static Future<List<PersistedLogEntry>> getPersistedLog() async {
     final raw = await _channel.invokeMethod<String>('getPersistedLog') ?? '[]';
-    final decoded = jsonDecode(raw);
-    if (decoded is! List) return const [];
-    return decoded
-        .whereType<Map>()
-        .map((e) => PersistedLogEntry.fromJson(Map<String, dynamic>.from(e)))
-        .toList();
+    // NEVER-CRASH-THE-HOST: malformed JSON from the native side must not throw
+    // a FormatException into the host — degrade to empty and report it to us.
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! List) return const [];
+      return decoded
+          .whereType<Map>()
+          .map((e) => PersistedLogEntry.fromJson(Map<String, dynamic>.from(e)))
+          .toList();
+    } catch (e, s) {
+      ErrorReporter.instance.reportCaught(e, s, context: 'getPersistedLog');
+      return const [];
+    }
   }
 
   /// Versão "crua" do log persistido (lista de mapas), para consumidores que
@@ -389,12 +398,18 @@ class BearoundFlutterSdk {
   /// [getPersistedLog]. **iOS-only por ora** (Android retorna `[]`).
   static Future<List<Map<String, dynamic>>> getPersistedLogRaw() async {
     final raw = await _channel.invokeMethod<String>('getPersistedLog') ?? '[]';
-    final decoded = jsonDecode(raw);
-    if (decoded is! List) return [];
-    return decoded
-        .whereType<Map>()
-        .map((e) => e.map((k, v) => MapEntry(k.toString(), v)))
-        .toList();
+    // NEVER-CRASH-THE-HOST: same malformed-JSON guard as [getPersistedLog].
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! List) return [];
+      return decoded
+          .whereType<Map>()
+          .map((e) => e.map((k, v) => MapEntry(k.toString(), v)))
+          .toList();
+    } catch (e, s) {
+      ErrorReporter.instance.reportCaught(e, s, context: 'getPersistedLogRaw');
+      return const [];
+    }
   }
 
   /// Limpa o log persistido do SDK. **iOS-only por ora** (no-op no Android).

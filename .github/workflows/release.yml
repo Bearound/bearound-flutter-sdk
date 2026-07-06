@@ -91,6 +91,21 @@ jobs:
           if [ "$VERSION" != "$PUBSPEC_VERSION" ]; then echo "❌ pubspec ($PUBSPEC_VERSION) != release ($VERSION)"; exit 1; fi
           echo "✅ pubspec version matches"
 
+      - name: Verify telemetry _sdkVersion matches pubspec
+        run: |
+          # The Dart ErrorReporter labels reports with a hardcoded version literal
+          # (so the snapshot never blocks on a method-channel call). It has drifted
+          # once before — fail the release when it diverges from pubspec.yaml.
+          PUBSPEC_VERSION=$(grep -E '^version:' pubspec.yaml | head -1 | sed -E 's/version:[[:space:]]*//')
+          TELEMETRY_VERSION=$(grep -oE "_sdkVersion = '[^']+'" lib/src/telemetry/error_reporter.dart | sed -E "s/.*'([^']+)'.*/\1/")
+          echo "pubspec=$PUBSPEC_VERSION telemetry=$TELEMETRY_VERSION"
+          if [ "$PUBSPEC_VERSION" != "$TELEMETRY_VERSION" ]; then
+            echo "❌ lib/src/telemetry/error_reporter.dart _sdkVersion ($TELEMETRY_VERSION) != pubspec ($PUBSPEC_VERSION)"
+            echo "   Bump the constant in the same commit as pubspec.yaml (see PUBLISH.md §2)."
+            exit 1
+          fi
+          echo "✅ telemetry _sdkVersion matches pubspec"
+
       - name: Verify changelog
         run: |
           if [ ! -f CHANGELOG.md ]; then

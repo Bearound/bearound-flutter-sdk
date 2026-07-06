@@ -18,8 +18,10 @@ import 'package:permission_handler/permission_handler.dart';
 ///
 /// GOLDEN RULES (identical to Android):
 /// 1. NEVER throw, NEVER break the host app, NEVER hijack the host's error flow.
-/// 2. Only report errors from OUR library — the stack must contain a
-///    `bearound_flutter_sdk` frame; frames from this telemetry file are excluded.
+/// 2. Only report errors that ORIGINATE in our library — the FIRST application
+///    frame of the stack (skipping the runtime and this telemetry file) must be
+///    a `package:bearound_flutter_sdk/` frame. A host error that merely passes
+///    through an SDK callback is never captured.
 /// 3. The global handlers are ALWAYS chained — the previous
 ///    [FlutterError.onError] is kept and always invoked, and
 ///    [PlatformDispatcher.onError] returns `false` so the platform still sees
@@ -37,13 +39,19 @@ class ErrorReporter {
 
   static const String _endpoint = 'https://ingest.bearound.io/sdk-errors';
 
-  /// The plugin's Dart package. A stack trace is "ours" only if it names a
-  /// frame from this package.
-  static const String _sdkPackageMarker = 'bearound_flutter_sdk';
+  /// The plugin's Dart package, anchored as a package URI (trailing slash).
+  /// A bare substring would also match HOST files named after the SDK
+  /// (`package:host_app/bearound_flutter_sdk_helper.dart` — a common naming
+  /// pattern for integration wrappers), leaking host errors into our ingest.
+  static const String _sdkPackageMarker = 'package:bearound_flutter_sdk/';
 
   /// This telemetry file — frames from it are excluded from the "is it ours?"
   /// check so a reporter-internal failure is never classified as an SDK error.
-  static const String _telemetryFileMarker = 'error_reporter.dart';
+  /// Full package path: a bare `error_reporter.dart` would also skip HOST files
+  /// with that (very common) name, letting the scan fall through to an SDK
+  /// frame below and misattribute a host error to us.
+  static const String _telemetryFileMarker =
+      'package:bearound_flutter_sdk/src/telemetry/error_reporter.dart';
 
   static const int _maxStackChars = 8000;
   static const int _maxReportsPerHour = 20;
@@ -428,6 +436,19 @@ class ErrorReporter {
     _reportTimestamps.clear();
     _lastReportedAt.clear();
     transport = _httpPost;
+  }
+
+  /// Test hook: undoes [install] — restores the previous global handlers and
+  /// re-arms `_installed` so a test can exercise the chaining behavior without
+  /// leaking process-wide handler mutations into other tests.
+  @visibleForTesting
+  void uninstallForTest() {
+    if (!_installed) return;
+    FlutterError.onError = _previousFlutterOnError;
+    PlatformDispatcher.instance.onError = _previousDispatcherOnError;
+    _previousFlutterOnError = null;
+    _previousDispatcherOnError = null;
+    _installed = false;
   }
 
   /// Reports an error already CAUGHT inside the SDK's own plumbing (e.g. the

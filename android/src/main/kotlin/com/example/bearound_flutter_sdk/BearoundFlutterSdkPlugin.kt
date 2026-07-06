@@ -78,8 +78,16 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
 
   override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
     context = binding.applicationContext
-    sdk = BeAroundSDK.getInstance(context)
-    sdk?.listener = this
+    // NEVER-CRASH-THE-HOST: getInstance itself never throws on native ≥3.4.5,
+    // but a host that force-resolves an older native SDK can hit a linkage
+    // Error (NoClassDefFoundError) right here in the host's startup path.
+    // Degrade to sdk == null — every method call then answers SDK_UNAVAILABLE.
+    try {
+      sdk = BeAroundSDK.getInstance(context)
+      sdk?.listener = this
+    } catch (t: Throwable) {
+      android.util.Log.e("BearoundFlutterSdk", "Native SDK unavailable: ${t.message}")
+    }
 
     methodChannel = MethodChannel(binding.binaryMessenger, "bearound_flutter_sdk")
     methodChannel.setMethodCallHandler(this)
@@ -192,6 +200,23 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
   }
 
   override fun onMethodCall(call: MethodCall, result: Result) {
+    // NEVER-CRASH-THE-HOST: the Flutter engine only converts RuntimeException
+    // into a PlatformException — any java.lang.Error (NoSuchMethodError when the
+    // host's dependency resolution downgrades the native SDK, NoClassDefFoundError,
+    // ExceptionInInitializerError) would reach the main thread's uncaught handler
+    // and KILL the host app. Convert everything to a Dart-side error instead.
+    try {
+      dispatchMethodCall(call, result)
+    } catch (t: Throwable) {
+      try {
+        result.error("BEAROUND_INTERNAL", "${call.method} failed: ${t.message}", t.stackTraceToString())
+      } catch (_: Throwable) {
+        // Reply already submitted — nothing left to answer; never rethrow.
+      }
+    }
+  }
+
+  private fun dispatchMethodCall(call: MethodCall, result: Result) {
     val sdk = this.sdk
     if (sdk == null) {
       result.error("SDK_UNAVAILABLE", "BearoundSDK instance not available", null)
@@ -327,6 +352,11 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
       "openBatteryOptimizationSettings" -> result.success(sdk.openBatteryOptimizationSettings())
       "isAutostartManageable" -> result.success(sdk.isAutostartManageable())
       "openManufacturerAutostartSettings" -> result.success(sdk.openManufacturerAutostartSettings())
+
+      // iOS-only debug-notification toggle — the Dart docstring promises a
+      // silent no-op on Android, so answer success instead of notImplemented
+      // (which surfaces as MissingPluginException inside the host app).
+      "setDebugNotificationsEnabled" -> result.success(null)
 
       // Backward-compat
       // TODO(cleanup): removable no-op shim — the native SDK no longer has a

@@ -2,6 +2,8 @@ import 'dart:io' show Platform;
 import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import '../telemetry/error_reporter.dart';
+
 class PermissionService {
   PermissionService._();
 
@@ -68,7 +70,10 @@ class PermissionService {
           return locationStatus.isGranted;
         }
       }
-    } catch (e) {
+    } catch (e, s) {
+      // Doctrine: fail silently for the host, but every silent failure reports —
+      // a broken permission_handler here masks "permission never granted" bugs.
+      ErrorReporter.instance.reportCaught(e, s, context: 'requestPermissions');
       return false;
     }
   }
@@ -89,7 +94,8 @@ class PermissionService {
         }
         return await Permission.location.isGranted;
       }
-    } catch (e) {
+    } catch (e, s) {
+      ErrorReporter.instance.reportCaught(e, s, context: 'checkPermissions');
       return false;
     }
   }
@@ -102,7 +108,8 @@ class PermissionService {
       }
       final status = await Permission.notification.request();
       return status.isGranted;
-    } catch (e) {
+    } catch (e, s) {
+      ErrorReporter.instance.reportCaught(e, s, context: 'requestNotification');
       return false;
     }
   }
