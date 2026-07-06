@@ -162,7 +162,8 @@ class _BeaconHomePageState extends State<BeaconHomePage>
   /// legacy — the example targets the 12+ reality.)
   bool get _canScan {
     if (Platform.isAndroid) {
-      return _bluetoothScanGranted && _bluetoothState == BluetoothState.poweredOn;
+      return _bluetoothScanGranted &&
+          _bluetoothState == BluetoothState.poweredOn;
     }
     return _locationGranted && _bluetoothState == BluetoothState.poweredOn;
   }
