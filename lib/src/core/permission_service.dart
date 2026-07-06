@@ -2,12 +2,30 @@ import 'dart:io' show Platform;
 import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import '../telemetry/error_reporter.dart';
+
 class PermissionService {
   PermissionService._();
 
   static final PermissionService instance = PermissionService._();
 
   static const MethodChannel _channel = MethodChannel('bearound_flutter_sdk');
+
+  /// Android 12 (S) = API level 31 — first version where the BLE scan is gated
+  /// on BLUETOOTH_SCAN (manifest `neverForLocation`) instead of location.
+  static const int _androidS = 31;
+
+  /// Reads `Build.VERSION.SDK_INT` from the native plugin so the Dart layer can
+  /// mirror the native scan gate exactly. Falls back to [_androidS] (assume the
+  /// stricter 12+ gate) if the call fails.
+  Future<int> _androidSdkInt() async {
+    try {
+      final level = await _channel.invokeMethod<int>('getAndroidSdkInt');
+      return level ?? _androidS;
+    } catch (_) {
+      return _androidS;
+    }
+  }
 
   Future<bool> requestPermissions() async {
     try {
@@ -17,36 +35,45 @@ class PermissionService {
         final result = await _channel.invokeMethod<bool>('requestPermissions');
         return result ?? false;
       } else {
-        // Android: Use permission_handler package
-        bool hasLocationPermission = false;
-        bool hasBluetoothPermission = false;
+        // Android: mirror the native SDK 3.4.5 scan gate.
+        // - 12+ (API 31+): ONLY BLUETOOTH_SCAN unlocks the scan (manifest
+        //   `neverForLocation`). Location does NOT unlock it, so we do NOT treat
+        //   location as sufficient here.
+        // - <12: legacy model — ACCESS_FINE/COARSE_LOCATION unlocks the scan.
+        final sdkInt = await _androidSdkInt();
 
-        // Request location permission (essential)
-        final locationStatus = await Permission.location.request();
-        hasLocationPermission = locationStatus.isGranted;
+        if (sdkInt >= _androidS) {
+          // Essential on 12+: BLUETOOTH_SCAN. BLUETOOTH_CONNECT is requested too
+          // (needed for the connectedDevice foreground service), but only SCAN
+          // gates detection.
+          final bluetoothScanStatus = await Permission.bluetoothScan.request();
+          await Permission.bluetoothConnect.request();
 
-        // Request background location if Android >= 10 (optional but recommended)
-        if (hasLocationPermission) {
-          await Permission.locationAlways.request();
+          // Background location still helps CoreLocation-style wake-ups on
+          // Android and is recommended, but it is NOT part of the scan gate.
+          final locationStatus = await Permission.location.request();
+          if (locationStatus.isGranted) {
+            await Permission.locationAlways.request();
+          }
+          await Permission.notification.request();
+
+          // The scan can only run with BLUETOOTH_SCAN — do not report success
+          // from location alone.
+          return bluetoothScanStatus.isGranted;
+        } else {
+          // Android <12: location unlocks the BLE scan.
+          final locationStatus = await Permission.location.request();
+          if (locationStatus.isGranted) {
+            await Permission.locationAlways.request();
+          }
+          await Permission.notification.request();
+          return locationStatus.isGranted;
         }
-
-        // Request Bluetooth permissions (essential for beacon scanning)
-        final bluetoothScanStatus = await Permission.bluetoothScan.request();
-        final bluetoothConnectStatus = await Permission.bluetoothConnect
-            .request();
-
-        hasBluetoothPermission =
-            bluetoothScanStatus.isGranted ||
-            bluetoothConnectStatus.isGranted ||
-            await Permission.bluetooth.isGranted;
-
-        // Request optional permissions (won't block if denied)
-        await Permission.bluetoothAdvertise.request();
-        await Permission.notification.request();
-
-        return hasLocationPermission || hasBluetoothPermission;
       }
-    } catch (e) {
+    } catch (e, s) {
+      // Doctrine: fail silently for the host, but every silent failure reports —
+      // a broken permission_handler here masks "permission never granted" bugs.
+      ErrorReporter.instance.reportCaught(e, s, context: 'requestPermissions');
       return false;
     }
   }
@@ -58,14 +85,17 @@ class PermissionService {
         final result = await _channel.invokeMethod<bool>('checkPermissions');
         return result ?? false;
       } else {
-        // Android: Check via permission_handler
-        final location = await Permission.location.isGranted;
-        final bluetooth =
-            await Permission.bluetoothScan.isGranted ||
-            await Permission.bluetooth.isGranted;
-        return location || bluetooth;
+        // Android: reflect what the SCAN actually needs (see requestPermissions).
+        // - 12+: BLUETOOTH_SCAN granted (location is NOT sufficient).
+        // - <12: fine/coarse location granted.
+        final sdkInt = await _androidSdkInt();
+        if (sdkInt >= _androidS) {
+          return await Permission.bluetoothScan.isGranted;
+        }
+        return await Permission.location.isGranted;
       }
-    } catch (e) {
+    } catch (e, s) {
+      ErrorReporter.instance.reportCaught(e, s, context: 'checkPermissions');
       return false;
     }
   }
@@ -78,7 +108,8 @@ class PermissionService {
       }
       final status = await Permission.notification.request();
       return status.isGranted;
-    } catch (e) {
+    } catch (e, s) {
+      ErrorReporter.instance.reportCaught(e, s, context: 'requestNotification');
       return false;
     }
   }

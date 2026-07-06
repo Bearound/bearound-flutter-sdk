@@ -16,14 +16,18 @@ consumer install). Confirm both are available **first**:
 
 | Native SDK | Registry | Pinned in |
 |------------|----------|-----------|
-| Android (`bearound-android-sdk`) | [JitPack](https://jitpack.io/#Bearound/bearound-android-sdk) | `android/build.gradle` → `api 'com.github.Bearound:bearound-android-sdk:X.Y.Z'` |
+| Android (`bearound-android-sdk`) | [JitPack](https://jitpack.io/#Bearound/bearound-android-sdk) | `android/build.gradle` → `api 'com.github.Bearound:bearound-android-sdk:vX.Y.Z'` |
 | iOS (`BearoundSDK`) | [CocoaPods](https://cocoapods.org/pods/BearoundSDK) | `ios/bearound_flutter_sdk.podspec` → `s.dependency 'BearoundSDK', 'X.Y.Z'` |
 
-```bash
-# Android — verify on JitPack (use the tag WITHOUT the "v" prefix)
-curl -s https://jitpack.io/api/builds/com.github.Bearound/bearound-android-sdk/X.Y.Z
+> **JitPack pin carries the `v` prefix; CocoaPods does not.** JitPack versions
+> mirror the git tag verbatim (`v3.4.5` resolves, `3.4.5` 404s), while CocoaPods
+> uses the bare podspec version. Verify with the same coordinate you pin:
 
-# iOS — verify on CocoaPods
+```bash
+# Android — verify on JitPack (tag WITH the "v" prefix, exactly as pinned)
+curl -s https://jitpack.io/api/builds/com.github.Bearound/bearound-android-sdk/vX.Y.Z
+
+# iOS — verify on CocoaPods (no "v")
 curl -s https://trunk.cocoapods.org/api/v1/pods/BearoundSDK | python3 -m json.tool
 ```
 
@@ -34,11 +38,23 @@ bumping the native SDK too, update those two literals in this same release.
 
 ## 2. Bump the version
 
-The version lives in **one place**: `pubspec.yaml`.
+The version lives in `pubspec.yaml`:
 
 ```yaml
 version: X.Y.Z
 ```
+
+**Plus one mirror that must be bumped by hand:** the Dart error telemetry labels
+its reports with a hardcoded constant (a literal so the snapshot never blocks on
+a method-channel call):
+
+```dart
+// lib/src/telemetry/error_reporter.dart
+static const String _sdkVersion = 'X.Y.Z';
+```
+
+The release workflow fails if it diverges from `pubspec.yaml`, but update it in
+the same commit so the gate never trips.
 
 From this single source it flows automatically to:
 
@@ -154,8 +170,9 @@ Confirm the version is live at: https://pub.dev/packages/bearound_flutter_sdk
 
 ```
 [ ] Native deps published (JitPack + CocoaPods) at the pinned version
-[ ] android/build.gradle + podspec point to a published native version
+[ ] android/build.gradle (vX.Y.Z) + podspec (X.Y.Z) point to a published native version
 [ ] pubspec.yaml version bumped
+[ ] lib/src/telemetry/error_reporter.dart _sdkVersion bumped (must match pubspec)
 [ ] CHANGELOG.md has a ## [X.Y.Z] section
 [ ] dart format / flutter analyze / flutter test / pub publish --dry-run all clean
 [ ] Commit and push to main

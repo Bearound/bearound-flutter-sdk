@@ -4,14 +4,15 @@
 /// A single precision setting controls the duty cycle for both BLE and CoreLocation
 /// scanning, matching the native iOS/Android v2.4.0 API.
 ///
-/// - **High** — continuous BLE+CL scan, sync every 15s
-/// - **Medium** — 3 cycles of 10s scan + 10s pause per 60s window (default)
+/// - **High** — continuous BLE+CL scan, sync every 15s (plugin default in
+///   `configure()`)
+/// - **Medium** — 3 cycles of 10s scan + 10s pause per 60s window
 /// - **Low** — 1 cycle of 10s scan + 50s pause per 60s window
 enum ScanPrecision {
-  /// Continuous scan, sync every 15s.
+  /// Continuous scan, sync every 15s. Default of `configure()`.
   high('high'),
 
-  /// 3 cycles of 10s scan + 10s pause per 60s window (default).
+  /// 3 cycles of 10s scan + 10s pause per 60s window.
   medium('medium'),
 
   /// 1 cycle of 10s scan + 50s pause per 60s window.

@@ -1,4 +1,5 @@
 import 'package:bearound_flutter_sdk/bearound_flutter_sdk.dart';
+import 'package:bearound_flutter_sdk/src/telemetry/error_reporter.dart';
 import 'package:faker/faker.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -48,6 +49,7 @@ void main() {
           'businessToken': businessToken,
           'scanPrecision': 'high',
           'maxQueuedPayloads': 200,
+          'debugNotifications': false,
         }),
       );
     });
@@ -58,12 +60,14 @@ void main() {
       expect(methodCalls, hasLength(1));
       expect(methodCalls.first.method, equals('configure'));
       // Default precision is HIGH (iOS-aligned) since 3.x.
+      // Debug notifications default OFF.
       expect(
         methodCalls.first.arguments,
         equals({
           'businessToken': 'test-token',
           'scanPrecision': 'high',
           'maxQueuedPayloads': 100,
+          'debugNotifications': false,
         }),
       );
     });
@@ -208,6 +212,46 @@ void main() {
       expect(methodCalls.first.method, equals('setPushToken'));
       expect(methodCalls.first.arguments, equals({'token': token}));
     });
+  });
+
+  group('BearoundFlutterSdk Persisted Log (never-crash)', () {
+    test('getPersistedLog/-Raw degrade to [] on malformed native JSON '
+        'and report the failure to telemetry', () async {
+      final reporter = ErrorReporter.instance;
+      reporter.resetForTest();
+      final bodies = <String>[];
+      reporter.transport = (body, token) async => bodies.add(body);
+
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (MethodCall call) async {
+            if (call.method == 'getPersistedLog') return 'not-json{{';
+            return null;
+          });
+
+      // NEVER-CRASH: a FormatException must not escape into the host.
+      expect(await BearoundFlutterSdk.getPersistedLog(), isEmpty);
+      expect(await BearoundFlutterSdk.getPersistedLogRaw(), isEmpty);
+
+      // Doctrine: every silent failure reports (distinct contexts → 2 reports).
+      await pumpEventQueue();
+      expect(bodies, hasLength(2));
+
+      reporter.resetForTest();
+    });
+
+    test(
+      'getPersistedLog returns [] when the native side sends a non-list',
+      () async {
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(channel, (MethodCall call) async {
+              if (call.method == 'getPersistedLog') return '{"not":"a list"}';
+              return null;
+            });
+
+        expect(await BearoundFlutterSdk.getPersistedLog(), isEmpty);
+        expect(await BearoundFlutterSdk.getPersistedLogRaw(), isEmpty);
+      },
+    );
   });
 
   group('BearoundFlutterSdk Streams', () {

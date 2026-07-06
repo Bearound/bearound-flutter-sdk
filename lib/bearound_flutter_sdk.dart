@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 
 import 'src/core/permission_service.dart';
 import 'src/models/active_scan_event.dart';
+import 'src/telemetry/error_reporter.dart';
 import 'src/models/authorization_status.dart';
 import 'src/models/background_detection_event.dart';
 import 'src/models/beacon.dart';
@@ -35,7 +36,8 @@ export 'src/models/scan_interval_configuration.dart';
 export 'src/models/sync_lifecycle_event.dart';
 export 'src/models/user_properties.dart';
 
-/// SDK principal do Bearound para integração com o SDK nativo 3.0.0.
+/// SDK principal do Bearound para integração com os SDKs nativos (Android/iOS —
+/// versões pinadas em `android/build.gradle` e `ios/bearound_flutter_sdk.podspec`).
 ///
 /// A interface Dart é o superconjunto das APIs nativas iOS e Android. Métodos
 /// disponíveis apenas em uma plataforma são no-op silenciosos na outra, e
@@ -82,6 +84,14 @@ class BearoundFlutterSdk {
   static Stream<List<Beacon>>? _beaconsStream;
   static Stream<bool>? _scanningStream;
   static Stream<BearoundError>? _errorStream;
+
+  /// Ring buffer of errors emitted by the native SDK *before* any Dart listener
+  /// attached to [errorStream]. Bounded to [_errorReplayBufferSize]; replayed
+  /// once to the first listener, then cleared. See [errorStream].
+  static final List<BearoundError> _bufferedErrors = <BearoundError>[];
+  static const int _errorReplayBufferSize = 16;
+  static bool _errorBufferSubscribed = false;
+  static bool _errorBufferReplayed = false;
   static Stream<SyncLifecycleEvent>? _syncLifecycleStream;
   static Stream<BackgroundDetectionEvent>? _backgroundDetectionStream;
   static Stream<BeaconRegionEvent>? _beaconRegionStream;
@@ -127,10 +137,16 @@ class BearoundFlutterSdk {
   ///
   /// O [maxQueuedPayloads] configura o tamanho da fila de retry para falhas de
   /// API (padrão: `medium` = 100 batches).
+  ///
+  /// O [debugNotifications] (iOS-only, **default `false`**) controla se o SDK
+  /// posta uma notificação local *visível* a cada scan disparado por silent push.
+  /// É um auxílio de QA — mantenha `false` em produção. Também ajustável em
+  /// runtime via [setDebugNotificationsEnabled]. No Android é ignorado.
   static Future<void> configure({
     required String businessToken,
     ScanPrecision scanPrecision = ScanPrecision.high,
     MaxQueuedPayloads maxQueuedPayloads = MaxQueuedPayloads.medium,
+    bool debugNotifications = false,
   }) async {
     if (businessToken.trim().isEmpty) {
       throw ArgumentError.value(
@@ -144,9 +160,34 @@ class BearoundFlutterSdk {
       'businessToken': businessToken.trim(),
       'scanPrecision': scanPrecision.value,
       'maxQueuedPayloads': maxQueuedPayloads.value,
+      'debugNotifications': debugNotifications,
     };
 
+    // Install the Dart-layer error telemetry BEFORE the native configure — the
+    // session where the native call itself fails is exactly the one that needs
+    // telemetry (installing after would leave the failure path blind). The
+    // embedded native SDKs already capture native crashes; this covers uncaught
+    // Dart/Flutter errors originating in the plugin. Idempotent and never throws.
+    ErrorReporter.instance.install(businessToken.trim());
+
     await _channel.invokeMethod('configure', args);
+  }
+
+  /// Liga/desliga a telemetria de erros da camada Dart do SDK em runtime
+  /// (**default: ligado**). Captura apenas erros não-tratados originados no
+  /// próprio plugin (`package:bearound_flutter_sdk`) e os envia, fire-and-forget,
+  /// ao ingest da Bearound — nunca intercepta nem quebra o fluxo de erros do app.
+  /// Os crashes nativos (Android/iOS) seguem sendo capturados pelos
+  /// `ErrorReporter` dos SDKs nativos embarcados, independente deste flag.
+  static void setErrorReportingEnabled(bool enabled) {
+    ErrorReporter.instance.setEnabled(enabled);
+  }
+
+  /// Liga/desliga em runtime a notificação local *visível* de debug postada a
+  /// cada scan por silent push (iOS-only, **default `false`**). Deixe `false`
+  /// em produção — no Android é no-op.
+  static Future<void> setDebugNotificationsEnabled(bool enabled) async {
+    await _channel.invokeMethod('setDebugNotificationsEnabled', enabled);
   }
 
   // ---------------------------------------------------------------------------
@@ -186,6 +227,49 @@ class BearoundFlutterSdk {
   }
 
   // ---------------------------------------------------------------------------
+  // Background reliability (Android-only: Doze + OEM battery killers)
+  // ---------------------------------------------------------------------------
+
+  /// Se o app já está isento da otimização de bateria (Doze) do Android.
+  /// Android-only; retorna `true` no iOS (não há essa restrição).
+  static Future<bool> isIgnoringBatteryOptimizations() async {
+    final result = await _channel.invokeMethod<bool>(
+      'isIgnoringBatteryOptimizations',
+    );
+    return result ?? false;
+  }
+
+  /// Abre a tela de Settings de otimização de bateria para o usuário isentar o
+  /// app — melhora a sobrevivência do scan em background sob Doze. Usa a tela de
+  /// Settings (sem a permissão restrita `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`),
+  /// então não dispara revisão do Google Play. Android-only; `false` (no-op) no
+  /// iOS. Retorna `true` se conseguiu abrir a tela.
+  static Future<bool> openBatteryOptimizationSettings() async {
+    final result = await _channel.invokeMethod<bool>(
+      'openBatteryOptimizationSettings',
+    );
+    return result ?? false;
+  }
+
+  /// Se o device é de um OEM com tela de autostart/apps-protegidos conhecida
+  /// (Xiaomi/Huawei/Oppo/Vivo/OnePlus/Letv). Android-only; `false` no iOS e no
+  /// Android stock (Pixel).
+  static Future<bool> isAutostartManageable() async {
+    final result = await _channel.invokeMethod<bool>('isAutostartManageable');
+    return result ?? false;
+  }
+
+  /// Abre a tela de autostart/apps-protegidos do fabricante, quando existe —
+  /// mitiga OEMs que matam o processo em background mesmo no Android 14+.
+  /// Android-only; `false` em stock/OEM não mapeado ou no iOS.
+  static Future<bool> openManufacturerAutostartSettings() async {
+    final result = await _channel.invokeMethod<bool>(
+      'openManufacturerAutostartSettings',
+    );
+    return result ?? false;
+  }
+
+  // ---------------------------------------------------------------------------
   // User properties
   // ---------------------------------------------------------------------------
 
@@ -213,7 +297,8 @@ class BearoundFlutterSdk {
   ///   o APNs via swizzle do AppDelegate, mas isso falha quando o Firebase está
   ///   presente (ele intercepta o swizzle) — então prefira encaminhar manualmente.
   ///
-  /// Encaminhado ao SDK nativo em ambas as plataformas (Android ≥ 3.4.0).
+  /// Encaminhado ao SDK nativo em ambas as plataformas — no Android desde o
+  /// plugin 3.4.1 (setter disponível no SDK nativo Android ≥ 3.4.0).
   static Future<void> setPushToken(String token) async {
     await _channel.invokeMethod('setPushToken', {'token': token});
   }
@@ -222,8 +307,9 @@ class BearoundFlutterSdk {
   // Diagnostic / state getters (parity with native public API)
   // ---------------------------------------------------------------------------
 
-  /// Versão do SDK nativo. iOS retorna a versão; Android retorna `''` (o SDK
-  /// Android não expõe um getter público de versão).
+  /// Versão do SDK nativo em ambas as plataformas. iOS retorna
+  /// `BeAroundSDK.version`; Android retorna `io.bearound.sdk.BuildConfig.SDK_VERSION`
+  /// (injetado em build-time). Retorna `''` só se o nativo estiver indisponível.
   static Future<String> getSdkVersion() async {
     final result = await _channel.invokeMethod<String>('getSdkVersion');
     return result ?? '';
@@ -244,8 +330,8 @@ class BearoundFlutterSdk {
     return result ?? '';
   }
 
-  /// Número de batches em fila aguardando retry. **iOS-only**; Android
-  /// retorna `0`.
+  /// Número de batches em fila aguardando retry após falha de API. Funciona em
+  /// **ambas** as plataformas (Android ≥ 3.4.x expõe `pendingBatchCount`).
   static Future<int> getPendingBatchCount() async {
     final result = await _channel.invokeMethod<num>('getPendingBatchCount');
     return result?.toInt() ?? 0;
@@ -287,30 +373,50 @@ class BearoundFlutterSdk {
 
   /// Log de detecção persistido pelo SDK (sobrevive ao fechamento do app).
   /// Retorna entradas tipadas via [PersistedLogEntry].
+  ///
+  /// **iOS-only por ora**: o SDK nativo Android não expõe log persistido, então
+  /// o Android retorna sempre lista vazia (`[]`).
   static Future<List<PersistedLogEntry>> getPersistedLog() async {
-    final raw = await _channel.invokeMethod<String>('getPersistedLog') ?? '[]';
-    final decoded = jsonDecode(raw);
-    if (decoded is! List) return const [];
-    return decoded
-        .whereType<Map>()
-        .map((e) => PersistedLogEntry.fromJson(Map<String, dynamic>.from(e)))
-        .toList();
+    // NEVER-CRASH-THE-HOST: the method is documented as always-[] on Android —
+    // neither a channel failure (SDK_UNAVAILABLE/BEAROUND_INTERNAL) nor
+    // malformed native JSON may throw into the host. Degrade to [] + report.
+    try {
+      final raw =
+          await _channel.invokeMethod<String>('getPersistedLog') ?? '[]';
+      final decoded = jsonDecode(raw);
+      if (decoded is! List) return const [];
+      return decoded
+          .whereType<Map>()
+          .map((e) => PersistedLogEntry.fromJson(Map<String, dynamic>.from(e)))
+          .toList();
+    } catch (e, s) {
+      ErrorReporter.instance.reportCaught(e, s, context: 'getPersistedLog');
+      return const [];
+    }
   }
 
   /// Versão "crua" do log persistido (lista de mapas), para consumidores que
   /// preferem renderizar JSON livre. Mantida por conveniência — prefira
-  /// [getPersistedLog].
+  /// [getPersistedLog]. **iOS-only por ora** (Android retorna `[]`).
   static Future<List<Map<String, dynamic>>> getPersistedLogRaw() async {
-    final raw = await _channel.invokeMethod<String>('getPersistedLog') ?? '[]';
-    final decoded = jsonDecode(raw);
-    if (decoded is! List) return [];
-    return decoded
-        .whereType<Map>()
-        .map((e) => e.map((k, v) => MapEntry(k.toString(), v)))
-        .toList();
+    // NEVER-CRASH-THE-HOST: same full guard as [getPersistedLog] — channel
+    // failure or malformed JSON degrades to [] + report, never throws.
+    try {
+      final raw =
+          await _channel.invokeMethod<String>('getPersistedLog') ?? '[]';
+      final decoded = jsonDecode(raw);
+      if (decoded is! List) return [];
+      return decoded
+          .whereType<Map>()
+          .map((e) => e.map((k, v) => MapEntry(k.toString(), v)))
+          .toList();
+    } catch (e, s) {
+      ErrorReporter.instance.reportCaught(e, s, context: 'getPersistedLogRaw');
+      return const [];
+    }
   }
 
-  /// Limpa o log persistido do SDK.
+  /// Limpa o log persistido do SDK. **iOS-only por ora** (no-op no Android).
   static Future<void> clearPersistedLog() async {
     await _channel.invokeMethod('clearPersistedLog');
   }
@@ -386,15 +492,75 @@ class BearoundFlutterSdk {
   }
 
   /// Stream de erros reportados pelo SDK nativo.
+  ///
+  /// **Replay dos últimos erros:** o SDK nativo pode emitir um erro (ex.: falha
+  /// de configuração/permissão logo após `startScanning`) *antes* de o app
+  /// registrar o primeiro `listen()`. Sem replay esse erro se perderia para
+  /// sempre. Para evitar isso, o wrapper Dart assina o canal nativo assim que
+  /// [errorStream] é acessado pela primeira vez e bufferiza até
+  /// [_errorReplayBufferSize] erros; o **primeiro** listener recebe esse buffer
+  /// reemitido (em ordem) antes dos eventos ao vivo. Depois disso o buffer é
+  /// esvaziado e os listeners subsequentes só recebem eventos novos.
   static Stream<BearoundError> get errorStream {
-    _errorStream ??= _errorChannel.receiveBroadcastStream().map((event) {
+    _ensureErrorBufferSubscribed();
+
+    Stream<BearoundError> withReplay() async* {
+      // Replay the pre-listen buffer to the first listener only, then clear it.
+      if (!_errorBufferReplayed && _bufferedErrors.isNotEmpty) {
+        _errorBufferReplayed = true;
+        final replayed = List<BearoundError>.from(_bufferedErrors);
+        _bufferedErrors.clear();
+        for (final error in replayed) {
+          yield error;
+        }
+      } else {
+        _errorBufferReplayed = true;
+      }
+      yield* _rawErrorStream();
+    }
+
+    _errorStream ??= withReplay().asBroadcastStream();
+    return _errorStream!;
+  }
+
+  /// Native error channel mapped to [BearoundError], without any buffering.
+  static Stream<BearoundError> _rawErrorStream() {
+    return _errorChannel.receiveBroadcastStream().map((event) {
       if (event is String) {
         return BearoundError(message: event);
       }
       final payload = _asMap(event);
       return BearoundError.fromJson(payload);
     });
-    return _errorStream!;
+  }
+
+  /// Eagerly subscribes to the native error channel so errors emitted before the
+  /// app's first [errorStream] listener are captured into [_bufferedErrors].
+  /// Idempotent.
+  static void _ensureErrorBufferSubscribed() {
+    if (_errorBufferSubscribed) return;
+    _errorBufferSubscribed = true;
+    _rawErrorStream().listen(
+      (error) {
+        // Once the first real listener has consumed (and cleared) the buffer,
+        // stop accumulating — live delivery takes over from there.
+        if (_errorBufferReplayed) return;
+        _bufferedErrors.add(error);
+        if (_bufferedErrors.length > _errorReplayBufferSize) {
+          _bufferedErrors.removeAt(0);
+        }
+      },
+      // NEVER-CRASH-THE-HOST: without onError, an EventChannel failure becomes
+      // an unhandled async error attributed to the SDK inside the host app.
+      // Swallow it here (and report it — silent for the user, visible to us).
+      onError: (Object error, StackTrace stack) {
+        ErrorReporter.instance.reportCaught(
+          error,
+          stack,
+          context: 'errorStream',
+        );
+      },
+    );
   }
 
   /// Stream do ciclo de sincronização (`started` / `completed`).
