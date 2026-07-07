@@ -147,6 +147,57 @@ Add the following to `ios/Runner/Info.plist`:
 
 > ℹ️ The iOS SDK uses a two-eyes model (CoreLocation + CoreBluetooth), so location **is** used on iOS by design. The `neverForLocation` strategy applies to Android only.
 
+#### Disable UIScene (Flutter 3.41+) — required
+
+**Why this section exists.** The SDK's background stack was built and validated against a
+native iOS app: suspended or even terminated, the app wakes on beacon-region entry or on a
+silent push, scans for ~10s and syncs — that's the product. When the same SDK ran inside a
+Flutter host, **everything worked in foreground and nothing woke in background** — same SDK
+version, same `Info.plist` keys, same entitlements. We diffed the two apps line by line until
+a single difference was left: the app life cycle. Flutter 3.41+ silently migrates apps to the
+**UISceneDelegate** life cycle, and under UIScene two things kill every wakeup path:
+
+- `launchOptions` arrives `nil` in `didFinishLaunching` (the `bluetoothCentrals` / `location`
+  relaunch keys move to the SceneDelegate, which the native SDK doesn't see), and
+- plugins/handlers are registered **after** `didFinishLaunching` returns, violating Apple's rule
+  that launch handlers must exist before launch ends — so CoreBluetooth state restoration,
+  region relaunch and silent push are silently dropped ([flutter#184267](https://github.com/flutter/flutter/issues/184267)).
+
+In other words: iOS **does** relaunch the app to hand it a beacon event — but under UIScene the
+app isn't listening yet, so the event evaporates. No error, no log, just "background detection
+doesn't work".
+
+The fix is to **induce Flutter back to the legacy AppDelegate life cycle** — the one every
+native SDK (and Apple's own background contract) was designed around. The trick is the `_`
+rename below: iOS ignores the unknown `_UIApplicationSceneManifest` key (Scene off, legacy cycle
+on), while Flutter's migrator — which re-injects the block whenever the substring
+`UIApplicationSceneManifest` disappears from the plist — still finds the substring and leaves
+the project alone. One rename, both systems satisfied.
+
+**Does it work?** Yes — validated on real devices, on the reference `example/` app and on a
+production fleet app (car.media): with the app suspended *and* with it terminated, a beacon
+region entry or a backend silent push wakes the process, the 10s BLE scan finds the beacons and
+the sync lands in the ingest backend seconds later. Foreground behavior, UI and the rest of the
+Flutter app are untouched — the legacy cycle is simply the stable, documented path iOS has
+supported since day one.
+
+Every integrating app must apply it:
+
+1. In `ios/Runner/Info.plist`, **rename** `UIApplicationSceneManifest` to
+   `_UIApplicationSceneManifest`. Keep the `_` prefix — do **not** delete the block: Flutter's
+   migrator re-injects it on every build if the substring `UIApplicationSceneManifest`
+   disappears; the `_` prefix keeps it inert (iOS ignores unknown keys) and the migrator skips.
+   Keep `UIMainStoryboardFile` and `UILaunchStoryboardName` as-is (removing them causes a
+   black screen).
+2. In `ios/Runner/AppDelegate.swift`, use `class AppDelegate: FlutterAppDelegate` (**no**
+   `FlutterImplicitEngineDelegate` / `didInitializeImplicitFlutterEngine`) and call
+   `GeneratedPluginRegistrant.register(with: self)` inside `didFinishLaunching` — see the full
+   AppDelegate in the next section.
+3. If your project has a `SceneDelegate.swift`, it becomes dead code — you can delete it (and
+   its `project.pbxproj` references).
+
+The `example/` app ships this configuration and is the working reference.
+
 #### Background tasks (BGTaskScheduler) — required
 
 Without this wiring the SDK still works in foreground, but it **silently
@@ -158,7 +209,8 @@ The SDK schedules two BGTasks — `io.bearound.sdk.sync` (app refresh) and
 in `BGTaskSchedulerPermittedIdentifiers` (snippet above), and the app must call
 `registerBackgroundTasks()` **before the app finishes launching** — i.e. in your
 `AppDelegate`, not from Dart. Wire it in `ios/Runner/AppDelegate.swift` (the
-`example/` app is the working reference):
+`example/` app is the working reference; this assumes UIScene is disabled per the
+section above — under UIScene there is no legacy `didFinishLaunching` wiring):
 
 ```swift
 import BearoundSDK
@@ -211,30 +263,35 @@ import BearoundSDK
 #### Push notifications & background wakeup
 
 The backend can trigger a background BLE scan via **silent push**, and iOS relaunches a closed
-app when it enters a beacon region. On **Flutter 3.41+** this requires three extra steps in
-**your app target** — the `example/` app is the working reference; copy from `example/ios/Runner/`.
+app when it enters a beacon region. On top of the required setup above (UIScene disabled +
+legacy AppDelegate), this needs two extra steps in **your app target** — the `example/` app is
+the working reference; copy from `example/ios/Runner/`.
 
 **1. Push entitlement** — create `ios/Runner/Runner.entitlements`:
 
 ```xml
 <key>aps-environment</key>
-<string>development</string> <!-- or "production" -->
+<string>production</string>
 ```
 
 Reference it in the Runner build settings (all configs): `CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;`
 
-**2. Disable the UIScene** — in `ios/Runner/Info.plist`, **rename** `UIApplicationSceneManifest`
-to `_UIApplicationSceneManifest` (keep the `_` prefix — do **not** delete the block, Flutter's
-migrator re-injects it every build). This drops the app back to the legacy AppDelegate life cycle,
-which is what makes silent-push and beacon wakeup work. Keep `UIMainStoryboardFile` and
-`UILaunchStoryboardName` as-is (removing them causes a black screen).
+Ship `production` — that's what TestFlight/App Store builds (your real fleet) use. Dev-signed
+builds (`flutter run`, Xcode run) are automatically re-signed with `development`, so the same
+file covers both. What you MUST match is the **backend credential environment** to the build
+you're testing: a `development`-signed build registers a **sandbox** APNs token, a store build
+registers a **production** one. Cross them and APNs replies `200` but the device never gets the
+push (`BadDeviceToken`) — the most common "push doesn't arrive" cause.
 
-**3. AppDelegate** — legacy mode + forward the silent push to the SDK. Full file:
+**2. AppDelegate** — forward the silent push to the SDK. Full file:
 [`example/ios/Runner/AppDelegate.swift`](example/ios/Runner/AppDelegate.swift). Key points:
 
-- `class AppDelegate: FlutterAppDelegate` (**no** `FlutterImplicitEngineDelegate`) + `GeneratedPluginRegistrant.register(with: self)`
-- override the **deprecated** `application(_:didReceiveRemoteNotification:)` (without `fetchCompletionHandler`) and call `BeAroundSDK.shared.performBackgroundBLERefreshAndSync(...)` — the modern variant is not delivered on Flutter ([flutter#155479](https://github.com/flutter/flutter/issues/155479))
-- `requestAuthorization(...)` + set `UNUserNotificationCenter.current().delegate = self`
+- `application.registerForRemoteNotifications()` in `didFinishLaunching` (idempotent if another
+  push SDK — e.g. Firebase — already registers)
+- override the **deprecated** `application(_:didReceiveRemoteNotification:)` (without `fetchCompletionHandler`) and call `BeAroundSDK.shared.performBackgroundBLERefreshAndSync(...)` — the modern variant is not delivered on Flutter ([flutter#155479](https://github.com/flutter/flutter/issues/155479)). Guard on `userInfo["bearound"] != nil` so other providers' pushes pass through untouched.
+- `requestAuthorization(...)` + set `UNUserNotificationCenter.current().delegate = self` — only
+  if no other plugin (e.g. `firebase_messaging`) already owns the notification-center delegate;
+  silent pushes don't need user-visible notification permission.
 
 > **iOS rules that are NOT bugs:**
 > - **Silent push never wakes a force-quit app** (Apple rule) — a closed app is relaunched by
