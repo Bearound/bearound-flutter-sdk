@@ -2,6 +2,11 @@
 
 Official Flutter plugin for the Bearound native SDKs — Android **3.4.5** · iOS **3.4.5**.
 
+> [!TIP]
+> **⚡ Set it up with an AI agent.** Don't wire the iOS/Android background integration by hand — hand [one prompt](./AI-AGENT-SETUP.md) to your AI coding agent (Claude Code, Cursor, Copilot) and let it pilot the whole install, pausing only for the few human-only steps. → [Set up with an AI agent](#set-up-with-an-ai-agent)
+
+[![Agent setup prompt](https://img.shields.io/badge/Agent_setup_prompt-open_%26_copy-2563eb?style=for-the-badge)](./AI-AGENT-SETUP.md)
+
 ## Features
 
 - Native beacon scanning on Android and iOS
