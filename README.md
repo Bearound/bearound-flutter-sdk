@@ -2,6 +2,11 @@
 
 Official Flutter plugin for the Bearound native SDKs — Android **3.4.5** · iOS **3.4.5**.
 
+> [!TIP]
+> **⚡ Set it up with an AI agent.** Don't wire the iOS/Android background integration by hand — hand [one prompt](./AI-AGENT-SETUP.md) to your AI coding agent (Claude Code, Cursor, Copilot) and let it pilot the whole install, pausing only for the few human-only steps. → [Set up with an AI agent](#set-up-with-an-ai-agent)
+
+[![Agent setup prompt](https://img.shields.io/badge/Agent_setup_prompt-open_%26_copy-2563eb?style=for-the-badge)](./AI-AGENT-SETUP.md)
+
 ## Features
 
 - Native beacon scanning on Android and iOS
@@ -29,6 +34,22 @@ Run:
 ```bash
 flutter pub get
 ```
+
+## Set up with an AI agent
+
+Instead of wiring the intricate iOS/Android background setup by hand, hand it to an **AI coding agent** (Claude Code, Cursor, Copilot, …). This README is written to be **agent-readable** — the agent reads it and does the whole integration. There's one ready-made prompt to give it:
+
+[![Agent setup prompt](https://img.shields.io/badge/Agent_setup_prompt-open_%26_copy-2563eb?style=for-the-badge)](./AI-AGENT-SETUP.md)
+
+Open [`AI-AGENT-SETUP.md`](./AI-AGENT-SETUP.md) and click the **copy icon** on its code block — GitHub shows one on every code block, and it drops the prompt on your clipboard. Then paste it into your agent with your app's repo open. Web-capable agents can fetch its [raw URL](https://raw.githubusercontent.com/Bearound/bearound-flutter-sdk/main/AI-AGENT-SETUP.md) directly.
+
+**The agent will pause for these human-only steps** — they need your Apple/Google accounts and a physical device, so no SDK or agent can do them:
+
+- **Xcode → Push Notifications capability** on your app target, signed with **your** push-enabled App ID / provisioning profile — the `aps-environment` entitlement the SDK's silent-push wake vector depends on. See [Push notifications & background wakeup](#push-notifications--background-wakeup).
+- **On device:** grant **Always** location and turn on **Background App Refresh**.
+- **Google Play:** the `connectedDevice` foreground-service declaration + demonstration video required at review (only if you enable the foreground service). See [Scan modes](#scan-modes-android).
+
+Prefer to wire it by hand? Everything the prompt references is spelled out in the sections below.
 
 ## Platform Setup
 
@@ -212,21 +233,87 @@ in `BGTaskSchedulerPermittedIdentifiers` (snippet above), and the app must call
 `example/` app is the working reference; this assumes UIScene is disabled per the
 section above — under UIScene there is no legacy `didFinishLaunching` wiring):
 
-```swift
-import BearoundSDK
+This is the **complete** `AppDelegate` — it is `example/ios/Runner/AppDelegate.swift` verbatim (the working reference), and it covers **both** the BGTask wiring **and** the silent-push handlers described in the next section. Copy it whole; every method is load-bearing. In particular, `patchFlutterProMotionCrash()` is **required**: disabling UIScene (above) re-enters an iOS-26 ProMotion code path that crashes the host on iPhone 15 Pro and newer — this workaround neutralizes it.
 
+```swift
+import Flutter
+import UIKit
+import BearoundSDK
+import ObjectiveC
+import UserNotifications
+
+// Flutter 3.44.x crashes on iOS 26 when it creates the ProMotion touch-rate
+// VSync client (the task runner is nil in viewDidLoad). Swizzle it to a no-op
+// (cost: no touch-rate correction on ProMotion screens). REQUIRED once UIScene is
+// disabled — the legacy storyboard path (which creates the FlutterViewController)
+// re-enters this crashing code path.
+private func patchFlutterProMotionCrash() {
+  guard #available(iOS 26, *) else { return }
+  let sel = NSSelectorFromString("createTouchRateCorrectionVSyncClientIfNeeded")
+  guard let method = class_getInstanceMethod(FlutterViewController.self, sel) else { return }
+  let noop: @convention(block) (AnyObject) -> Void = { _ in }
+  method_setImplementation(method, imp_implementationWithBlock(noop))
+}
+
+// UIScene disabled (see _UIApplicationSceneManifest in Info.plist): back to the
+// legacy AppDelegate lifecycle so UIApplicationDelegate background events (silent
+// push wakeup, region/BLE state restoration, background fetch) are delivered
+// again — exactly like the native app. Classic plugin registration via
+// GeneratedPluginRegistrant.register(with: self); no FlutterImplicitEngineDelegate.
 @main
 @objc class AppDelegate: FlutterAppDelegate {
   override func application(
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
+    patchFlutterProMotionCrash()
     GeneratedPluginRegistrant.register(with: self)
 
     // Register the SDK's BGTasks BEFORE the app finishes launching.
     BeAroundSDK.shared.registerBackgroundTasks()
+    // Silent push: register with APNs so the backend can wake the app in the
+    // background. (The SDK also auto-captures the token via swizzle; this is
+    // idempotent and mirrors the native AppDelegate.)
+    application.registerForRemoteNotifications()
+
+    // App relaunched in the background by a region/Bluetooth event while the app
+    // was KILLED (state restoration) — mirrors the native "App Reactivated" flow.
+    if launchOptions?[.location] != nil {
+      NSLog("[Runner] Relaunched by LOCATION (region entry)")
+      Self.notifyAppRelaunched()
+    }
+    if launchOptions?[.bluetoothCentrals] != nil {
+      NSLog("[Runner] Relaunched by BLUETOOTH (state restoration)")
+      Self.notifyAppRelaunched()
+    }
+
+    // Notifications: authorization + delegate so banners show in the foreground
+    // (willPresent). Bearound silent pushes are handled by the override below.
+    // If another plugin (firebase_messaging / flutter_local_notifications) already
+    // owns the notification-center delegate, do NOT set it here — inject the
+    // willPresent / didReceiveRemoteNotification logic into that owner instead.
+    let center = UNUserNotificationCenter.current()
+    center.delegate = self
+    center.requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
+      NSLog("[Runner] Notif auth granted=%d error=%@", granted ? 1 : 0, error?.localizedDescription ?? "nil")
+    }
 
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+  }
+
+  // Background relaunch notification — a visible signal that the app woke up.
+  private static func notifyAppRelaunched() {
+    let content = UNMutableNotificationContent()
+    content.title = "App Reactivated"
+    content.body = "BeAroundSDK detected a beacon region in the background"
+    content.sound = .default
+    UNUserNotificationCenter.current().add(
+      UNNotificationRequest(
+        identifier: "bearound.relaunch.\(Int(Date().timeIntervalSince1970))",
+        content: content,
+        trigger: nil
+      )
+    )
   }
 
   // Background fetch — iOS periodically wakes the app for a refresh.
@@ -240,9 +327,7 @@ import BearoundSDK
   }
 
   // Background URLSession — iOS relaunches the app to deliver completed
-  // beacon-upload transfers. Forward to the SDK so terminated-state uploads
-  // are finalized (without this they complete in nsurlsessiond but the app
-  // never processes the result).
+  // beacon-upload transfers so terminated-state uploads are finalized.
   override func application(
     _ application: UIApplication,
     handleEventsForBackgroundURLSession identifier: String,
@@ -252,6 +337,63 @@ import BearoundSDK
       identifier: identifier,
       completionHandler: completionHandler
     )
+  }
+
+  // APNs token: the SDK auto-captures it via swizzle; kept only to log it.
+  override func application(
+    _ application: UIApplication,
+    didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data
+  ) {
+    let token = deviceToken.map { String(format: "%02x", $0) }.joined()
+    NSLog("[Runner] APNs token: %@", token)
+    super.application(application, didRegisterForRemoteNotificationsWithDeviceToken: deviceToken)
+  }
+
+  override func application(
+    _ application: UIApplication,
+    didFailToRegisterForRemoteNotificationsWithError error: Error
+  ) {
+    NSLog("[Runner] APNs register FAILED: %@", error.localizedDescription)
+  }
+
+  // Silent-push wakeup — the DEPRECATED variant (no fetchCompletionHandler).
+  // FlutterAppDelegate does NOT implement the modern
+  // application(_:didReceiveRemoteNotification:fetchCompletionHandler:) as a real
+  // method (dynamic forwarding via kSelectorsHandledByPlugins), so iOS drops the
+  // silent push and never wakes a suspended app (flutter#155479 / #52895). The
+  // deprecated variant below is NOT in Flutter's hijack list, so it reaches the app
+  // and wakes it. We call the SDK's background-scan flow directly (what the native
+  // app gets via swizzle, which does not work on Flutter). Guard on
+  // userInfo["bearound"] so other providers' pushes pass through untouched.
+  override func application(
+    _ application: UIApplication,
+    didReceiveRemoteNotification userInfo: [AnyHashable: Any]
+  ) {
+    guard userInfo["bearound"] != nil else { return }
+    NSLog("[Runner] Bearound silent push received (deprecated variant) — scan + sync")
+    BeAroundSDK.shared.performBackgroundBLERefreshAndSync(
+      bleScanDuration: 10.0, trigger: "silent_push"
+    ) { ingestStarted in
+      let info = BeAroundSDK.shared.lastBackgroundScanInfo
+      let found = info?.beaconsFound ?? 0
+      let pending = info?.pendingBatches ?? 0
+      NSLog("[Runner] Silent push handled: beacons=%d ingest=%d pending=%d",
+            found, ingestStarted ? 1 : 0, pending)
+      DispatchQueue.main.async {
+        BeAroundSDK.shared.delegate?.didCompletePushScan(
+          beaconsFound: found, ingestStarted: ingestStarted, pendingBatches: pending
+        )
+      }
+    }
+  }
+
+  // Show the banner even in the foreground (normal/alert push).
+  override func userNotificationCenter(
+    _ center: UNUserNotificationCenter,
+    willPresent notification: UNNotification,
+    withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+  ) {
+    completionHandler([.banner, .sound])
   }
 }
 ```
@@ -264,8 +406,9 @@ import BearoundSDK
 
 The backend can trigger a background BLE scan via **silent push**, and iOS relaunches a closed
 app when it enters a beacon region. On top of the required setup above (UIScene disabled +
-legacy AppDelegate), this needs two extra steps in **your app target** — the `example/` app is
-the working reference; copy from `example/ios/Runner/`.
+legacy AppDelegate), this needs two extra steps in **your app target**. The complete
+`AppDelegate` shown above already includes the silent-push handlers; the entitlement below is
+the remaining piece.
 
 **1. Push entitlement** — create `ios/Runner/Runner.entitlements`:
 
@@ -283,8 +426,7 @@ you're testing: a `development`-signed build registers a **sandbox** APNs token,
 registers a **production** one. Cross them and APNs replies `200` but the device never gets the
 push (`BadDeviceToken`) — the most common "push doesn't arrive" cause.
 
-**2. AppDelegate** — forward the silent push to the SDK. Full file:
-[`example/ios/Runner/AppDelegate.swift`](example/ios/Runner/AppDelegate.swift). Key points:
+**2. AppDelegate** — the **complete `AppDelegate` shown above** already forwards the silent push to the SDK. Key points to understand:
 
 - `application.registerForRemoteNotifications()` in `didFinishLaunching` (idempotent if another
   push SDK — e.g. Firebase — already registers)
