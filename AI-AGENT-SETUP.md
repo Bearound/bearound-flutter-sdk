@@ -12,9 +12,9 @@ UIScene (Flutter 3.41+) — required", "Background tasks (BGTaskScheduler) — r
 "Push notifications & background wakeup", and "Quick Start" — then do ALL of the
 following.
 
-SCOPE: From the example/ app, copy ONLY ios/Runner/AppDelegate.swift VERBATIM (see
-step 4). Apply EVERY other change to YOUR app's repo, never to example/ — the example
-is a demo, NOT a template: its Info.plist is a build-time stub, its build.gradle.kts
+SCOPE: You do NOT have the SDK's example/ dir in your app repo, so never try to open
+it. Wire the complete iOS AppDelegate from the SDK README (step 4); apply every change
+to YOUR app's repo. The example is a demo, NOT a template: its Info.plist is a build-time stub, its build.gradle.kts
 has a dev-only mavenLocal(), its Runner.entitlements is `development`, and its
 main.dart hardcodes a demo businessToken. Do NOT copy those.
 
@@ -59,7 +59,11 @@ main.dart hardcodes a demo businessToken. Do NOT copy those.
    SceneDelegate.swift exists it is now dead code — delete it and its project.pbxproj
    references.
 
-4. iOS AppDelegate — COPY example/ios/Runner/AppDelegate.swift VERBATIM, including
+4. iOS AppDelegate — wire the COMPLETE AppDelegate. The SDK README's iOS section
+   ("Background tasks (BGTaskScheduler) — required") shows it IN FULL — it is
+   example/ios/Runner/AppDelegate.swift verbatim, also fetchable at
+   https://raw.githubusercontent.com/Bearound/bearound-flutter-sdk/main/example/ios/Runner/AppDelegate.swift
+   — use it as-is, including
    `import BearoundSDK` and the patchFlutterProMotionCrash() call (invoked FIRST in
    didFinishLaunching — REQUIRED, because disabling UIScene in step 3 re-enters an
    iOS-26 ProMotion crash path that this workaround fixes; omitting it crashes the host
