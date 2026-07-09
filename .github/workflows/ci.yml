@@ -60,13 +60,6 @@ jobs:
     - name: Run tests with coverage
       run: flutter test --coverage
 
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
-      with:
-        file: ./coverage/lcov.info
-        flags: unittests
-        name: codecov-umbrella
-
   # Job para validação de build Android
   build_validation_android:
     name: Build Validation (Android)
