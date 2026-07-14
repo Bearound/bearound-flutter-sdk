@@ -9,8 +9,8 @@ the full iOS/Android background integration.
 Integrate bearound_flutter_sdk into this Flutter app (iOS + Android). First READ the
 SDK's README end to end — especially "Platform Setup" (Android + iOS), "Disable
 UIScene (Flutter 3.41+) — required", "Background tasks (BGTaskScheduler) — required",
-"Push notifications & background wakeup", and "Quick Start" — then do ALL of the
-following.
+"Push notifications & background wakeup", "Silent-push wake-up (Android)", and
+"Quick Start" — then do ALL of the following.
 
 SCOPE: You do NOT have the SDK's example/ dir in your app repo, so never try to open
 it. Wire the complete iOS AppDelegate from the SDK README (step 4); apply every change
@@ -24,7 +24,7 @@ main.dart hardcodes a demo businessToken. Do NOT copy those.
    `platform :ios, '13.0'` (fresh Podfiles ship it commented), and INSIDE
    `target 'Runner' do` add `use_frameworks!` — the AppDelegate in step 4 does
    `import BearoundSDK`, a transitive Swift pod that is only visible with dynamic-
-   framework linkage, which a fresh Podfile omits (without it, step 7's iOS build fails
+   framework linkage, which a fresh Podfile omits (without it, step 8's iOS build fails
    with "no such module BearoundSDK"). Then `cd ios && pod install` (run `flutter pub
    get` FIRST so `.symlinks/plugins` exists). Also ensure the Runner APP target's
    IPHONEOS_DEPLOYMENT_TARGET >= 13.0. Add JitPack for the native Android SDK: if the
@@ -52,7 +52,7 @@ main.dart hardcodes a demo businessToken. Do NOT copy those.
    `flutter build ios --no-codesign` ONCE so the key appears, THEN rename it; if it is
    still absent, add this top-level inert block manually:
    `<key>_UIApplicationSceneManifest</key><dict><key>UIApplicationSupportsMultipleScenes</key><false/></dict>`.
-   A literal "rename" when no key exists is a no-op — step 7's build then injects the
+   A literal "rename" when no key exists is a no-op — step 8's build then injects the
    UNPREFIXED key, UIScene stays ENABLED, and state restoration, region relaunch and
    silent-push wakeup all silently die. Keep UIMainStoryboardFile /
    UILaunchStoryboardName as-is (removing them causes a black screen). If a
@@ -110,7 +110,7 @@ main.dart hardcodes a demo businessToken. Do NOT copy those.
    openManufacturerAutostartSettings(). businessToken: read from
    `const String.fromEnvironment('BEAROUND_TOKEN')` (passed as
    `--dart-define=BEAROUND_TOKEN=…`). NOTE this returns '' (compiles green) when the
-   define is absent, and configure() only throws at RUNTIME — which step 7's build
+   define is absent, and configure() only throws at RUNTIME — which step 8's build
    never reaches — so ASSERT the token is non-empty before calling configure(). If
    unset, STOP and get the real token; never hardcode a placeholder and never fall back
    to the example token `ee2ec9c46d2b2ad99bddcdd0afe224e6` (example/lib/main.dart
@@ -122,7 +122,23 @@ main.dart hardcodes a demo businessToken. Do NOT copy those.
    `getAPNSToken()` (RAW APNs, NOT getToken()) on iOS via setPushToken. Do NOT invent a
    token.
 
-7. Verify: run `flutter analyze` (0 errors), `flutter build apk --debug` (proves
+7. Silent-push wake-up on Android — OPTIONAL: wire this ONLY if the backend wakes the
+   device by silent push; skip the whole step otherwise. It applies solely when the app
+   uses `firebase_messaging` — Firebase delivers the data push to YOUR background
+   handler, not to the SDK, so you MUST forward it. In the handler registered via
+   `FirebaseMessaging.onBackgroundMessage` (annotate it `@pragma('vm:entry-point')`),
+   call `DartPluginRegistrant.ensureInitialized()` FIRST — the handler runs in a
+   SEPARATE isolate where the plugin's method channel isn't registered, so without it
+   the next call silently no-ops — THEN `await BearoundFlutterSdk.handleRemoteMessage(
+   Map<String, String>.from(message.data))`. It returns `true` and fires the on-demand
+   scan + sync for Bearound wake-ups (the payload carries the `bearound` marker) and
+   `false` for any third-party push — pass those through to your own handling. iOS needs
+   NOTHING here: the AppDelegate from step 4 already forwards the silent push down the
+   same path. If the app does NOT use `firebase_messaging` there is nothing to wire — a
+   backend push wake-up needs an FCM receiver, so the step is inapplicable. See
+   README → "Silent-push wake-up (Android)".
+
+8. Verify: run `flutter analyze` (0 errors), `flutter build apk --debug` (proves
    JitPack + native Android SDK resolve), and `flutter build ios --no-codesign`. Run the
    builds WITH `--dart-define=BEAROUND_TOKEN=<real token>` so the binary is actually
    authenticated — a tokenless build compiles green but fails at configure() on-device,
