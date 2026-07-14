@@ -321,7 +321,7 @@ class ErrorReporter {
 
   /// Plugin version — kept in sync with `pubspec.yaml`. A literal (rather than a
   /// method-channel call) so the snapshot never blocks on the platform side.
-  static const String _sdkVersion = '3.4.5';
+  static const String _sdkVersion = '3.5.0';
 
   Future<Map<String, dynamic>> _deviceSnapshot() async {
     final device = <String, dynamic>{
