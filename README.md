@@ -681,6 +681,45 @@ if (Platform.isAndroid) {
 > `setPushToken` on iOS is not just recommended — it's the only way the token
 > reaches the backend.
 
+### Silent-push wake-up (Android)
+
+On Android the backend wakes a killed app the same way as iOS — via a **data
+push** — but Firebase delivers it to **your** `firebase_messaging` background
+handler, not to the SDK. Forward it with `handleRemoteMessage` so the SDK can run
+an on-demand scan + sync:
+
+```dart
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/widgets.dart';
+
+@pragma('vm:entry-point')
+Future<void> _firebaseBackgroundHandler(RemoteMessage message) async {
+  // The background handler runs in a SEPARATE isolate — the plugin's method
+  // channel isn't registered there, so this call is REQUIRED before invoking any
+  // Bearound (or plugin) method, otherwise the channel silently no-ops.
+  DartPluginRegistrant.ensureInitialized();
+
+  // Returns true and triggers the scan + sync when it's a Bearound push; returns
+  // false for everything else, so pass those through to your own handling.
+  await BearoundFlutterSdk.handleRemoteMessage(message.data);
+}
+
+void main() {
+  FirebaseMessaging.onBackgroundMessage(_firebaseBackgroundHandler);
+  // ... runApp(...)
+}
+```
+
+`handleRemoteMessage` inspects the payload for the Bearound marker and, when
+present, restarts the scan and syncs immediately; it's a no-op returning `false`
+for non-Bearound pushes.
+
+> **iOS needs no wiring here** — the `AppDelegate`'s `didReceiveRemoteNotification`
+> override (see [Push notifications & background wakeup](#push-notifications--background-wakeup))
+> already forwards the silent push to the same background BLE refresh + sync path.
+> The Dart `handleRemoteMessage` is also bridged on iOS (same `bearound` guard) for
+> hosts that route pushes through Dart instead.
+
 ## API Summary
 
 Full cross-platform event/field parity matrix: [EVENT-PARITY.md](EVENT-PARITY.md).
@@ -703,6 +742,7 @@ Full cross-platform event/field parity matrix: [EVENT-PARITY.md](EVENT-PARITY.md
 | `setUserProperties(UserProperties)` | Android + iOS | |
 | `clearUserProperties()` | Android + iOS | |
 | `setPushToken(String)` | Android + iOS | FCM token on Android, **raw APNs token** on iOS — see [Push Token](#push-token). |
+| `handleRemoteMessage(Map<String, String>)` | Android + iOS | Forward a received push (FCM data message / remote notification) to trigger the silent-push scan + sync. Returns `true` for Bearound pushes, `false` otherwise. See [Silent-push wake-up](#silent-push-wake-up-android). |
 | `getSdkVersion()` | Android + iOS | Android returns `BuildConfig.SDK_VERSION` (injected at build time); `''` only if the native layer is unavailable. |
 | `getCurrentScanPrecision()` | Android + iOS | `''` before `configure()`. |
 | `getBleDiagnosticInfo()` | iOS | Android returns `''`. |

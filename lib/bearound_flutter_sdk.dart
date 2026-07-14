@@ -303,6 +303,18 @@ class BearoundFlutterSdk {
     await _channel.invokeMethod('setPushToken', {'token': token});
   }
 
+  /// Forwards a received push (FCM data message on Android; remote notification on
+  /// iOS) to the SDK to trigger an on-demand scan + sync — the silent-push
+  /// wake-up. Returns true if it was a Bearound message (marked `bearound`); false
+  /// otherwise (pass non-Bearound pushes through). Call from your
+  /// firebase_messaging background handler.
+  static Future<bool> handleRemoteMessage(Map<String, String> data) async {
+    final res = await _channel.invokeMethod<bool>('handleRemoteMessage', {
+      'data': data,
+    });
+    return res ?? false;
+  }
+
   // ---------------------------------------------------------------------------
   // Diagnostic / state getters (parity with native public API)
   // ---------------------------------------------------------------------------

@@ -294,6 +294,16 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
         }
       }
 
+      // Silent-push wake-up: forward an FCM data message so the native SDK can
+      // restart the scan + sync on demand. Returns true only for Bearound pushes
+      // (the SDK inspects the payload marker); pass everything else through.
+      "handleRemoteMessage" -> {
+        @Suppress("UNCHECKED_CAST")
+        val raw = call.argument<Map<String, Any?>>("data") ?: emptyMap()
+        val data = raw.mapValues { it.value?.toString() ?: "" }
+        result.success(sdk.handleRemoteMessage(data))
+      }
+
       // Android OS API level (Build.VERSION.SDK_INT) — lets the Dart permission
       // layer mirror the native scan gate (BLUETOOTH_SCAN on 12+, location on <12)
       // without pulling in device_info_plus.

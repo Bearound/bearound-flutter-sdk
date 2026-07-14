@@ -281,6 +281,16 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
             BeAroundSDK.shared.setPushToken(token)
             result(nil)
 
+        // Silent-push wake-up: a remote notification forwarded from Dart. Guard on
+        // the `bearound` marker so other providers' pushes pass through untouched,
+        // then run the same on-demand BLE refresh + sync the AppDelegate triggers.
+        case "handleRemoteMessage":
+            let args = call.arguments as? [String: Any]
+            let data = args?["data"] as? [String: Any] ?? [:]
+            guard data["bearound"] != nil else { result(false); return }
+            BeAroundSDK.shared.performBackgroundBLERefreshAndSync(trigger: "silent_push") { _ in }
+            result(true)
+
         // MARK: - Diagnostic getters
         case "getSdkVersion":
             result(BeAroundSDK.version)
