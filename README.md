@@ -701,7 +701,7 @@ Future<void> _firebaseBackgroundHandler(RemoteMessage message) async {
 
   // Returns true and triggers the scan + sync when it's a Bearound push; returns
   // false for everything else, so pass those through to your own handling.
-  await BearoundFlutterSdk.handleRemoteMessage(message.data);
+  await BearoundFlutterSdk.handleRemoteMessage(Map<String, String>.from(message.data));
 }
 
 void main() {
