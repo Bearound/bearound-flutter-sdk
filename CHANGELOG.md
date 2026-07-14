@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.5.0] - 2026-07-14
+
+### Added
+
+- **Silent-push wake-up bridge (Android):** new `BearoundFlutterSdk.handleRemoteMessage(Map<String, String> data)` — forward the FCM data message from your `firebase_messaging` background handler and the SDK triggers an on-demand scan + sync (returns `true` only for Bearound wake-ups, marked `bearound`). See README → *Silent-push wake-up (Android)*.
+
+### Changed
+
+- Wraps native **iOS 3.5.0** (BLE scan fix: `withServices: nil` + Service Data `0xBEAD` match — beacons detect again; regression since 2.3.2) and **Android v3.5.0** (silent-push wake-up + never-crash-the-host hardening).
+
 ## [3.4.5] - 2026-07-04
 
 ### Added

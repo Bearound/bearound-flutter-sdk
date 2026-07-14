@@ -68,11 +68,10 @@ android {
 }
 
 dependencies {
-    // Published native Android SDK 3.4.5 — DX audit + error telemetry + second FGS
-    // crash mode fixed (ForegroundServiceStartNotAllowedException, started from
-    // background on Android 14+) + checkPermissions requires BLUETOOTH_SCAN on 12+
-    // (no location-only scan spam). Reliability helpers (battery-opt/OEM autostart)
-    // are exposed on the Flutter method channel in this release. NOTE: tag 3.4.5 must
-    // be on JitPack first (the plugin CI fails to resolve the dependency until then).
-    api 'com.github.Bearound:bearound-android-sdk:v3.4.5'
+    // Published native Android SDK v3.5.0 — silent-push wake-up (handleRemoteMessage +
+    // BearoundMessagingService) + never-crash-the-host hardening, on top of the 3.4.x
+    // line (DX audit, error telemetry, FGS crash fixes, reliability helpers).
+    // NOTE: tag v3.5.0 must be on JitPack first (the plugin CI fails to resolve the
+    // dependency until then).
+    api 'com.github.Bearound:bearound-android-sdk:v3.5.0'
 }
