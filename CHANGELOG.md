@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.4.6] - 2026-07-14
+
+### Changed
+
+- **Bumped native SDKs to 3.4.6 (Android + iOS) — BLE scan fix.** Plugin release that wraps native **iOS 3.4.6** + **Android v3.4.6**, which carry the BLE scan fix. Plugin-only bump: `BearoundSDK` pin 3.4.5 → 3.4.6 (iOS) and `bearound-android-sdk` v3.4.5 → v3.4.6 (Android). No Dart API changes. NOTE: the `v3.4.6` tags must be published first — iOS on CocoaPods and Android on JitPack — or the plugin CI fails to resolve the native dependencies.
+
 ## [3.4.5] - 2026-07-04
 
 ### Added

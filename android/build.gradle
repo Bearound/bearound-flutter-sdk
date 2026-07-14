@@ -74,5 +74,5 @@ dependencies {
     // (no location-only scan spam). Reliability helpers (battery-opt/OEM autostart)
     // are exposed on the Flutter method channel in this release. NOTE: tag 3.4.5 must
     // be on JitPack first (the plugin CI fails to resolve the dependency until then).
-    api 'com.github.Bearound:bearound-android-sdk:v3.4.5'
+    api 'com.github.Bearound:bearound-android-sdk:v3.4.6'
 }
