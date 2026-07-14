@@ -68,11 +68,11 @@ android {
 }
 
 dependencies {
-    // Published native Android SDK 3.4.5 — DX audit + error telemetry + second FGS
-    // crash mode fixed (ForegroundServiceStartNotAllowedException, started from
-    // background on Android 14+) + checkPermissions requires BLUETOOTH_SCAN on 12+
-    // (no location-only scan spam). Reliability helpers (battery-opt/OEM autostart)
-    // are exposed on the Flutter method channel in this release. NOTE: tag 3.4.5 must
-    // be on JitPack first (the plugin CI fails to resolve the dependency until then).
+    // Published native Android SDK v3.4.6 — version-aligned with the 3.4.6 release
+    // (the scan-BLE fix is iOS-only; Android already filters by Service Data). Carries
+    // the accumulated hardening: FGS crash mode fixed (ForegroundServiceStartNotAllowed,
+    // started from background on Android 14+) + checkPermissions requires BLUETOOTH_SCAN
+    // on 12+ + reliability helpers (battery-opt/OEM autostart) on the method channel.
+    // NOTE: tag v3.4.6 must be on JitPack first (plugin CI fails to resolve until then).
     api 'com.github.Bearound:bearound-android-sdk:v3.4.6'
 }

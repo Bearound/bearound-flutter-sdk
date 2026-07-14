@@ -18,7 +18,7 @@ to YOUR app's repo. The example is a demo, NOT a template: its Info.plist is a b
 has a dev-only mavenLocal(), its Runner.entitlements is `development`, and its
 main.dart hardcodes a demo businessToken. Do NOT copy those.
 
-1. Install: add `bearound_flutter_sdk: ^3.4.5` under dependencies in pubspec.yaml and
+1. Install: add `bearound_flutter_sdk: ^3.4.6` under dependencies in pubspec.yaml and
    run `flutter pub get`. In android/app/build.gradle.kts set `minSdk = 23` (replace
    the `flutter.minSdkVersion` reference). iOS Podfile: UNCOMMENT and set
    `platform :ios, '13.0'` (fresh Podfiles ship it commented), and INSIDE

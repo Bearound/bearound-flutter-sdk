@@ -1,6 +1,6 @@
 # 🐻 Bearound Flutter SDK
 
-Official Flutter plugin for the Bearound native SDKs — Android **3.4.5** · iOS **3.4.5**.
+Official Flutter plugin for the Bearound native SDKs — Android **3.4.6** · iOS **3.4.6**.
 
 > [!TIP]
 > **⚡ Set it up with an AI agent.** Don't wire the iOS/Android background integration by hand — hand [one prompt](./AI-AGENT-SETUP.md) to your AI coding agent (Claude Code, Cursor, Copilot) and let it pilot the whole install, pausing only for the few human-only steps. → [Set up with an AI agent](#set-up-with-an-ai-agent)
@@ -26,7 +26,7 @@ Add to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  bearound_flutter_sdk: ^3.4.5
+  bearound_flutter_sdk: ^3.4.6
 ```
 
 Run:
