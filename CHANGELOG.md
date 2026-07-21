@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.5.1] - 2026-07-22
+
+### Changed
+
+- **Android native SDK v3.5.0 → v3.5.1.** Scan reliability on modern Android 13+ (periodic anti-downgrade scan refresh, batch-scan filter for pure-0xBEAD frames from firmware v4 beacons, PendingIntent scan kept armed in foreground), ghost-beacon fixes on the host list (expirations now reach the listener, including the empty list) and scan-precision changes now apply immediately on reconfigure. No Dart API changes — all fixes live in the embedded native SDK. See the native SDK CHANGELOG for full details.
+
 ## [3.5.0] - 2026-07-14
 
 ### Added
