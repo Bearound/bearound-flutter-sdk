@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.6.2] - 2026-07-25
+
+### Changed
+
+- **Native SDKs bumped to the 3.6 line** — iOS `BearoundSDK` 3.6.2 and Android `bearound-android-sdk` v3.6.1, carrying the full background/reliability package:
+  - **iOS — background detection unlocked**: state-dependent BLE scan filter (`nil` foreground / `0xBEAD` background, pairs with beacon firmware v6) plus presence integrity — kernel region exits are confirmed before being propagated (no more false "left the zone" while parked next to a beacon), `CLRegionState.unknown` is preserved, cold relaunches survive until the region state resolves, and the Location-only permission profile (no Bluetooth) now detects and syncs end-to-end.
+  - **iOS — coordinated sync**: single funnel for all triggers, detection-driven uploads (~seconds after entering a zone), 5 s foreground fast-path for changed samples, 1 s background batch window, and a 60 s per-beacon re-report that cuts steady-state volume ~4× without changing the ingest contract.
+  - **iOS — device floor back to iOS 15** and honest platform-guarantees documentation.
+  - **Android — ghost-beacon fixes**: controller "fossil replay" guard (MediaTek batch-buffer re-delivery), zombie synced-card release, and a periodic scan watchdog that keeps recovering the scan instead of dying with it.
+
 ## [3.5.2] - 2026-07-22
 
 ### Changed
