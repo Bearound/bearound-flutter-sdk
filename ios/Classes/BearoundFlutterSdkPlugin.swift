@@ -29,6 +29,22 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
     /// the `debugNotifications` argument of `configure`.
     private var debugNotificationsEnabled = false
 
+    /// Debug-notification cooldowns (native-example parity): zone events once per 10 s,
+    /// detection/sync once per 5 s — so background bursts don't spam the lock screen.
+    private var debugNotifyLast: [String: Date] = [:]
+    private func debugNotify(id: String, title: String, body: String, cooldown: TimeInterval) {
+        guard debugNotificationsEnabled else { return }
+        if let last = debugNotifyLast[id], Date().timeIntervalSince(last) < cooldown { return }
+        debugNotifyLast[id] = Date()
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = body
+        content.sound = .default
+        UNUserNotificationCenter.current().add(
+            UNNotificationRequest(identifier: "bearound.debug.\(id).\(Int(Date().timeIntervalSince1970))",
+                                  content: content, trigger: nil))
+    }
+
     /// Tracks whether `configure()` has been called from Flutter. Mirrors the
     /// RN bridge — the native SDK keeps configuration state private, so the
     /// bridge tracks it locally.
@@ -600,6 +616,11 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
     }
 
     public func didCompleteSync(beaconCount: Int, success: Bool, error: Error?) {
+        debugNotify(id: "sync",
+                    title: success ? "Sync Completo" : "Sync Falhou",
+                    body: success ? "Enviado\(beaconCount == 1 ? "" : "s") \(beaconCount) beacon\(beaconCount == 1 ? "" : "s") para o servidor"
+                                  : (error?.localizedDescription ?? "erro desconhecido"),
+                    cooldown: 5)
         let payload: [String: Any] = [
             "type": "completed",
             "beaconCount": beaconCount,
@@ -614,6 +635,9 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
 
     // v3.0: native signature is (beacons: [Beacon]).
     public func didDetectBeaconInBackground(beacons: [Beacon]) {
+        debugNotify(id: "bg-detect", title: "Beacon Detectado (Background)",
+                    body: "Encontrado \(beacons.count) beacon\(beacons.count == 1 ? "" : "s") próximo\(beacons.count == 1 ? "" : "s")",
+                    cooldown: 5)
         let payload: [String: Any] = ["beaconCount": beacons.count]
         DispatchQueue.main.async { [weak self] in
             self?.backgroundDetectionStreamHandler.eventSink?(payload)
@@ -622,6 +646,8 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
     }
 
     public func didEnterBeaconRegion() {
+        debugNotify(id: "zone-enter", title: "Entrou na zona",
+                    body: "Bearound detectou uma região de beacons (Location)", cooldown: 10)
         DispatchQueue.main.async { [weak self] in
             self?.beaconRegionStreamHandler.eventSink?(["type": "enter"])
         }
@@ -629,6 +655,8 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
     }
 
     public func didExitBeaconRegion() {
+        debugNotify(id: "zone-exit", title: "Saiu da zona",
+                    body: "Bearound: você saiu da região de beacons (Location)", cooldown: 10)
         DispatchQueue.main.async { [weak self] in
             self?.beaconRegionStreamHandler.eventSink?(["type": "exit"])
         }
@@ -642,6 +670,8 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
     }
 
     public func didEnterBluetoothZone() {
+        debugNotify(id: "bt-zone-enter", title: "Entrou na zona",
+                    body: "Bearound detectou uma região de beacons (Bluetooth)", cooldown: 10)
         DispatchQueue.main.async { [weak self] in
             self?.bluetoothZoneStreamHandler.eventSink?(["type": "enter"])
         }
@@ -649,6 +679,8 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
     }
 
     public func didExitBluetoothZone() {
+        debugNotify(id: "bt-zone-exit", title: "Saiu da zona",
+                    body: "Bearound: você saiu da região de beacons (Bluetooth)", cooldown: 10)
         DispatchQueue.main.async { [weak self] in
             self?.bluetoothZoneStreamHandler.eventSink?(["type": "exit"])
         }
