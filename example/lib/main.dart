@@ -220,7 +220,8 @@ class _BeaconHomePageState extends State<BeaconHomePage>
         businessToken: _businessToken,
         scanPrecision: _scanPrecision,
         maxQueuedPayloads: _maxQueuedPayloads,
-        debugNotifications: true, // bancada: paridade de notificações com o example nativo
+        debugNotifications:
+            true, // bancada: paridade de notificações com o example nativo
       );
     } catch (e) {
       setState(() => _lastError = e.toString());
