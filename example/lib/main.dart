@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import 'events.dart';
+import 'local_detection_log.dart';
 import 'eye_card.dart';
 import 'log_modal.dart';
 import 'settings_page.dart';
@@ -260,6 +261,9 @@ class _BeaconHomePageState extends State<BeaconHomePage>
   // ---------------------------------------------------------------------------
 
   void _startListening() {
+    // Android: the SDK has no persisted-log API, so the APP builds the detection
+    // log from these streams (same model as the native BearoundScan sample).
+    LocalDetectionLog.instance.start();
     _beaconsSub = BearoundFlutterSdk.beaconsStream.listen(_onBeacons);
     _scanningSub = BearoundFlutterSdk.scanningStream.listen(_onScanning);
     _errorSub = BearoundFlutterSdk.errorStream.listen(_onError);
@@ -279,6 +283,7 @@ class _BeaconHomePageState extends State<BeaconHomePage>
   }
 
   void _onBeacons(List<Beacon> beacons) {
+    LocalDetectionLog.instance.recordDetections(beacons);
     if (!mounted) return;
     setState(() {
       _detectedBeacons = beacons;
@@ -324,6 +329,10 @@ class _BeaconHomePageState extends State<BeaconHomePage>
         _lastSyncCount = event.beaconCount;
       });
     } else if (event.isCompleted) {
+      LocalDetectionLog.instance.recordSync(
+        beaconCount: event.beaconCount,
+        success: event.success ?? false,
+      );
       final startedAt = _syncStartedAt;
       final duration = startedAt != null
           ? DateTime.now().difference(startedAt)
@@ -346,6 +355,7 @@ class _BeaconHomePageState extends State<BeaconHomePage>
   void _onBackground(BackgroundDetectionEvent event) {
     // NOTE: push is app-level now — the SDK no longer posts notifications.
     // The host app can react to this event and post its own notification.
+    LocalDetectionLog.instance.recordBackgroundDetection(event.beaconCount);
     if (!mounted) return;
     setState(() {
       _status = '${event.beaconCount} beacon(s) em background';
@@ -353,6 +363,7 @@ class _BeaconHomePageState extends State<BeaconHomePage>
   }
 
   void _onRegion(BeaconRegionEvent event) {
+    LocalDetectionLog.instance.recordRegion(entered: event.isEnter);
     if (!mounted) return;
     setState(() {
       _isInBeaconRegion = event.isEnter;

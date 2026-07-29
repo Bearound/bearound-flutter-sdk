@@ -2,6 +2,7 @@ import 'package:bearound_flutter_sdk/bearound_flutter_sdk.dart';
 import 'package:flutter/material.dart';
 
 import 'events.dart';
+import 'local_detection_log.dart';
 
 /// Renders the native persisted log filtered by app state bucket.
 class LogModal extends StatefulWidget {
@@ -22,9 +23,36 @@ class _LogModalState extends State<LogModal> {
   void initState() {
     super.initState();
     _refresh();
+    if (LocalDetectionLog.instance.isAppSide) {
+      LocalDetectionLog.instance.entries.addListener(_onLocalLogChanged);
+    }
   }
 
+  @override
+  void dispose() {
+    if (LocalDetectionLog.instance.isAppSide) {
+      LocalDetectionLog.instance.entries.removeListener(_onLocalLogChanged);
+    }
+    super.dispose();
+  }
+
+  void _onLocalLogChanged() {
+    if (!mounted) return;
+    setState(() => _entries = LocalDetectionLog.instance.entries.value);
+  }
+
+  /// Android has no native persisted log (the plugin's getPersistedLog is an
+  /// iOS-only stub returning `[]`), so there the entries come from the app-side
+  /// store fed by the SDK streams. iOS keeps reading the native log.
   Future<void> _refresh() async {
+    if (LocalDetectionLog.instance.isAppSide) {
+      if (!mounted) return;
+      setState(() {
+        _entries = LocalDetectionLog.instance.entries.value;
+        _loading = false;
+      });
+      return;
+    }
     try {
       final entries = await BearoundFlutterSdk.getPersistedLog();
       if (!mounted) return;
@@ -38,6 +66,11 @@ class _LogModalState extends State<LogModal> {
   }
 
   Future<void> _clear() async {
+    if (LocalDetectionLog.instance.isAppSide) {
+      LocalDetectionLog.instance.clear();
+      if (mounted) setState(() => _entries = const []);
+      return;
+    }
     try {
       await BearoundFlutterSdk.clearPersistedLog();
     } catch (_) {
