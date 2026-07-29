@@ -110,8 +110,13 @@ class _LogModalState extends State<LogModal> {
     final buckets = <int, List<PersistedLogEntry>>{};
     for (final e in entries) {
       final t = DateTime.fromMillisecondsSinceEpoch(e.timestamp);
-      final key = DateTime(t.year, t.month, t.day, t.hour, t.minute)
-          .millisecondsSinceEpoch;
+      final key = DateTime(
+        t.year,
+        t.month,
+        t.day,
+        t.hour,
+        t.minute,
+      ).millisecondsSinceEpoch;
       buckets.putIfAbsent(key, () => []).add(e);
     }
     final groups = buckets.entries.map((b) {
@@ -122,7 +127,8 @@ class _LogModalState extends State<LogModal> {
           ids.add(m.group(1)!);
         }
       }
-      int countOf(PersistedLogState s) => list.where((e) => e.state == s).length;
+      int countOf(PersistedLogState s) =>
+          list.where((e) => e.state == s).length;
       return _MinuteGroup(
         date: DateTime.fromMillisecondsSinceEpoch(b.key),
         total: list.length,
@@ -356,9 +362,17 @@ class _LogModalState extends State<LogModal> {
           Row(
             children: [
               if (g.fg > 0)
-                _countBadge('FG', g.fg, appStateColor(AppStateBucket.foreground)),
+                _countBadge(
+                  'FG',
+                  g.fg,
+                  appStateColor(AppStateBucket.foreground),
+                ),
               if (g.bg > 0)
-                _countBadge('BG', g.bg, appStateColor(AppStateBucket.background)),
+                _countBadge(
+                  'BG',
+                  g.bg,
+                  appStateColor(AppStateBucket.background),
+                ),
               if (g.lk > 0)
                 _countBadge(
                   'LK',
@@ -366,7 +380,11 @@ class _LogModalState extends State<LogModal> {
                   appStateColor(AppStateBucket.backgroundLocked),
                 ),
               if (g.tm > 0)
-                _countBadge('T', g.tm, appStateColor(AppStateBucket.terminated)),
+                _countBadge(
+                  'T',
+                  g.tm,
+                  appStateColor(AppStateBucket.terminated),
+                ),
               const Spacer(),
               Text(
                 '${g.uniqueBeacons} beacon${g.uniqueBeacons == 1 ? '' : 's'}',
