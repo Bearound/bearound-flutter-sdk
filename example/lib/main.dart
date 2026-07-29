@@ -177,7 +177,12 @@ class _BeaconHomePageState extends State<BeaconHomePage>
   /// Android 12+ that call returns the BLUETOOTH_SCAN gate, not location, which
   /// made the UI show "Localização: Negada" while location was actually granted.
   Future<void> _refreshPermissions() async {
-    final location = await Permission.location.status;
+    // iOS: só "Sempre" habilita background/terminated — "Durante o uso" não.
+    // Ler Permission.location aqui pintava "Concedida" com o app preso em
+    // whenInUse, escondendo exatamente a falha que impede o wake-up.
+    final location = Platform.isAndroid
+        ? await Permission.location.status
+        : await Permission.locationAlways.status;
     // BLUETOOTH_SCAN is the Android 12+ scan gate; on iOS it is not the model,
     // so fall back to the location status there.
     final scan = Platform.isAndroid
@@ -197,14 +202,26 @@ class _BeaconHomePageState extends State<BeaconHomePage>
   /// No Android o requestPermissions() do plugin é no-op de propósito (runtime
   /// permissions são responsabilidade do app) — quem pede é o permission_handler.
   Future<void> _requestAllPermissions() async {
-    await [
-      Permission.locationWhenInUse,
-      if (Platform.isAndroid) Permission.bluetoothScan,
-      if (Platform.isAndroid) Permission.bluetoothConnect,
-      Permission.notification,
-    ].request();
-    // iOS: o pedido de localização passa pelo SDK (CoreLocation).
-    if (!Platform.isAndroid) await BearoundFlutterSdk.requestPermissions();
+    if (Platform.isAndroid) {
+      await [
+        Permission.locationWhenInUse,
+        Permission.bluetoothScan,
+        Permission.bluetoothConnect,
+        Permission.notification,
+      ].request();
+      return;
+    }
+
+    // iOS precisa de "Sempre" (Always). Com "Durante o uso" o app NÃO é
+    // religado em background nem em terminated: region monitoring e o state
+    // restoration do CoreBluetooth exigem Always. Pedir whenInUse primeiro
+    // deixa o app preso em "Durante o uso", porque o SDK só dispara o prompt
+    // de Always quando o status ainda é notDetermined.
+    await BearoundFlutterSdk.requestPermissions(); // notDetermined -> prompt Always
+    if (!await Permission.locationAlways.isGranted) {
+      await Permission.locationAlways.request(); // upgrade "Mudar para Sempre"
+    }
+    await Permission.notification.request();
   }
 
   Future<void> _bootstrap() async {
