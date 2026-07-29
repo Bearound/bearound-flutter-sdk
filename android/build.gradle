@@ -68,10 +68,10 @@ android {
 }
 
 dependencies {
-    // Published native Android SDK v3.5.0 — silent-push wake-up (handleRemoteMessage +
-    // BearoundMessagingService) + never-crash-the-host hardening, on top of the 3.4.x
-    // line (DX audit, error telemetry, FGS crash fixes, reliability helpers).
-    // NOTE: tag v3.5.0 must be on JitPack first (the plugin CI fails to resolve the
+    // Published native Android SDK v3.7.0 — persisted detection log with app-state
+    // tagging (getDetectionLogJson/clearDetectionLog, 1:1 with iOS), on top of the
+    // 3.6.x line (telemetry handoff, ghost-beacon fixes, scan watchdog).
+    // NOTE: the tag must be on JitPack first (the plugin CI fails to resolve the
     // dependency until then).
-    api 'com.github.Bearound:bearound-android-sdk:v3.6.1'
+    api 'com.github.Bearound:bearound-android-sdk:v3.7.0'
 }
