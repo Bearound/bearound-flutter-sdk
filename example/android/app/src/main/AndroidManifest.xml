@@ -9,12 +9,13 @@
         tools:targetApi="s" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
 
-    <!-- Location — legacy only: required to run a BLE scan on API <= 30.
-         On API 31+ BLUETOOTH_SCAN (neverForLocation) covers scanning, so location is NOT requested. -->
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"
-        android:maxSdkVersion="30" />
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"
-        android:maxSdkVersion="30" />
+    <!-- Location — ALL versions (two-eyes model): on API <= 30 it is the legacy BLE-scan
+         gate; on API 31+ it is the recommended hybrid alongside BLUETOOTH_SCAN — several
+         OEMs deliver more scan results with it granted, and it powers the geofence eye.
+         (A previous maxSdkVersion="30" here silently stripped location from Android 12+
+         builds: the permission did not exist in the APK, so it could never be requested.) -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
     <!-- Internet for API communication -->
     <uses-permission android:name="android.permission.INTERNET" />
