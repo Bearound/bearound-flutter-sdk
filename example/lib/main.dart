@@ -192,10 +192,25 @@ class _BeaconHomePageState extends State<BeaconHomePage>
     });
   }
 
+  /// Pede o conjunto COMPLETO de permissões, igual ao BearoundScan nativo:
+  /// Localização (olho esquerdo) + Nearby devices (olho direito) + Notificações.
+  /// No Android o requestPermissions() do plugin é no-op de propósito (runtime
+  /// permissions são responsabilidade do app) — quem pede é o permission_handler.
+  Future<void> _requestAllPermissions() async {
+    await [
+      Permission.locationWhenInUse,
+      if (Platform.isAndroid) Permission.bluetoothScan,
+      if (Platform.isAndroid) Permission.bluetoothConnect,
+      Permission.notification,
+    ].request();
+    // iOS: o pedido de localização passa pelo SDK (CoreLocation).
+    if (!Platform.isAndroid) await BearoundFlutterSdk.requestPermissions();
+  }
+
   Future<void> _bootstrap() async {
-    // Solicita permissões (Location + BT). Não bloqueia — o SDK nativo nunca
-    // gateia scan; qualquer olho disponível ativa.
-    await BearoundFlutterSdk.requestPermissions();
+    // Solicita permissões (Location + BT + notificação). Não bloqueia — o SDK
+    // nativo nunca gateia scan; qualquer olho disponível ativa.
+    await _requestAllPermissions();
 
     // Lê o status REAL de cada permissão (location, nearby-devices, notificação)
     // — sem confundir o gate de scan (BLUETOOTH_SCAN no 12+) com location.
@@ -727,8 +742,7 @@ class _BeaconHomePageState extends State<BeaconHomePage>
             const SizedBox(height: 8),
             TextButton.icon(
               onPressed: () async {
-                await BearoundFlutterSdk.requestPermissions();
-                await Permission.notification.request();
+                await _requestAllPermissions();
                 final bt = await BearoundFlutterSdk.getBluetoothState();
                 if (mounted) setState(() => _bluetoothState = bt);
                 await _refreshPermissions();
