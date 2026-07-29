@@ -13,9 +13,35 @@ class LogModal extends StatefulWidget {
 
 enum _Filter { all, foreground, background, backgroundLocked, terminated }
 
+/// Mirrors the iOS `LogViewMode`: raw entries or per-minute aggregation.
+enum _ViewMode { detail, grouped }
+
+/// One minute of activity — same shape the iOS `MinuteGroup` renders:
+/// total detections, per-state counts and how many distinct beacons appeared.
+class _MinuteGroup {
+  _MinuteGroup({
+    required this.date,
+    required this.total,
+    required this.fg,
+    required this.bg,
+    required this.lk,
+    required this.tm,
+    required this.uniqueBeacons,
+  });
+
+  final DateTime date;
+  final int total;
+  final int fg;
+  final int bg;
+  final int lk;
+  final int tm;
+  final int uniqueBeacons;
+}
+
 class _LogModalState extends State<LogModal> {
   List<PersistedLogEntry> _entries = const [];
   _Filter _filter = _Filter.all;
+  _ViewMode _viewMode = _ViewMode.detail;
   bool _loading = true;
 
   @override
@@ -24,6 +50,9 @@ class _LogModalState extends State<LogModal> {
     _refresh();
   }
 
+  /// Android has no native persisted log (the plugin's getPersistedLog is an
+  /// iOS-only stub returning `[]`), so there the entries come from the app-side
+  /// store fed by the SDK streams. iOS keeps reading the native log.
   Future<void> _refresh() async {
     try {
       final entries = await BearoundFlutterSdk.getPersistedLog();
@@ -72,6 +101,40 @@ class _LogModalState extends State<LogModal> {
       case PersistedLogState.terminated:
         return AppStateBucket.terminated;
     }
+  }
+
+  static final _beaconIdPattern = RegExp(r'\b(\d+\.\d+)\b');
+
+  /// Aggregates entries per minute, exactly like the iOS `groupedByMinute`.
+  List<_MinuteGroup> _groupByMinute(List<PersistedLogEntry> entries) {
+    final buckets = <int, List<PersistedLogEntry>>{};
+    for (final e in entries) {
+      final t = DateTime.fromMillisecondsSinceEpoch(e.timestamp);
+      final key = DateTime(t.year, t.month, t.day, t.hour, t.minute)
+          .millisecondsSinceEpoch;
+      buckets.putIfAbsent(key, () => []).add(e);
+    }
+    final groups = buckets.entries.map((b) {
+      final list = b.value;
+      final ids = <String>{};
+      for (final e in list) {
+        for (final m in _beaconIdPattern.allMatches(e.detail)) {
+          ids.add(m.group(1)!);
+        }
+      }
+      int countOf(PersistedLogState s) => list.where((e) => e.state == s).length;
+      return _MinuteGroup(
+        date: DateTime.fromMillisecondsSinceEpoch(b.key),
+        total: list.length,
+        fg: countOf(PersistedLogState.foreground),
+        bg: countOf(PersistedLogState.background),
+        lk: countOf(PersistedLogState.backgroundLocked),
+        tm: countOf(PersistedLogState.terminated),
+        uniqueBeacons: ids.length,
+      );
+    }).toList();
+    groups.sort((a, b) => b.date.compareTo(a.date));
+    return groups;
   }
 
   @override
@@ -142,6 +205,25 @@ class _LogModalState extends State<LogModal> {
                     ],
                   ),
                 ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: SegmentedButton<_ViewMode>(
+                    segments: const [
+                      ButtonSegment(
+                        value: _ViewMode.detail,
+                        label: Text('Detalhado'),
+                      ),
+                      ButtonSegment(
+                        value: _ViewMode.grouped,
+                        label: Text('Por Minuto'),
+                      ),
+                    ],
+                    selected: {_viewMode},
+                    onSelectionChanged: (v) =>
+                        setState(() => _viewMode = v.first),
+                  ),
+                ),
+                const SizedBox(height: 8),
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -169,6 +251,14 @@ class _LogModalState extends State<LogModal> {
                               color: Colors.grey,
                             ),
                           ),
+                        )
+                      : _viewMode == _ViewMode.grouped
+                      ? ListView.separated(
+                          padding: const EdgeInsets.all(12),
+                          itemCount: _groupByMinute(filtered).length,
+                          separatorBuilder: (_, __) => const Divider(height: 1),
+                          itemBuilder: (context, index) =>
+                              _minuteRow(_groupByMinute(filtered)[index]),
                         )
                       : ListView.separated(
                           padding: const EdgeInsets.all(12),
@@ -237,6 +327,82 @@ class _LogModalState extends State<LogModal> {
                 ),
               ],
             ),
+    );
+  }
+
+  /// One per-minute row — same information the iOS `MinuteGroupRow` shows:
+  /// "dd/MM HH:mm", total detections, per-state badges (only when non-zero) and
+  /// the number of distinct beacons seen in that minute.
+  Widget _minuteRow(_MinuteGroup g) {
+    String two(int v) => v.toString().padLeft(2, '0');
+    final stamp =
+        '${two(g.date.day)}/${two(g.date.month)} ${two(g.date.hour)}:${two(g.date.minute)}';
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(stamp, style: const TextStyle(fontWeight: FontWeight.w600)),
+              const Spacer(),
+              Text(
+                '${g.total} detecções',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              if (g.fg > 0)
+                _countBadge('FG', g.fg, appStateColor(AppStateBucket.foreground)),
+              if (g.bg > 0)
+                _countBadge('BG', g.bg, appStateColor(AppStateBucket.background)),
+              if (g.lk > 0)
+                _countBadge(
+                  'LK',
+                  g.lk,
+                  appStateColor(AppStateBucket.backgroundLocked),
+                ),
+              if (g.tm > 0)
+                _countBadge('T', g.tm, appStateColor(AppStateBucket.terminated)),
+              const Spacer(),
+              Text(
+                '${g.uniqueBeacons} beacon${g.uniqueBeacons == 1 ? '' : 's'}',
+                style: const TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _countBadge(String label, int count, Color color) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(3),
+            ),
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 10,
+                color: Colors.white,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          const SizedBox(width: 2),
+          Text('$count', style: const TextStyle(fontSize: 12)),
+        ],
+      ),
     );
   }
 
