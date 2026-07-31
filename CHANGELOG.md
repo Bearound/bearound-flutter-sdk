@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.6.3] - 2026-07-31
+
+### Changed
+
+- **Native SDKs bumped to 3.6.3 (iOS + Android)** — background detections now deliver to the ingest in seconds instead of minutes (device-matrix top-5 #1). iOS: immediate-first upload inside the execution window (background-session uploads started in background are discretionary and were deferred for minutes), stuck-sync watchdog, BGTask/push handlers that wait for the upload, foreground flush. Android: immediate flush on every background detection (the periodic timer freezes in Doze), `goAsync()` broadcast window, expedited one-shot sync worker with network constraint, periodic worker that awaits the upload. Field-validated on iPhone 17 Pro Max (iOS 27 beta): foreground launch→backend 14s; continuous seconds-level delivery in background; terminated wake delivering in the same second. No Dart API changes.
+
 ## [3.6.2] - 2026-07-25
 
 ### Changed
