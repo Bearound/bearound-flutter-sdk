@@ -73,5 +73,5 @@ dependencies {
     // 3.6.x line (telemetry handoff, ghost-beacon fixes, scan watchdog).
     // NOTE: the tag must be on JitPack first (the plugin CI fails to resolve the
     // dependency until then).
-    api 'com.github.Bearound:bearound-android-sdk:v3.7.0'
+    api 'com.github.Bearound:bearound-android-sdk:v3.7.1'
 }
