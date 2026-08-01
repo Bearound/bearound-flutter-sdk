@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 3.7.0
+
+- **Configurable periodic background reconciliation**: new `configure()` parameters
+  `periodicReconciliationEnabled` (default `true`), `periodicReconciliationInterval`
+  (default 20 min) and `periodicScanDuration` (default 12s), forwarded to the native
+  SDKs (iOS `BGAppRefreshTask`, Android WorkManager). Best effort — the interval is a
+  minimum, never a guaranteed cadence. Out-of-range values are clamped by the native
+  SDKs with a highlighted log warning (interval floor 10 min iOS / 15 min Android,
+  ceiling 24 h; scan window 3-15s iOS / 3-30s Android).
+- Native SDKs updated: **iOS 3.6.4** and **Android 3.7.0** — two hardening rounds
+  (25 iOS + 18 Android audit findings): level-triggered region exit (field-validated),
+  ranging wired to region enter/exit, scan-quota reserve-before-kill, truthful
+  PendingIntent registration, Bluetooth-cycle recovery, single-flight sync,
+  persist-before-send with exact-id removal, poison-batch quarantine, crash-envelope
+  telemetry, and bounded in-memory beacon caches.
+
 ## [Unreleased]
 
 ## [3.6.3] - 2026-07-31
