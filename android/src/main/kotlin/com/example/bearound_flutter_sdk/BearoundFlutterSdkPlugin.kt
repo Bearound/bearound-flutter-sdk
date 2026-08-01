@@ -17,6 +17,7 @@ import io.bearound.sdk.interfaces.BeAroundSDKListener
 import io.bearound.sdk.models.Beacon
 import io.bearound.sdk.models.BeaconMetadata
 import io.bearound.sdk.models.ForegroundScanConfig
+import io.bearound.sdk.models.PeriodicReconciliationDefaults
 import io.bearound.sdk.models.MaxQueuedPayloads
 import io.bearound.sdk.models.NotificationContent
 import io.bearound.sdk.models.ScanPrecision
@@ -235,6 +236,13 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
 
         val precisionRaw = (args?.get("scanPrecision") as? String) ?: "high"
         val maxQueuedValue = (args?.get("maxQueuedPayloads") as? Number)?.toInt() ?: 100
+        // Periodic reconciliation — validation/clamping lives in the NATIVE SDK
+        // (single source of truth); the bridge only forwards.
+        val periodicEnabled = (args?.get("periodicReconciliationEnabled") as? Boolean) ?: true
+        val periodicIntervalMs = (args?.get("periodicReconciliationIntervalMs") as? Number)?.toLong()
+          ?: PeriodicReconciliationDefaults.DEFAULT_INTERVAL_MILLIS
+        val periodicScanMs = (args?.get("periodicScanDurationMs") as? Number)?.toLong()
+          ?: PeriodicReconciliationDefaults.DEFAULT_SCAN_DURATION_MILLIS
 
         val scanPrecision = mapToScanPrecision(precisionRaw)
         val maxQueuedPayloads = mapToMaxQueuedPayloads(maxQueuedValue)
@@ -247,7 +255,10 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
           businessToken = businessToken,
           scanPrecision = scanPrecision,
           maxQueuedPayloads = maxQueuedPayloads,
-          technology = "flutter"
+          technology = "flutter",
+          periodicReconciliationEnabled = periodicEnabled,
+          periodicReconciliationIntervalMillis = periodicIntervalMs,
+          periodicScanDurationMillis = periodicScanMs
         )
 
         if (wasScanning) sdk.startScanning()

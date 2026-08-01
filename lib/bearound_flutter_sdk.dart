@@ -142,11 +142,30 @@ class BearoundFlutterSdk {
   /// posta uma notificação local *visível* a cada scan disparado por silent push.
   /// É um auxílio de QA — mantenha `false` em produção. Também ajustável em
   /// runtime via [setDebugNotificationsEnabled]. No Android é ignorado.
+  ///
+  /// ## Reconciliação periódica em background (best effort)
+  ///
+  /// O [periodicReconciliationEnabled] (**default `true`**) habilita a camada
+  /// complementar de reconciliação: iOS agenda um `BGAppRefreshTask`, Android um
+  /// `PeriodicWorkRequest`. O [periodicReconciliationInterval] (**default 20
+  /// min**) é apenas o intervalo MÍNIMO solicitado — o sistema decide quando (e
+  /// se) executa; nunca é uma cadência garantida. O [periodicScanDuration]
+  /// (**default 12s**) limita a janela de coleta dentro da tarefa.
+  ///
+  /// Guard rails aplicados pelo SDK NATIVO (valores fora da faixa são ajustados
+  /// com warning destacado no log — nunca silenciosamente, nunca crash):
+  /// - Intervalo mínimo efetivo: **10 min no iOS**, **15 min no Android**
+  ///   (mínimo duro do WorkManager); máximo 24 h em ambos.
+  /// - Janela de scan: **3–15s no iOS** (budget de ~30s do BGTask), **3–30s no
+  ///   Android**.
   static Future<void> configure({
     required String businessToken,
     ScanPrecision scanPrecision = ScanPrecision.high,
     MaxQueuedPayloads maxQueuedPayloads = MaxQueuedPayloads.medium,
     bool debugNotifications = false,
+    bool periodicReconciliationEnabled = true,
+    Duration periodicReconciliationInterval = const Duration(minutes: 20),
+    Duration periodicScanDuration = const Duration(seconds: 12),
   }) async {
     if (businessToken.trim().isEmpty) {
       throw ArgumentError.value(
@@ -161,6 +180,10 @@ class BearoundFlutterSdk {
       'scanPrecision': scanPrecision.value,
       'maxQueuedPayloads': maxQueuedPayloads.value,
       'debugNotifications': debugNotifications,
+      'periodicReconciliationEnabled': periodicReconciliationEnabled,
+      'periodicReconciliationIntervalMs':
+          periodicReconciliationInterval.inMilliseconds,
+      'periodicScanDurationMs': periodicScanDuration.inMilliseconds,
     };
 
     // Install the Dart-layer error telemetry BEFORE the native configure — the

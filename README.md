@@ -591,9 +591,19 @@ Future<void> setupSdk() async {
     businessToken: 'your-business-token-here',
     scanPrecision: ScanPrecision.high,           // high | medium | low (default: high)
     maxQueuedPayloads: MaxQueuedPayloads.medium, // small | medium | large | xlarge
+    // Periodic background reconciliation (best effort — the OS decides when it
+    // actually runs; iOS: BGAppRefreshTask, Android: WorkManager). All optional:
+    periodicReconciliationEnabled: true,                              // default: true
+    periodicReconciliationInterval: const Duration(minutes: 20),      // MINIMUM interval, never a guaranteed cadence
+    periodicScanDuration: const Duration(seconds: 12),                // collection window inside the task
   );
   // Note: appId is automatically extracted from the app's package/bundle identifier
   // Bluetooth metadata and periodic scanning are automatic
+  //
+  // Periodic reconciliation guard rails (applied by the NATIVE SDKs, clamped
+  // with a highlighted log warning — never silently): interval floor 10 min on
+  // iOS / 15 min on Android (WorkManager's hard minimum), ceiling 24 h; scan
+  // window 3–15s on iOS (~30s BGTask budget) / 3–30s on Android.
 
   // Listen to beacons
   BearoundFlutterSdk.beaconsStream.listen((beacons) {
@@ -728,7 +738,7 @@ Full cross-platform event/field parity matrix: [EVENT-PARITY.md](EVENT-PARITY.md
 
 | Method | Platform | Notes |
 |---|---|---|
-| `configure({businessToken, scanPrecision, maxQueuedPayloads})` | Android + iOS | Required before `startScanning()`. Defaults: `ScanPrecision.high`, `MaxQueuedPayloads.medium`. |
+| `configure({businessToken, scanPrecision, maxQueuedPayloads, periodicReconciliationEnabled, periodicReconciliationInterval, periodicScanDuration})` | Android + iOS | Required before `startScanning()`. Defaults: `ScanPrecision.high`, `MaxQueuedPayloads.medium`, periodic reconciliation on / 20 min / 12s (best effort — see guard rails in Quick Start). |
 | `startScanning({foregroundScanConfig})` | Android + iOS | `foregroundScanConfig` is Android-only (ignored on iOS). |
 | `stopScanning()` | Android + iOS | |
 | `isScanning()` | Android + iOS | |
