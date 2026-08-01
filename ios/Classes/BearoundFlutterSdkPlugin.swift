@@ -170,6 +170,14 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
             let scanPrecision = mapToScanPrecision(precisionRaw)
             let maxQueuedPayloads = mapToMaxQueuedPayloads(maxQueuedValue)
 
+            // Periodic reconciliation — wire carries millis; the iOS SDK takes
+            // seconds. Validation/clamping lives in the native SDK.
+            let periodicEnabled = (args?["periodicReconciliationEnabled"] as? Bool) ?? true
+            let periodicIntervalMs = (args?["periodicReconciliationIntervalMs"] as? NSNumber)?.doubleValue
+                ?? PeriodicReconciliationDefaults.interval * 1000
+            let periodicScanMs = (args?["periodicScanDurationMs"] as? NSNumber)?.doubleValue
+                ?? PeriodicReconciliationDefaults.scanDuration * 1000
+
             let wasScanning = BeAroundSDK.shared.isScanning
             if wasScanning {
                 BeAroundSDK.shared.stopScanning()
@@ -179,7 +187,10 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
                 businessToken: businessToken,
                 scanPrecision: scanPrecision,
                 maxQueuedPayloads: maxQueuedPayloads,
-                technology: "flutter"
+                technology: "flutter",
+                periodicReconciliationEnabled: periodicEnabled,
+                periodicReconciliationInterval: periodicIntervalMs / 1000.0,
+                periodicScanDuration: periodicScanMs / 1000.0
             )
             BeAroundSDK.shared.delegate = self
             configured = true

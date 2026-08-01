@@ -41,6 +41,9 @@ void main() {
         businessToken: businessToken,
         scanPrecision: ScanPrecision.high,
         maxQueuedPayloads: MaxQueuedPayloads.large,
+        periodicReconciliationEnabled: false,
+        periodicReconciliationInterval: const Duration(hours: 1),
+        periodicScanDuration: const Duration(seconds: 8),
       );
 
       expect(methodCalls, hasLength(1));
@@ -52,6 +55,9 @@ void main() {
           'scanPrecision': 'high',
           'maxQueuedPayloads': 200,
           'debugNotifications': false,
+          'periodicReconciliationEnabled': false,
+          'periodicReconciliationIntervalMs': 60 * 60 * 1000,
+          'periodicScanDurationMs': 8000,
         }),
       );
     });
@@ -62,7 +68,8 @@ void main() {
       expect(methodCalls, hasLength(1));
       expect(methodCalls.first.method, equals('configure'));
       // Default precision is HIGH (iOS-aligned) since 3.x.
-      // Debug notifications default OFF.
+      // Debug notifications default OFF; periodic reconciliation defaults
+      // ON / 20 min / 12s (best effort — see configure docs).
       expect(
         methodCalls.first.arguments,
         equals({
@@ -70,6 +77,9 @@ void main() {
           'scanPrecision': 'high',
           'maxQueuedPayloads': 100,
           'debugNotifications': false,
+          'periodicReconciliationEnabled': true,
+          'periodicReconciliationIntervalMs': 20 * 60 * 1000,
+          'periodicScanDurationMs': 12000,
         }),
       );
     });
