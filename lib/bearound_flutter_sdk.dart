@@ -143,16 +143,18 @@ class BearoundFlutterSdk {
   /// Retorna: `authorized` · `denied` · `restricted` · `notDetermined` ·
   /// `unavailable` (iOS < 14 e Android).
   static Future<String> requestTrackingAuthorization() async {
-    final String? status =
-        await _channel.invokeMethod<String>('requestTrackingAuthorization');
+    final String? status = await _channel.invokeMethod<String>(
+      'requestTrackingAuthorization',
+    );
     return status ?? 'unavailable';
   }
 
   /// Lê o status do App Tracking Transparency **sem** exibir prompt.
   /// Android: sempre `'unavailable'`.
   static Future<String> getTrackingAuthorizationStatus() async {
-    final String? status =
-        await _channel.invokeMethod<String>('getTrackingAuthorizationStatus');
+    final String? status = await _channel.invokeMethod<String>(
+      'getTrackingAuthorizationStatus',
+    );
     return status ?? 'unavailable';
   }
 
