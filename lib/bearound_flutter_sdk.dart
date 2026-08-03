@@ -123,6 +123,39 @@ class BearoundFlutterSdk {
     await _channel.invokeMethod('requestLocationAuthorization', level.value);
   }
 
+  /// Exibe o prompt de App Tracking Transparency e, uma vez autorizado, o SDK
+  /// passa a enviar o **IDFA** junto de cada payload. **iOS-only.**
+  ///
+  /// O SDK nunca exibe esse diálogo sozinho: a Apple exige que ele apareça em
+  /// contexto, e um prompt disparado em momento arbitrário é app rejeitado.
+  /// Chame num ponto do onboarding em que o usuário acabou de ser informado do
+  /// porquê, com o app em **foreground** (o iOS ignora fora dele).
+  ///
+  /// Requer `NSUserTrackingUsageDescription` no `Info.plist` — sem essa chave o
+  /// iOS não mostra diálogo algum e o status fica `notDetermined` para sempre.
+  ///
+  /// Responder é evento único por instalação: chamadas seguintes devolvem a
+  /// decisão guardada sem nenhuma UI, então é seguro chamar a cada boot.
+  ///
+  /// No **Android não existe prompt** — a escolha vive nos ajustes do sistema e
+  /// a plataforma a impõe, então este método é no-op e devolve `'unavailable'`.
+  ///
+  /// Retorna: `authorized` · `denied` · `restricted` · `notDetermined` ·
+  /// `unavailable` (iOS < 14 e Android).
+  static Future<String> requestTrackingAuthorization() async {
+    final String? status =
+        await _channel.invokeMethod<String>('requestTrackingAuthorization');
+    return status ?? 'unavailable';
+  }
+
+  /// Lê o status do App Tracking Transparency **sem** exibir prompt.
+  /// Android: sempre `'unavailable'`.
+  static Future<String> getTrackingAuthorizationStatus() async {
+    final String? status =
+        await _channel.invokeMethod<String>('getTrackingAuthorizationStatus');
+    return status ?? 'unavailable';
+  }
+
   // ---------------------------------------------------------------------------
   // Configuration
   // ---------------------------------------------------------------------------

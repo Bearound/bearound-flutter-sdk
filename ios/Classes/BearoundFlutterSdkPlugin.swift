@@ -350,6 +350,18 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
             }
             result(nil)
 
+        case "requestTrackingAuthorization":
+            // Must run on the main queue AND with the app active — iOS silently
+            // ignores the prompt otherwise, leaving the status at notDetermined.
+            DispatchQueue.main.async {
+                BeAroundSDK.shared.requestTrackingAuthorization { status in
+                    result(status)
+                }
+            }
+
+        case "getTrackingAuthorizationStatus":
+            result(BeAroundSDK.trackingAuthorizationStatus())
+
         // Push/notifications são app-level agora. O SDK nativo removeu a API de
         // notificações da biblioteca, então o bridge não a forwarda mais.
 

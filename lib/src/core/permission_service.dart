@@ -15,6 +15,9 @@ class PermissionService {
   /// on BLUETOOTH_SCAN (manifest `neverForLocation`) instead of location.
   static const int _androidS = 31;
 
+  /// Android 13 — where `NEARBY_WIFI_DEVICES` exists.
+  static const int _androidT = 33;
+
   /// Reads `Build.VERSION.SDK_INT` from the native plugin so the Dart layer can
   /// mirror the native scan gate exactly. Falls back to [_androidS] (assume the
   /// stricter 12+ gate) if the call fails.
@@ -56,6 +59,14 @@ class PermissionService {
             await Permission.locationAlways.request();
           }
           await Permission.notification.request();
+
+          // Android 13+: unlocks the neighbouring access points for the Wi-Fi
+          // observations. Same "Nearby devices" dialog as BLUETOOTH_SCAN, so it
+          // costs the user no extra prompt — and without it the SDK reports only
+          // the connected access point, never its neighbours.
+          if (sdkInt >= _androidT) {
+            await Permission.nearbyWifiDevices.request();
+          }
 
           // The scan can only run with BLUETOOTH_SCAN — do not report success
           // from location alone.

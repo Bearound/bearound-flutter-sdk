@@ -444,6 +444,60 @@ push (`BadDeviceToken`) — the most common "push doesn't arrive" cause.
 
 Minimum iOS version: 13.0.
 
+## Wi-Fi observations
+
+Alongside each beacon sighting the SDK reports the **access points visible at that moment**.
+An access point seen repeatedly next to a known beacon gets a position of its own, and from
+then on it can place a device even where no beacon reaches.
+
+**No network name is used as identity.** What travels is `apId` — a one-way hash of the
+access point's hardware address, canonicalised so the same router yields the same identifier
+on both platforms.
+
+| Platform | What it reports | What you must do |
+|---|---|---|
+| **Android** | The connected access point **and its neighbours**, with RSSI | Nothing — `requestPermissions()` already asks for `NEARBY_WIFI_DEVICES` on 13+, inside the same "Nearby devices" dialog as Bluetooth (no extra prompt) |
+| **iOS** | Only the **connected** access point, without RSSI (no public API for neighbours) | Add the **Access WiFi Information** capability in Xcode (Signing & Capabilities → + Capability) |
+
+Nothing degrades if you skip the iOS capability: the field is simply omitted and every other
+feature behaves the same.
+
+## Advertising identifier (IDFA / AAID)
+
+The SDK can report the advertising identifier — what makes audiences built from beacon visits
+usable in ad platforms.
+
+**iOS — you must ask.** Add to `ios/Runner/Info.plist`:
+
+```xml
+<key>NSUserTrackingUsageDescription</key>
+<string>We use this identifier to measure visits and show you more relevant offers.</string>
+```
+
+and call, in the **foreground**, at a point in your onboarding where the user has just been
+told why:
+
+```dart
+final status = await BearoundFlutterSdk.requestTrackingAuthorization();
+// 'authorized' | 'denied' | 'restricted' | 'notDetermined' | 'unavailable'
+```
+
+Without the key iOS shows **no dialog at all** and the status stays `notDetermined` forever.
+Answering is a one-time event per install, so it is safe to call on every launch.
+
+**Android — nothing to ask.** There is no prompt: the user's choice lives in system settings
+and the platform enforces it (opting out zeroes the id and the SDK reports none). To receive
+an id at all, your app needs Play Services on the classpath:
+
+```gradle
+implementation 'com.google.android.gms:play-services-ads-identifier:18.2.0'
+```
+
+> **Store obligations follow the feature, not the SDK:** prompting for tracking obliges you to
+> declare **Tracking** in your App Store privacy label; the `AD_ID` permission obliges you to
+> tick **"Device or other IDs"** in the Play Data Safety form. Apps for children must strip
+> `AD_ID` (Play Families policy).
+
 ## Scan modes (Android)
 
 > On **iOS** scanning is always system-managed (region monitoring + `BGTaskScheduler`). These modes are **Android-only**.
@@ -745,6 +799,8 @@ Full cross-platform event/field parity matrix: [EVENT-PARITY.md](EVENT-PARITY.md
 | `requestPermissions()` | Android + iOS | iOS: native `requestAlwaysAuthorization()`; Android: runtime permissions via `permission_handler` (incl. notifications on 13+). |
 | `checkPermissions()` | Android + iOS | |
 | `requestLocationAuthorization({level})` | iOS | Unlocks the Location eye (terminated-app wake-up requires `always`). No-op on Android. |
+| `requestTrackingAuthorization()` | iOS | Shows the App Tracking Transparency prompt; once authorised the SDK reports the **IDFA**. Android has no prompt → resolves `'unavailable'`. See [Advertising identifier](#advertising-identifier-idfa--aaid). |
+| `getTrackingAuthorizationStatus()` | iOS | Reads the ATT status **without** prompting. Android: `'unavailable'`. |
 | `isIgnoringBatteryOptimizations()` | Android | iOS always resolves `true` (no equivalent restriction). |
 | `openBatteryOptimizationSettings()` | Android | iOS: no-op, resolves `false`. |
 | `isAutostartManageable()` | Android | `false` on stock Android and iOS. |

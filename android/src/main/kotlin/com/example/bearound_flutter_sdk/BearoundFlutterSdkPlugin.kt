@@ -339,6 +339,12 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
         result.success(null)
       }
 
+      // App Tracking Transparency is an iOS concept. On Android the advertising-id
+      // choice lives in system settings and the platform enforces it, so there is
+      // no prompt to show — answer "unavailable" to keep the Dart API uniform.
+      "requestTrackingAuthorization", "getTrackingAuthorizationStatus" ->
+        result.success("unavailable")
+
       // Push/notifications são app-level agora. O SDK nativo removeu a API de
       // notificações da biblioteca, então o bridge não a forwarda mais.
 
