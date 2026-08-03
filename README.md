@@ -761,7 +761,6 @@ for non-Bearound pushes.
 
 ## API Summary
 
-Full cross-platform event/field parity matrix: [EVENT-PARITY.md](EVENT-PARITY.md).
 
 ### Methods
 
