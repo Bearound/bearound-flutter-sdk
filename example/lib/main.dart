@@ -206,7 +206,9 @@ class _BeaconHomePageState extends State<BeaconHomePage>
       await [
         Permission.locationWhenInUse,
         Permission.bluetoothScan,
-        Permission.bluetoothConnect,
+        // Encounter layer: advertise so other SDK devices can see this one.
+        // Same "Nearby devices" dialog as bluetoothScan — no extra prompt.
+        Permission.bluetoothAdvertise,
         Permission.notification,
       ].request();
       return;

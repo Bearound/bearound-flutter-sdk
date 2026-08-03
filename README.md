@@ -135,6 +135,35 @@ time otherwise:
 
 Minimum Android SDK: 23.
 
+### Encounter layer (device-to-device)
+
+Besides listening for beacons, every SDK device also **advertises a fixed Bearound
+service** and **recognises other SDK devices nearby**, reporting "saw identifier X at
+Y dBm" batches in the regular sync — co-presence and positioning between devices,
+handled entirely by the native SDKs. **No Dart API is involved**: it runs whenever
+scanning runs and stops with `stopScanning()`. Nothing stable goes on the air (a
+random identifier rotating every 15 minutes).
+
+The only integration touch is one Android 12+ runtime permission so the device can
+be *seen* (it belongs to the same "Nearby devices" dialog the app already shows for
+scanning — no extra prompt):
+
+```dart
+await [
+  Permission.locationWhenInUse,
+  Permission.bluetoothScan,
+  Permission.bluetoothAdvertise, // encounter layer: be seen by other SDK devices
+  Permission.notification,
+].request();
+```
+
+Without the grant the layer degrades to receive-only (the device still detects
+others) and every other SDK feature is unaffected. On iOS the existing Bluetooth
+permission covers everything — no new key, no new prompt. There are **no
+connections and no GATT** involved — identity travels inside the advertisements —
+and hosts never appear as physical beacons (reserved iBeacon major band, filtered
+on every receive path).
+
 ### iOS
 
 Add the following to `ios/Runner/Info.plist`:
