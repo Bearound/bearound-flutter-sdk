@@ -1,6 +1,6 @@
 # 🐻 Bearound Flutter SDK
 
-Official Flutter plugin for the Bearound native SDKs — Android **3.5.0** · iOS **3.5.0**.
+Official Flutter plugin for the Bearound native SDKs — Android **3.8.0** · iOS **3.8.0**.
 
 > [!TIP]
 > **⚡ Set it up with an AI agent.** Don't wire the iOS/Android background integration by hand — hand [one prompt](./AI-AGENT-SETUP.md) to your AI coding agent (Claude Code, Cursor, Copilot) and let it pilot the whole install, pausing only for the few human-only steps. → [Set up with an AI agent](#set-up-with-an-ai-agent)
@@ -96,6 +96,13 @@ plugin's actual manifest — `android/src/main/AndroidManifest.xml`):
 <!-- Foreground service: connectedDevice (BLE) on Android 14+ -->
 <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
+
+<!-- Wi-Fi observations: ACCESS_WIFI_STATE is install-time; NEARBY_WIFI_DEVICES is the
+     Android 13+ runtime gate that unlocks the NEIGHBOURING access points (without it the
+     system only ever reports the connected one) -->
+<uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+<uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES"
+    android:usesPermissionFlags="neverForLocation" tools:targetApi="tiramisu" />
 
 <!-- Misc -->
 <uses-permission android:name="android.permission.INTERNET" />
@@ -491,6 +498,33 @@ on both platforms.
 Nothing degrades if you skip the iOS capability: the field is simply omitted and every other
 feature behaves the same.
 
+## Presence heartbeat
+
+Until 3.8.0 a device that saw no beacon and no other SDK device stayed silent, and the
+backend could not tell **"there was no coverage here"** apart from **"the app was not
+running"**. Those two look identical in the data and mean opposite things.
+
+Now a scan that finds nothing still reports, under the `presence_heartbeat` sync trigger,
+carrying what the device *can* observe: its own location and the Wi-Fi around it.
+
+```dart
+await BearoundFlutterSdk.configure(
+  businessToken: 'your-business-token-here',
+  presenceHeartbeatInterval: const Duration(minutes: 5), // default
+);
+```
+
+| | |
+|---|---|
+| Default | 5 minutes |
+| Accepted range | 1 minute – 1 hour (clamped natively, with a log warning) |
+| Turn it off | `Duration.zero` |
+
+Two things it does **not** do. It never throttles **scanning** — only the upload, so
+detection latency is untouched. And it sends nothing when there is neither a location fix
+nor an access point to report: an app that grants no permissions keeps sending exactly what
+it sent before.
+
 ## Advertising identifier (IDFA / AAID)
 
 The SDK can report the advertising identifier — what makes audiences built from beacon visits
@@ -679,6 +713,9 @@ Future<void> setupSdk() async {
     periodicReconciliationEnabled: true,                              // default: true
     periodicReconciliationInterval: const Duration(minutes: 20),      // MINIMUM interval, never a guaranteed cadence
     periodicScanDuration: const Duration(seconds: 12),                // collection window inside the task
+    // A scan that finds nothing still reports (location + Wi-Fi around it), so the
+    // backend can tell "no coverage here" apart from "the app wasn't running".
+    presenceHeartbeatInterval: const Duration(minutes: 5),            // default: 5 min; Duration.zero disables
   );
   // Note: appId is automatically extracted from the app's package/bundle identifier
   // Bluetooth metadata and periodic scanning are automatic
@@ -820,7 +857,7 @@ for non-Bearound pushes.
 
 | Method | Platform | Notes |
 |---|---|---|
-| `configure({businessToken, scanPrecision, maxQueuedPayloads, periodicReconciliationEnabled, periodicReconciliationInterval, periodicScanDuration})` | Android + iOS | Required before `startScanning()`. Defaults: `ScanPrecision.high`, `MaxQueuedPayloads.medium`, periodic reconciliation on / 20 min / 12s (best effort — see guard rails in Quick Start). |
+| `configure({businessToken, scanPrecision, maxQueuedPayloads, periodicReconciliationEnabled, periodicReconciliationInterval, periodicScanDuration, presenceHeartbeatInterval, requestTrackingOnStart})` | Android + iOS | Required before `startScanning()`. Defaults: `ScanPrecision.high`, `MaxQueuedPayloads.medium`, periodic reconciliation on / 20 min / 12s (best effort — see guard rails in Quick Start), presence heartbeat 5 min (see [Presence heartbeat](#presence-heartbeat)), `requestTrackingOnStart: true` (iOS only — shows the ATT prompt on start; Android ignores it). |
 | `startScanning({foregroundScanConfig})` | Android + iOS | `foregroundScanConfig` is Android-only (ignored on iOS). |
 | `stopScanning()` | Android + iOS | |
 | `isScanning()` | Android + iOS | |

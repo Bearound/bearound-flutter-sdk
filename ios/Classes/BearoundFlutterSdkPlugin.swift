@@ -32,14 +32,30 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
     /// Debug-notification cooldowns (native-example parity): zone events once per 10 s,
     /// detection/sync once per 5 s — so background bursts don't spam the lock screen.
     private var debugNotifyLast: [String: Date] = [:]
-    private func debugNotify(id: String, title: String, body: String, cooldown: TimeInterval) {
+
+    /// A sync with zero beacons is not an empty sync — since 3.8.0 the SDK still uploads
+    /// encounters, the device's location and the Wi-Fi around it. Saying "0 beacons" reads
+    /// as a bug to whoever is watching the lock screen, so the copy names what actually went.
+    private func syncBody(started: Bool, beaconCount: Int) -> String {
+        if beaconCount == 0 {
+            return started ? "Enviando presença: localização, Wi-Fi e aparelhos por perto"
+                           : "Presença enviada (nenhum beacon no alcance)"
+        }
+        let plural = beaconCount == 1 ? "" : "s"
+        return started ? "Enviando \(beaconCount) beacon\(plural) para o servidor"
+                       : "Enviado\(plural) \(beaconCount) beacon\(plural) para o servidor"
+    }
+
+    private func debugNotify(id: String, title: String, body: String, cooldown: TimeInterval, sound: Bool = true) {
         guard debugNotificationsEnabled else { return }
         if let last = debugNotifyLast[id], Date().timeIntervalSince(last) < cooldown { return }
         debugNotifyLast[id] = Date()
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = body
-        content.sound = .default
+        // The start of a sync is progress, not news: it fires on every cycle, so it stays
+        // silent the way the native example does. Everything else keeps its sound.
+        content.sound = sound ? .default : nil
         UNUserNotificationCenter.current().add(
             UNNotificationRequest(identifier: "bearound.debug.\(id).\(Int(Date().timeIntervalSince1970))",
                                   content: content, trigger: nil))
@@ -549,8 +565,10 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
             self?.beaconsStreamHandler.eventSink?(["beacons": mapped])
         }
         if !beacons.isEmpty {
-            // Notification posting was removed (push is app-level now). Only the
-            // local detection log is recorded here.
+            debugNotify(id: "detect",
+                        title: "Beacon Detectado",
+                        body: "Encontrado\(beacons.count == 1 ? "" : "s") \(beacons.count) beacon\(beacons.count == 1 ? "" : "s") próximo\(beacons.count == 1 ? "" : "s")",
+                        cooldown: 300)
             // TODO(cleanup): delegate to native instead of reimplementing
             PersistentLog.append(
                 type: "Beacons atualizados",
@@ -631,12 +649,22 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
 
     public func didChangeScanning(isScanning: Bool) {
         self.isActiveScan = isScanning
+        debugNotify(id: isScanning ? "scan-start" : "scan-stop",
+                    title: isScanning ? "Escaneamento Iniciado" : "Escaneamento Parado",
+                    body: isScanning ? "BeAroundSDK está escaneando beacons"
+                                     : "BeAroundSDK parou de escanear",
+                    cooldown: 10)
         DispatchQueue.main.async { [weak self] in
             self?.scanningStreamHandler.eventSink?(["isScanning": isScanning])
         }
     }
 
     public func willStartSync(beaconCount: Int) {
+        debugNotify(id: "sync-start",
+                    title: "Sincronizando",
+                    body: syncBody(started: true, beaconCount: beaconCount),
+                    cooldown: 30,
+                    sound: false)
         let payload: [String: Any] = ["type": "started", "beaconCount": beaconCount]
         DispatchQueue.main.async { [weak self] in
             self?.syncLifecycleStreamHandler.eventSink?(payload)
@@ -647,7 +675,7 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
     public func didCompleteSync(beaconCount: Int, success: Bool, error: Error?) {
         debugNotify(id: "sync",
                     title: success ? "Sync Completo" : "Sync Falhou",
-                    body: success ? "Enviado\(beaconCount == 1 ? "" : "s") \(beaconCount) beacon\(beaconCount == 1 ? "" : "s") para o servidor"
+                    body: success ? syncBody(started: false, beaconCount: beaconCount)
                                   : (error?.localizedDescription ?? "erro desconhecido"),
                     cooldown: 5)
         let payload: [String: Any] = [
@@ -674,9 +702,13 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
         // SDK already pushed + logged via SDKNotifier.onBackgroundDetection.
     }
 
+    // A copy abaixo NÃO promete beacon de propósito: a encounter mesh anuncia um virtual
+    // beacon no MESMO UUID que o region monitoring observa (major reservado 0xFF00+, filtrado
+    // da detecção), justamente para a proximidade entre dois aparelhos com o SDK disparar
+    // este evento. Zona com zero beacons no payload é correto, não bug.
     public func didEnterBeaconRegion() {
         debugNotify(id: "zone-enter", title: "Entrou na zona",
-                    body: "Bearound detectou uma região de beacons (Location)", cooldown: 10)
+                    body: "Sinal Bearound por perto: beacon ou outro aparelho com o SDK (Location)", cooldown: 10)
         DispatchQueue.main.async { [weak self] in
             self?.beaconRegionStreamHandler.eventSink?(["type": "enter"])
         }
@@ -685,7 +717,7 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
 
     public func didExitBeaconRegion() {
         debugNotify(id: "zone-exit", title: "Saiu da zona",
-                    body: "Bearound: você saiu da região de beacons (Location)", cooldown: 10)
+                    body: "Sem sinal Bearound por perto (nem beacon, nem aparelho) (Location)", cooldown: 10)
         DispatchQueue.main.async { [weak self] in
             self?.beaconRegionStreamHandler.eventSink?(["type": "exit"])
         }
@@ -700,7 +732,7 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
 
     public func didEnterBluetoothZone() {
         debugNotify(id: "bt-zone-enter", title: "Entrou na zona",
-                    body: "Bearound detectou uma região de beacons (Bluetooth)", cooldown: 10)
+                    body: "Sinal Bearound por perto: beacon ou outro aparelho com o SDK (Bluetooth)", cooldown: 10)
         DispatchQueue.main.async { [weak self] in
             self?.bluetoothZoneStreamHandler.eventSink?(["type": "enter"])
         }
@@ -709,7 +741,7 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
 
     public func didExitBluetoothZone() {
         debugNotify(id: "bt-zone-exit", title: "Saiu da zona",
-                    body: "Bearound: você saiu da região de beacons (Bluetooth)", cooldown: 10)
+                    body: "Sem sinal Bearound por perto (nem beacon, nem aparelho) (Bluetooth)", cooldown: 10)
         DispatchQueue.main.async { [weak self] in
             self?.bluetoothZoneStreamHandler.eventSink?(["type": "exit"])
         }

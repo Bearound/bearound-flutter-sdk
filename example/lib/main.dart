@@ -227,8 +227,16 @@ class _BeaconHomePageState extends State<BeaconHomePage>
   }
 
   Future<void> _bootstrap() async {
-    // Solicita permissões (Location + BT + notificação). Não bloqueia — o SDK
-    // nativo nunca gateia scan; qualquer olho disponível ativa.
+    // Configura e liga o scan ANTES de qualquer diálogo. Cada request de permissão
+    // é um await que só retorna quando o usuário responde; com os prompts na frente,
+    // um diálogo ignorado segurava o bootstrap inteiro e o app ficava aberto, sem
+    // escanear e sem enviar nada — parecendo SDK quebrado. O SDK nativo não gateia
+    // scan por permissão, então essa dependência nunca precisou existir.
+    await _applyConfig();
+    await _startScan();
+
+    // Permissões depois: elas AMPLIAM o que o scan enxerga (olho de região, Wi-Fi,
+    // notificações) — não decidem se ele roda.
     await _requestAllPermissions();
 
     // Lê o status REAL de cada permissão (location, nearby-devices, notificação)
@@ -243,8 +251,6 @@ class _BeaconHomePageState extends State<BeaconHomePage>
     final version = await BearoundFlutterSdk.getSdkVersion();
     setState(() => _sdkVersion = version);
 
-    await _applyConfig();
-    await _startScan();
     await _refreshState();
   }
 
@@ -387,8 +393,8 @@ class _BeaconHomePageState extends State<BeaconHomePage>
           ? GeofenceEventKind.regionEnter
           : GeofenceEventKind.regionExit,
       event.isEnter
-          ? 'iOS/Android reportou entrada na zona do beacon'
-          : 'Saiu da zona do beacon',
+          ? 'Entrou na região Bearound (beacon ou aparelho com o SDK)'
+          : 'Saiu da região Bearound',
     );
   }
 
@@ -883,10 +889,14 @@ class _BeaconHomePageState extends State<BeaconHomePage>
         ? const Color(0xFFA5D6A7)
         : const Color(0xFFEF9A9A);
     final emoji = inZone ? '✅' : '⛔';
-    final title = inZone ? 'NA ZONA DO BEACON' : 'FORA DA ZONA';
+    final title = inZone ? 'NA ZONA BEAROUND' : 'FORA DA ZONA';
+    // NÃO afirmar "beacon detectado": a encounter mesh anuncia um virtual beacon no MESMO
+    // UUID que o region monitoring observa (major reservado 0xFF00+, filtrado da detecção),
+    // então a zona entra por proximidade de OUTRO APARELHO com o SDK, sem beacon nenhum por
+    // perto. Dizer "beacon detectado" aqui já mandou gente procurar beacon inexistente.
     final body = inZone
-        ? 'Beacon detectado — dentro da zona monitorada.'
-        : 'Sem beacon detectado no momento.';
+        ? 'Sinal Bearound por perto — beacon ou outro aparelho com o SDK.'
+        : 'Nenhum sinal Bearound por perto.';
 
     return Card(
       child: Padding(
@@ -948,7 +958,7 @@ class _BeaconHomePageState extends State<BeaconHomePage>
             ),
             const SizedBox(height: 8),
             _infoRow(
-              'Zona do beacon',
+              'Zona Bearound',
               inZone ? 'DENTRO' : 'fora',
               valueColor: inZone ? Colors.green : Colors.grey,
             ),
