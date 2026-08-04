@@ -97,6 +97,13 @@ plugin's actual manifest — `android/src/main/AndroidManifest.xml`):
 <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
 
+<!-- Wi-Fi observations: ACCESS_WIFI_STATE is install-time; NEARBY_WIFI_DEVICES is the
+     Android 13+ runtime gate that unlocks the NEIGHBOURING access points (without it the
+     system only ever reports the connected one) -->
+<uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+<uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES"
+    android:usesPermissionFlags="neverForLocation" tools:targetApi="tiramisu" />
+
 <!-- Misc -->
 <uses-permission android:name="android.permission.INTERNET" />
 <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
