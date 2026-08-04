@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.8.0]
+
+### Added
+- **Um scan que não acha nada também reporta.** Até agora um aparelho que não via beacon nem
+  par ficava calado, e o backend não distinguia "não há cobertura aqui" de "o app não estava
+  rodando". Esses scans passam a subir a localização do próprio aparelho e o Wi-Fi ao redor.
+  Novo `configure(presenceHeartbeatInterval:)` — **5 min** por padrão, faixa aceita de 1 min a
+  1 h, `Duration.zero` desliga. Só o upload é limitado; o scan não muda.
+- **Camada de encontros (mesh).** O SDK nativo passa a registrar outros aparelhos com o SDK por
+  perto, não só beacons, e sobe esses encontros mesmo sem beacon no alcance. Nenhuma API Dart
+  envolvida — a permissão `BLUETOOTH_ADVERTISE` (Android 12+) é pedida junto das demais.
+- **Observações de Wi-Fi.** Os APs visíveis vão no payload, cada um com um `apId` derivado por
+  hash — o BSSID cru nunca sai do aparelho. `NEARBY_WIFI_DEVICES` agora é declarada no
+  manifesto do plugin: ela é pedida em runtime desde a versão anterior, mas sem a declaração o
+  pedido era negado na hora, sem diálogo.
+- **`configure(requestTrackingOnStart:)`** (iOS): passe `false` para escolher o momento do
+  prompt de App Tracking Transparency e chamar `requestTrackingAuthorization()` você mesmo.
+  Ignorado no Android.
+
+### Changed
+- SDKs nativos: iOS **3.8.0**, Android **v3.8.0**.
+- O exemplo iOS ganhou a capability *Access WiFi Information* — sem ela o iOS devolve `nil` e a
+  coleta de Wi-Fi fica muda.
+
 ## [3.7.0]
 
 - **Configurable periodic background reconciliation**: new `configure()` parameters
