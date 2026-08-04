@@ -29,6 +29,23 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
     /// the `debugNotifications` argument of `configure`.
     private var debugNotificationsEnabled = false
 
+    /// Same switch, but settable from the host's `AppDelegate` — i.e. from native code, before
+    /// and independently of Dart.
+    ///
+    /// It has to exist because the Dart-side switches (`configure(debugNotifications:)` and
+    /// `setDebugNotificationsEnabled`) only ever run once the engine is up. When iOS relaunches
+    /// the app **in the background** on a region event, the plugin registers and starts
+    /// receiving delegate callbacks while Dart may never get that far — so the instance flag is
+    /// still `false` and every notification is swallowed by the guard. That is exactly the
+    /// background case worth watching, and it was the silent one. The React Native example
+    /// avoids this by setting its flag natively in `didFinishLaunching`; this is the equivalent.
+    public static var debugNotificationsEnabledByHost = false
+
+    /// True when either switch is on — the instance one (Dart) or the host one (native).
+    private var debugNotificationsActive: Bool {
+        debugNotificationsEnabled || Self.debugNotificationsEnabledByHost
+    }
+
     /// Debug-notification cooldowns (native-example parity): zone events once per 10 s,
     /// detection/sync once per 5 s — so background bursts don't spam the lock screen.
     private var debugNotifyLast: [String: Date] = [:]
@@ -47,7 +64,7 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
     }
 
     private func debugNotify(id: String, title: String, body: String, cooldown: TimeInterval, sound: Bool = true) {
-        guard debugNotificationsEnabled else { return }
+        guard debugNotificationsActive else { return }
         if let last = debugNotifyLast[id], Date().timeIntervalSince(last) < cooldown { return }
         debugNotifyLast[id] = Date()
         let content = UNMutableNotificationContent()
@@ -592,7 +609,7 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
         )
         // Visible local notification is a debug/QA aid only — gated behind an
         // opt-in flag (default OFF) so production users never see it.
-        guard debugNotificationsEnabled else { return }
+        guard debugNotificationsActive else { return }
         let content = UNMutableNotificationContent()
         content.title = "Push → Scan ✅"
         content.body = "\(beaconsFound) beacon(s) detectado(s) · \(syncStatus)"

@@ -3,6 +3,7 @@ import UIKit
 import BearoundSDK
 import ObjectiveC
 import UserNotifications
+import bearound_flutter_sdk
 
 // Workaround: Flutter 3.44.2 crasha no iOS 26 ao criar o ProMotion touch-rate VSync client
 // porque o task runner é nil em viewDidLoad. Swizzle pra no-op (penalidade: sem correção de
@@ -28,6 +29,13 @@ private func patchFlutterProMotionCrash() {
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
     patchFlutterProMotionCrash()
+
+    // Notificações de bancada ligadas AQUI, no nativo, e não só pelo configure() do Dart:
+    // num relançamento em background por região o motor Dart pode nunca chegar a rodar, e
+    // aí o plugin ficaria mudo justamente no cenário que se quer observar. Espelha o
+    // AppDelegate do example React Native.
+    BearoundFlutterSdkPlugin.debugNotificationsEnabledByHost = true
+
     GeneratedPluginRegistrant.register(with: self)
 
     BeAroundSDK.shared.registerBackgroundTasks()
