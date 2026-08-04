@@ -12,6 +12,28 @@ flutter pub get
 flutter run          # pick a PHYSICAL device — BLE does not work on emulators/simulators
 ```
 
+### Leaving it running on a device (background / field testing)
+
+For any test where the phone leaves the desk — background behaviour, force-quit relaunch,
+overnight runs — build **release**, not debug:
+
+```bash
+flutter build ios --release
+xcrun devicectl device install app --device <UDID> build/ios/iphoneos/Runner.app
+```
+
+A debug build runs Dart through the JIT and only works while `flutter run` (or Xcode) holds
+the debugger. Tapped from the home screen or launched with `devicectl`, it dies instantly
+with **`SIGSEGV`**, and the crash report points at
+`BearoundFlutterSdkPlugin.register(with:)` — which reads like an SDK bug and is not one. The
+console says so explicitly, but only if you are attached to it:
+
+```
+To launch in debug mode in iOS 14+, run flutter run from Flutter tools
+```
+
+The icon just flashes and closes. Release builds are AOT-compiled and run standalone.
+
 iOS: open `ios/Runner.xcworkspace` once in Xcode to set your signing team.
 Push-related flows additionally require the `aps-environment` entitlement to
 match the APNs environment you send from (the checked-in

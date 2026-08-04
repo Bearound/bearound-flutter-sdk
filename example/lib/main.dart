@@ -227,8 +227,16 @@ class _BeaconHomePageState extends State<BeaconHomePage>
   }
 
   Future<void> _bootstrap() async {
-    // Solicita permissões (Location + BT + notificação). Não bloqueia — o SDK
-    // nativo nunca gateia scan; qualquer olho disponível ativa.
+    // Configura e liga o scan ANTES de qualquer diálogo. Cada request de permissão
+    // é um await que só retorna quando o usuário responde; com os prompts na frente,
+    // um diálogo ignorado segurava o bootstrap inteiro e o app ficava aberto, sem
+    // escanear e sem enviar nada — parecendo SDK quebrado. O SDK nativo não gateia
+    // scan por permissão, então essa dependência nunca precisou existir.
+    await _applyConfig();
+    await _startScan();
+
+    // Permissões depois: elas AMPLIAM o que o scan enxerga (olho de região, Wi-Fi,
+    // notificações) — não decidem se ele roda.
     await _requestAllPermissions();
 
     // Lê o status REAL de cada permissão (location, nearby-devices, notificação)
@@ -243,8 +251,6 @@ class _BeaconHomePageState extends State<BeaconHomePage>
     final version = await BearoundFlutterSdk.getSdkVersion();
     setState(() => _sdkVersion = version);
 
-    await _applyConfig();
-    await _startScan();
     await _refreshState();
   }
 
