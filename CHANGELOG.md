@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.8.1]
+
+### Fixed
+- **Debug notifications went silent on a background relaunch.** The switch could only be
+  flipped from Dart, and both Dart-side paths need the engine running — so when iOS relaunched
+  the app in the background on a region event, the plugin took delegate callbacks while the
+  flag was still off and every notification was swallowed. That is precisely the case the
+  notifications exist to observe. A host-settable native switch now sits alongside the Dart
+  one; either arms them.
+
+### Changed
+- Native SDKs pinned to **3.8.1**, which carries the fix for `encounter_mesh` and
+  `presence_heartbeat` never reaching the payload — until now every beacon-less upload was
+  labelled as an ordinary timer sync, so a presence report was indistinguishable from a
+  regular one on the backend.
 ## [3.8.0]
 
 ### Added
