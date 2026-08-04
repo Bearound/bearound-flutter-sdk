@@ -32,6 +32,20 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
     /// Debug-notification cooldowns (native-example parity): zone events once per 10 s,
     /// detection/sync once per 5 s — so background bursts don't spam the lock screen.
     private var debugNotifyLast: [String: Date] = [:]
+
+    /// A sync with zero beacons is not an empty sync — since 3.8.0 the SDK still uploads
+    /// encounters, the device's location and the Wi-Fi around it. Saying "0 beacons" reads
+    /// as a bug to whoever is watching the lock screen, so the copy names what actually went.
+    private func syncBody(started: Bool, beaconCount: Int) -> String {
+        if beaconCount == 0 {
+            return started ? "Enviando presença: localização, Wi-Fi e aparelhos por perto"
+                           : "Presença enviada (nenhum beacon no alcance)"
+        }
+        let plural = beaconCount == 1 ? "" : "s"
+        return started ? "Enviando \(beaconCount) beacon\(plural) para o servidor"
+                       : "Enviado\(plural) \(beaconCount) beacon\(plural) para o servidor"
+    }
+
     private func debugNotify(id: String, title: String, body: String, cooldown: TimeInterval, sound: Bool = true) {
         guard debugNotificationsEnabled else { return }
         if let last = debugNotifyLast[id], Date().timeIntervalSince(last) < cooldown { return }
@@ -648,7 +662,7 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
     public func willStartSync(beaconCount: Int) {
         debugNotify(id: "sync-start",
                     title: "Sincronizando",
-                    body: "Enviando \(beaconCount) beacon\(beaconCount == 1 ? "" : "s") para o servidor",
+                    body: syncBody(started: true, beaconCount: beaconCount),
                     cooldown: 30,
                     sound: false)
         let payload: [String: Any] = ["type": "started", "beaconCount": beaconCount]
@@ -661,7 +675,7 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
     public func didCompleteSync(beaconCount: Int, success: Bool, error: Error?) {
         debugNotify(id: "sync",
                     title: success ? "Sync Completo" : "Sync Falhou",
-                    body: success ? "Enviado\(beaconCount == 1 ? "" : "s") \(beaconCount) beacon\(beaconCount == 1 ? "" : "s") para o servidor"
+                    body: success ? syncBody(started: false, beaconCount: beaconCount)
                                   : (error?.localizedDescription ?? "erro desconhecido"),
                     cooldown: 5)
         let payload: [String: Any] = [

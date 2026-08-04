@@ -38,13 +38,16 @@ private func patchFlutterProMotionCrash() {
 
     // App relançado em background por evento de região/Bluetooth com o app MORTO
     // (state restoration) — espelha o nativo, que notifica "App Reativado".
-    if launchOptions?[.location] != nil {
-      NSLog("[Runner] App relançado por LOCATION (region entry)")
-      Self.notifyAppRelaunched()
-    }
-    if launchOptions?[.bluetoothCentrals] != nil {
-      NSLog("[Runner] App relançado por BLUETOOTH (state restoration)")
-      Self.notifyAppRelaunched()
+    // iOS pode entregar os DOIS motivos no mesmo relançamento; notificar por motivo
+    // gerava duas notificações idênticas seguidas, que na tela lia como "reativou duas
+    // vezes". Uma notificação só, dizendo qual (ou quais) motivo veio.
+    var relaunchReasons: [String] = []
+    if launchOptions?[.location] != nil { relaunchReasons.append("região") }
+    if launchOptions?[.bluetoothCentrals] != nil { relaunchReasons.append("Bluetooth") }
+    if !relaunchReasons.isEmpty {
+      let reason = relaunchReasons.joined(separator: " + ")
+      NSLog("[Runner] App relançado por %@", reason)
+      Self.notifyAppRelaunched(reason: reason)
     }
 
     // Notificações: autorização + delegate para exibir banner em foreground (willPresent).
@@ -60,10 +63,10 @@ private func patchFlutterProMotionCrash() {
   }
 
   // Notificação de relançamento em background — replica notifyAppRelaunchedInBackground do nativo.
-  private static func notifyAppRelaunched() {
+  private static func notifyAppRelaunched(reason: String) {
     let content = UNMutableNotificationContent()
     content.title = "App Reativado"
-    content.body = "BeAroundSDK detectou região de beacons em segundo plano"
+    content.body = "iOS relançou o app em segundo plano por \(reason)"
     content.sound = .default
     UNUserNotificationCenter.current().add(
       UNNotificationRequest(
