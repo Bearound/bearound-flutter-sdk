@@ -177,6 +177,10 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
                 ?? PeriodicReconciliationDefaults.interval * 1000
             let periodicScanMs = (args?["periodicScanDurationMs"] as? NSNumber)?.doubleValue
                 ?? PeriodicReconciliationDefaults.scanDuration * 1000
+            // Empty-scan report: same wire convention (millis in, seconds out).
+            let presenceHeartbeatMs = (args?["presenceHeartbeatIntervalMs"] as? NSNumber)?.doubleValue
+                ?? PresenceHeartbeatDefaults.interval * 1000
+            let requestTrackingOnStart = (args?["requestTrackingOnStart"] as? Bool) ?? true
 
             let wasScanning = BeAroundSDK.shared.isScanning
             if wasScanning {
@@ -190,7 +194,9 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
                 technology: "flutter",
                 periodicReconciliationEnabled: periodicEnabled,
                 periodicReconciliationInterval: periodicIntervalMs / 1000.0,
-                periodicScanDuration: periodicScanMs / 1000.0
+                periodicScanDuration: periodicScanMs / 1000.0,
+                requestTrackingOnStart: requestTrackingOnStart,
+                presenceHeartbeatInterval: presenceHeartbeatMs / 1000.0
             )
             BeAroundSDK.shared.delegate = self
             configured = true
@@ -349,6 +355,18 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
                 BeAroundSDK.shared.requestLocationAuthorization(level)
             }
             result(nil)
+
+        case "requestTrackingAuthorization":
+            // Must run on the main queue AND with the app active — iOS silently
+            // ignores the prompt otherwise, leaving the status at notDetermined.
+            DispatchQueue.main.async {
+                BeAroundSDK.shared.requestTrackingAuthorization { status in
+                    result(status)
+                }
+            }
+
+        case "getTrackingAuthorizationStatus":
+            result(BeAroundSDK.trackingAuthorizationStatus())
 
         // Push/notifications são app-level agora. O SDK nativo removeu a API de
         // notificações da biblioteca, então o bridge não a forwarda mais.

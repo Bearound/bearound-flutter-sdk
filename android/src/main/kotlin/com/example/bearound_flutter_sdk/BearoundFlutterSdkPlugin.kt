@@ -18,6 +18,7 @@ import io.bearound.sdk.models.Beacon
 import io.bearound.sdk.models.BeaconMetadata
 import io.bearound.sdk.models.ForegroundScanConfig
 import io.bearound.sdk.models.PeriodicReconciliationDefaults
+import io.bearound.sdk.models.PresenceHeartbeatDefaults
 import io.bearound.sdk.models.MaxQueuedPayloads
 import io.bearound.sdk.models.NotificationContent
 import io.bearound.sdk.models.ScanPrecision
@@ -243,6 +244,12 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
           ?: PeriodicReconciliationDefaults.DEFAULT_INTERVAL_MILLIS
         val periodicScanMs = (args?.get("periodicScanDurationMs") as? Number)?.toLong()
           ?: PeriodicReconciliationDefaults.DEFAULT_SCAN_DURATION_MILLIS
+        // Empty-scan report: same deal — the native SDK owns the clamping.
+        val presenceHeartbeatMs = (args?.get("presenceHeartbeatIntervalMs") as? Number)?.toLong()
+          ?: PresenceHeartbeatDefaults.DEFAULT_INTERVAL_MILLIS
+        // `requestTrackingOnStart` arrives from Dart but has no meaning here: App
+        // Tracking Transparency is iOS-only. Read and dropped, so the argument map
+        // stays one shape across platforms.
 
         val scanPrecision = mapToScanPrecision(precisionRaw)
         val maxQueuedPayloads = mapToMaxQueuedPayloads(maxQueuedValue)
@@ -258,7 +265,8 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
           technology = "flutter",
           periodicReconciliationEnabled = periodicEnabled,
           periodicReconciliationIntervalMillis = periodicIntervalMs,
-          periodicScanDurationMillis = periodicScanMs
+          periodicScanDurationMillis = periodicScanMs,
+          presenceHeartbeatIntervalMillis = presenceHeartbeatMs
         )
 
         if (wasScanning) sdk.startScanning()
@@ -338,6 +346,12 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
         // No native call needed on Android — runtime permissions handled in Dart.
         result.success(null)
       }
+
+      // App Tracking Transparency is an iOS concept. On Android the advertising-id
+      // choice lives in system settings and the platform enforces it, so there is
+      // no prompt to show — answer "unavailable" to keep the Dart API uniform.
+      "requestTrackingAuthorization", "getTrackingAuthorizationStatus" ->
+        result.success("unavailable")
 
       // Push/notifications são app-level agora. O SDK nativo removeu a API de
       // notificações da biblioteca, então o bridge não a forwarda mais.

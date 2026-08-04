@@ -123,6 +123,41 @@ class BearoundFlutterSdk {
     await _channel.invokeMethod('requestLocationAuthorization', level.value);
   }
 
+  /// Exibe o prompt de App Tracking Transparency e, uma vez autorizado, o SDK
+  /// passa a enviar o **IDFA** junto de cada payload. **iOS-only.**
+  ///
+  /// O SDK nunca exibe esse diálogo sozinho: a Apple exige que ele apareça em
+  /// contexto, e um prompt disparado em momento arbitrário é app rejeitado.
+  /// Chame num ponto do onboarding em que o usuário acabou de ser informado do
+  /// porquê, com o app em **foreground** (o iOS ignora fora dele).
+  ///
+  /// Requer `NSUserTrackingUsageDescription` no `Info.plist` — sem essa chave o
+  /// iOS não mostra diálogo algum e o status fica `notDetermined` para sempre.
+  ///
+  /// Responder é evento único por instalação: chamadas seguintes devolvem a
+  /// decisão guardada sem nenhuma UI, então é seguro chamar a cada boot.
+  ///
+  /// No **Android não existe prompt** — a escolha vive nos ajustes do sistema e
+  /// a plataforma a impõe, então este método é no-op e devolve `'unavailable'`.
+  ///
+  /// Retorna: `authorized` · `denied` · `restricted` · `notDetermined` ·
+  /// `unavailable` (iOS < 14 e Android).
+  static Future<String> requestTrackingAuthorization() async {
+    final String? status = await _channel.invokeMethod<String>(
+      'requestTrackingAuthorization',
+    );
+    return status ?? 'unavailable';
+  }
+
+  /// Lê o status do App Tracking Transparency **sem** exibir prompt.
+  /// Android: sempre `'unavailable'`.
+  static Future<String> getTrackingAuthorizationStatus() async {
+    final String? status = await _channel.invokeMethod<String>(
+      'getTrackingAuthorizationStatus',
+    );
+    return status ?? 'unavailable';
+  }
+
   // ---------------------------------------------------------------------------
   // Configuration
   // ---------------------------------------------------------------------------
@@ -166,7 +201,19 @@ class BearoundFlutterSdk {
     bool periodicReconciliationEnabled = true,
     Duration periodicReconciliationInterval = const Duration(minutes: 20),
     Duration periodicScanDuration = const Duration(seconds: 12),
+    Duration presenceHeartbeatInterval = const Duration(minutes: 5),
+    bool requestTrackingOnStart = true,
   }) async {
+    // presenceHeartbeatInterval: de quanto em quanto tempo um scan que NÃO achou
+    //   nada ainda assim reporta — carregando a localização do próprio aparelho e
+    //   o Wi-Fi ao redor. Sem isso o backend não distingue "não há cobertura aqui"
+    //   de "o app não estava rodando". Só o upload é limitado; o scan não muda.
+    //   Faixa aceita pelo nativo: 1 min a 1 h (fora disso é ajustado com warning);
+    //   `Duration.zero` desliga o relatório.
+    // requestTrackingOnStart: iOS-only. Deixa o SDK levantar o prompt de App
+    //   Tracking Transparency sozinho após o configure(). Passe `false` para
+    //   escolher o momento e chamar requestTrackingAuthorization() você mesmo.
+    //   Ignorado no Android (não existe ATT lá).
     if (businessToken.trim().isEmpty) {
       throw ArgumentError.value(
         businessToken,
@@ -184,6 +231,8 @@ class BearoundFlutterSdk {
       'periodicReconciliationIntervalMs':
           periodicReconciliationInterval.inMilliseconds,
       'periodicScanDurationMs': periodicScanDuration.inMilliseconds,
+      'presenceHeartbeatIntervalMs': presenceHeartbeatInterval.inMilliseconds,
+      'requestTrackingOnStart': requestTrackingOnStart,
     };
 
     // Install the Dart-layer error telemetry BEFORE the native configure — the
