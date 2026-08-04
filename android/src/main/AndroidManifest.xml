@@ -25,6 +25,17 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <!-- Notifications (Android 13+) -->
+    <!-- Wi-Fi observations. ACCESS_WIFI_STATE is install-time; NEARBY_WIFI_DEVICES is the
+         Android 13+ runtime gate that unlocks the NEIGHBOURING access points (without it the
+         system only ever reports the connected one). Declared here, in the plugin, rather than
+         relying on the AAR's manifest merge: `permission_service.dart` asks for it at runtime,
+         and an undeclared permission is denied instantly, with no dialog and no error. -->
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission
+        android:name="android.permission.NEARBY_WIFI_DEVICES"
+        android:usesPermissionFlags="neverForLocation"
+        tools:targetApi="tiramisu" />
+
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <!-- Foreground service (Android 14+ uses CONNECTED_DEVICE for BLE work) -->

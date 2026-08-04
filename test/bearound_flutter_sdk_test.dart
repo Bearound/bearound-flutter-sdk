@@ -44,6 +44,8 @@ void main() {
         periodicReconciliationEnabled: false,
         periodicReconciliationInterval: const Duration(hours: 1),
         periodicScanDuration: const Duration(seconds: 8),
+        presenceHeartbeatInterval: const Duration(minutes: 10),
+        requestTrackingOnStart: false,
       );
 
       expect(methodCalls, hasLength(1));
@@ -58,6 +60,8 @@ void main() {
           'periodicReconciliationEnabled': false,
           'periodicReconciliationIntervalMs': 60 * 60 * 1000,
           'periodicScanDurationMs': 8000,
+          'presenceHeartbeatIntervalMs': 10 * 60 * 1000,
+          'requestTrackingOnStart': false,
         }),
       );
     });
@@ -69,7 +73,8 @@ void main() {
       expect(methodCalls.first.method, equals('configure'));
       // Default precision is HIGH (iOS-aligned) since 3.x.
       // Debug notifications default OFF; periodic reconciliation defaults
-      // ON / 20 min / 12s (best effort — see configure docs).
+      // ON / 20 min / 12s (best effort — see configure docs). Empty-scan report
+      // every 5 min; ATT prompt raised by the SDK (iOS-only).
       expect(
         methodCalls.first.arguments,
         equals({
@@ -80,6 +85,8 @@ void main() {
           'periodicReconciliationEnabled': true,
           'periodicReconciliationIntervalMs': 20 * 60 * 1000,
           'periodicScanDurationMs': 12000,
+          'presenceHeartbeatIntervalMs': 5 * 60 * 1000,
+          'requestTrackingOnStart': true,
         }),
       );
     });

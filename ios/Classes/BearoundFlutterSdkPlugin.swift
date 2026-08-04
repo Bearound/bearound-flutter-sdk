@@ -177,6 +177,10 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
                 ?? PeriodicReconciliationDefaults.interval * 1000
             let periodicScanMs = (args?["periodicScanDurationMs"] as? NSNumber)?.doubleValue
                 ?? PeriodicReconciliationDefaults.scanDuration * 1000
+            // Empty-scan report: same wire convention (millis in, seconds out).
+            let presenceHeartbeatMs = (args?["presenceHeartbeatIntervalMs"] as? NSNumber)?.doubleValue
+                ?? PresenceHeartbeatDefaults.interval * 1000
+            let requestTrackingOnStart = (args?["requestTrackingOnStart"] as? Bool) ?? true
 
             let wasScanning = BeAroundSDK.shared.isScanning
             if wasScanning {
@@ -190,7 +194,9 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
                 technology: "flutter",
                 periodicReconciliationEnabled: periodicEnabled,
                 periodicReconciliationInterval: periodicIntervalMs / 1000.0,
-                periodicScanDuration: periodicScanMs / 1000.0
+                periodicScanDuration: periodicScanMs / 1000.0,
+                requestTrackingOnStart: requestTrackingOnStart,
+                presenceHeartbeatInterval: presenceHeartbeatMs / 1000.0
             )
             BeAroundSDK.shared.delegate = self
             configured = true

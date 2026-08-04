@@ -201,7 +201,19 @@ class BearoundFlutterSdk {
     bool periodicReconciliationEnabled = true,
     Duration periodicReconciliationInterval = const Duration(minutes: 20),
     Duration periodicScanDuration = const Duration(seconds: 12),
+    Duration presenceHeartbeatInterval = const Duration(minutes: 5),
+    bool requestTrackingOnStart = true,
   }) async {
+    // presenceHeartbeatInterval: de quanto em quanto tempo um scan que NÃO achou
+    //   nada ainda assim reporta — carregando a localização do próprio aparelho e
+    //   o Wi-Fi ao redor. Sem isso o backend não distingue "não há cobertura aqui"
+    //   de "o app não estava rodando". Só o upload é limitado; o scan não muda.
+    //   Faixa aceita pelo nativo: 1 min a 1 h (fora disso é ajustado com warning);
+    //   `Duration.zero` desliga o relatório.
+    // requestTrackingOnStart: iOS-only. Deixa o SDK levantar o prompt de App
+    //   Tracking Transparency sozinho após o configure(). Passe `false` para
+    //   escolher o momento e chamar requestTrackingAuthorization() você mesmo.
+    //   Ignorado no Android (não existe ATT lá).
     if (businessToken.trim().isEmpty) {
       throw ArgumentError.value(
         businessToken,
@@ -219,6 +231,8 @@ class BearoundFlutterSdk {
       'periodicReconciliationIntervalMs':
           periodicReconciliationInterval.inMilliseconds,
       'periodicScanDurationMs': periodicScanDuration.inMilliseconds,
+      'presenceHeartbeatIntervalMs': presenceHeartbeatInterval.inMilliseconds,
+      'requestTrackingOnStart': requestTrackingOnStart,
     };
 
     // Install the Dart-layer error telemetry BEFORE the native configure — the
