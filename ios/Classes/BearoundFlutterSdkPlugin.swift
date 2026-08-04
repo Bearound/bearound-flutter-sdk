@@ -702,9 +702,13 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
         // SDK already pushed + logged via SDKNotifier.onBackgroundDetection.
     }
 
+    // A copy abaixo NÃO promete beacon de propósito: a encounter mesh anuncia um virtual
+    // beacon no MESMO UUID que o region monitoring observa (major reservado 0xFF00+, filtrado
+    // da detecção), justamente para a proximidade entre dois aparelhos com o SDK disparar
+    // este evento. Zona com zero beacons no payload é correto, não bug.
     public func didEnterBeaconRegion() {
         debugNotify(id: "zone-enter", title: "Entrou na zona",
-                    body: "Bearound detectou uma região de beacons (Location)", cooldown: 10)
+                    body: "Sinal Bearound por perto: beacon ou outro aparelho com o SDK (Location)", cooldown: 10)
         DispatchQueue.main.async { [weak self] in
             self?.beaconRegionStreamHandler.eventSink?(["type": "enter"])
         }
@@ -713,7 +717,7 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
 
     public func didExitBeaconRegion() {
         debugNotify(id: "zone-exit", title: "Saiu da zona",
-                    body: "Bearound: você saiu da região de beacons (Location)", cooldown: 10)
+                    body: "Sem sinal Bearound por perto (nem beacon, nem aparelho) (Location)", cooldown: 10)
         DispatchQueue.main.async { [weak self] in
             self?.beaconRegionStreamHandler.eventSink?(["type": "exit"])
         }
@@ -728,7 +732,7 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
 
     public func didEnterBluetoothZone() {
         debugNotify(id: "bt-zone-enter", title: "Entrou na zona",
-                    body: "Bearound detectou uma região de beacons (Bluetooth)", cooldown: 10)
+                    body: "Sinal Bearound por perto: beacon ou outro aparelho com o SDK (Bluetooth)", cooldown: 10)
         DispatchQueue.main.async { [weak self] in
             self?.bluetoothZoneStreamHandler.eventSink?(["type": "enter"])
         }
@@ -737,7 +741,7 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
 
     public func didExitBluetoothZone() {
         debugNotify(id: "bt-zone-exit", title: "Saiu da zona",
-                    body: "Bearound: você saiu da região de beacons (Bluetooth)", cooldown: 10)
+                    body: "Sem sinal Bearound por perto (nem beacon, nem aparelho) (Bluetooth)", cooldown: 10)
         DispatchQueue.main.async { [weak self] in
             self?.bluetoothZoneStreamHandler.eventSink?(["type": "exit"])
         }
