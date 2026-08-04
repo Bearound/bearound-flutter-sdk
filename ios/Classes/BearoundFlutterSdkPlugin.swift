@@ -32,14 +32,16 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
     /// Debug-notification cooldowns (native-example parity): zone events once per 10 s,
     /// detection/sync once per 5 s — so background bursts don't spam the lock screen.
     private var debugNotifyLast: [String: Date] = [:]
-    private func debugNotify(id: String, title: String, body: String, cooldown: TimeInterval) {
+    private func debugNotify(id: String, title: String, body: String, cooldown: TimeInterval, sound: Bool = true) {
         guard debugNotificationsEnabled else { return }
         if let last = debugNotifyLast[id], Date().timeIntervalSince(last) < cooldown { return }
         debugNotifyLast[id] = Date()
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = body
-        content.sound = .default
+        // The start of a sync is progress, not news: it fires on every cycle, so it stays
+        // silent the way the native example does. Everything else keeps its sound.
+        content.sound = sound ? .default : nil
         UNUserNotificationCenter.current().add(
             UNNotificationRequest(identifier: "bearound.debug.\(id).\(Int(Date().timeIntervalSince1970))",
                                   content: content, trigger: nil))
@@ -549,8 +551,10 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
             self?.beaconsStreamHandler.eventSink?(["beacons": mapped])
         }
         if !beacons.isEmpty {
-            // Notification posting was removed (push is app-level now). Only the
-            // local detection log is recorded here.
+            debugNotify(id: "detect",
+                        title: "Beacon Detectado",
+                        body: "Encontrado\(beacons.count == 1 ? "" : "s") \(beacons.count) beacon\(beacons.count == 1 ? "" : "s") próximo\(beacons.count == 1 ? "" : "s")",
+                        cooldown: 300)
             // TODO(cleanup): delegate to native instead of reimplementing
             PersistentLog.append(
                 type: "Beacons atualizados",
@@ -631,12 +635,22 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
 
     public func didChangeScanning(isScanning: Bool) {
         self.isActiveScan = isScanning
+        debugNotify(id: isScanning ? "scan-start" : "scan-stop",
+                    title: isScanning ? "Escaneamento Iniciado" : "Escaneamento Parado",
+                    body: isScanning ? "BeAroundSDK está escaneando beacons"
+                                     : "BeAroundSDK parou de escanear",
+                    cooldown: 10)
         DispatchQueue.main.async { [weak self] in
             self?.scanningStreamHandler.eventSink?(["isScanning": isScanning])
         }
     }
 
     public func willStartSync(beaconCount: Int) {
+        debugNotify(id: "sync-start",
+                    title: "Sincronizando",
+                    body: "Enviando \(beaconCount) beacon\(beaconCount == 1 ? "" : "s") para o servidor",
+                    cooldown: 30,
+                    sound: false)
         let payload: [String: Any] = ["type": "started", "beaconCount": beaconCount]
         DispatchQueue.main.async { [weak self] in
             self?.syncLifecycleStreamHandler.eventSink?(payload)
