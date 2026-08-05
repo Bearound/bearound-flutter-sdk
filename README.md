@@ -89,9 +89,13 @@ plugin's actual manifest — `android/src/main/AndroidManifest.xml`):
     android:usesPermissionFlags="neverForLocation" tools:targetApi="s" />
 <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
 
-<!-- Location: legacy only — required for a BLE scan on API <= 30; not requested on API 31+ -->
-<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" android:maxSdkVersion="30" />
-<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" android:maxSdkVersion="30" />
+<!-- Location: required for a BLE scan on API <= 30, AND (since 3.8.0) one of the two gates
+     that let the system report neighbouring Wi-Fi access points on ANY version — so no
+     maxSdkVersion here. Capping it at 30 silently costs you the Wi-Fi neighbours on 13+
+     unless you request NEARBY_WIFI_DEVICES instead. Beacon detection on 12+ does not need
+     it: the scan gate there is BLUETOOTH_SCAN. -->
+<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
 <!-- Foreground service: connectedDevice (BLE) on Android 14+ -->
 <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
@@ -492,11 +496,38 @@ on both platforms.
 
 | Platform | What it reports | What you must do |
 |---|---|---|
-| **Android** | The connected access point **and its neighbours**, with RSSI | Nothing — `requestPermissions()` already asks for `NEARBY_WIFI_DEVICES` on 13+, inside the same "Nearby devices" dialog as Bluetooth (no extra prompt) |
-| **iOS** | Only the **connected** access point, without RSSI (no public API for neighbours) | Add the **Access WiFi Information** capability in Xcode (Signing & Capabilities → + Capability) |
+| **Android** | The connected access point **and its neighbours**, with RSSI | Have **either** `ACCESS_FINE_LOCATION` **or** `NEARBY_WIFI_DEVICES` (13+) granted at runtime. Both are already declared by the plugin's manifest, but **your app must request one of them** — see below |
+| **iOS** | Only the **connected** access point, without RSSI (no public API for neighbours) | **Two** things: the **Access WiFi Information** capability, **and** location authorisation — iOS returns nothing without either |
 
-Nothing degrades if you skip the iOS capability: the field is simply omitted and every other
-feature behaves the same.
+On iOS, "add the capability" means this key in `ios/Runner/Runner.entitlements` (the same file
+the push setup uses — Xcode writes it for you via Signing & Capabilities → + Capability →
+Access WiFi Information):
+
+```xml
+<key>com.apple.developer.networking.wifi-info</key>
+<true/>
+```
+
+It must also be enabled on your App ID in the Apple Developer portal; automatic signing
+usually handles that. With a manually managed profile, regenerate it after enabling the
+capability — otherwise the build installs fine and iOS just returns nothing.
+
+> **On Android, `requestPermissions()` does not request anything.** It is a deliberate no-op
+> that returns `true` (runtime permissions belong to the host app, and the example uses
+> [`permission_handler`](https://pub.dev/packages/permission_handler)). Do not read its `true`
+> as "granted".
+
+If your app already asks for location — which it does to detect beacons — Wi-Fi observations
+work with no extra prompt on either platform. Requesting `NEARBY_WIFI_DEVICES` is only worth
+it for an Android app that deliberately never asks for location:
+
+```dart
+// Android 13+ only; on 12 and below location is the gate and this is a no-op.
+await Permission.nearbyWifiDevices.request();
+```
+
+Nothing degrades if you skip any of it: the field is simply omitted and every other feature
+behaves the same.
 
 ## Presence heartbeat
 
