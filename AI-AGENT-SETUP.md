@@ -18,7 +18,7 @@ to YOUR app's repo. The example is a demo, NOT a template: its Info.plist is a b
 has a dev-only mavenLocal(), its Runner.entitlements is `development`, and its
 main.dart hardcodes a demo businessToken. Do NOT copy those.
 
-1. Install: add `bearound_flutter_sdk: ^3.5.0` under dependencies in pubspec.yaml and
+1. Install: add `bearound_flutter_sdk: ^3.8.1` under dependencies in pubspec.yaml and
    run `flutter pub get`. In android/app/build.gradle.kts set `minSdk = 23` (replace
    the `flutter.minSdkVersion` reference). iOS Podfile: UNCOMMENT and set
    `platform :ios, '13.0'` (fresh Podfiles ship it commented), and INSIDE
@@ -42,8 +42,12 @@ main.dart hardcodes a demo businessToken. Do NOT copy those.
    location, processing, bluetooth-central, remote-notification), the two
    BGTaskSchedulerPermittedIdentifiers (io.bearound.sdk.sync, io.bearound.sdk.processing),
    and the NS…UsageDescription strings (NSBluetoothAlwaysUsageDescription,
-   NSLocationWhenInUseUsageDescription, NSLocationAlwaysAndWhenInUseUsageDescription)
-   — user-facing rationale, no jargon. Then run `plutil -lint ios/Runner/Info.plist`.
+   NSLocationWhenInUseUsageDescription, NSLocationAlwaysAndWhenInUseUsageDescription,
+   and NSUserTrackingUsageDescription) — user-facing rationale, no jargon. Then run
+   `plutil -lint ios/Runner/Info.plist`.
+   NSUserTrackingUsageDescription is REQUIRED for the advertising identifier: without the
+   key iOS never shows the App Tracking Transparency prompt, the SDK reports no IDFA, and
+   nothing errors — it just silently never appears.
 
 3. iOS UIScene — REQUIRED (README "Disable UIScene"): find `UIApplicationSceneManifest`
    in ios/Runner/Info.plist and rename it to `_UIApplicationSceneManifest` — keep the
@@ -84,8 +88,10 @@ main.dart hardcodes a demo businessToken. Do NOT copy those.
    self` or call `requestAuthorization` — leave the existing owner and add only the
    bearound-guarded silent-push override. Otherwise copy as-is.
 
-5. iOS Push entitlement: write ios/Runner/Runner.entitlements with
-   `aps-environment` = `production`, then set `CODE_SIGN_ENTITLEMENTS =
+5. iOS entitlements: write ios/Runner/Runner.entitlements with BOTH
+   `aps-environment` = `production` AND `com.apple.developer.networking.wifi-info` = true
+   (the latter is what lets the SDK report the connected Wi-Fi access point; without it
+   iOS returns nothing and no error). Then set `CODE_SIGN_ENTITLEMENTS =
    Runner/Runner.entitlements` in ONLY the three XCBuildConfiguration blocks
    (Debug/Profile/Release) that carry `PRODUCT_BUNDLE_IDENTIFIER` for the Runner APP
    target — NOT the project-level blocks and NOT the RunnerTests blocks (their bundle
