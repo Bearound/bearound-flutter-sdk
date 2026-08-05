@@ -1,6 +1,6 @@
 # 🐻 Bearound Flutter SDK
 
-Official Flutter plugin for the Bearound native SDKs — Android **3.8.0** · iOS **3.8.0**.
+Official Flutter plugin for the Bearound native SDKs — Android **3.8.1** · iOS **3.8.1**.
 
 > [!TIP]
 > **⚡ Set it up with an AI agent.** Don't wire the iOS/Android background integration by hand — hand [one prompt](./AI-AGENT-SETUP.md) to your AI coding agent (Claude Code, Cursor, Copilot) and let it pilot the whole install, pausing only for the few human-only steps. → [Set up with an AI agent](#set-up-with-an-ai-agent)
@@ -141,8 +141,9 @@ time otherwise:
   opportunistic mode, remove the permission with `tools:node="remove"` (snippet
   in [Scan modes](#scan-modes-android)) and no declaration/video is needed.
 - **`POST_NOTIFICATIONS`** — declared by the SDK, but on Android 13+ you still
-  need the runtime grant for the foreground-service notification to be visible
-  (`requestPermissions()` already asks for it).
+  need the runtime grant for the foreground-service notification to be visible.
+  **Your app must request it** — on Android `requestPermissions()` is a no-op (see the
+  API table); the example uses `permission_handler`.
 
 Minimum Android SDK: 23.
 
@@ -727,12 +728,25 @@ Future<void> ensureBackgroundReliability() async {
 ## Quick Start
 
 ```dart
+import 'dart:io' show Platform;
+
 import 'package:bearound_flutter_sdk/bearound_flutter_sdk.dart';
+import 'package:permission_handler/permission_handler.dart'; // Android permissions
 
 Future<void> setupSdk() async {
-  final permissionsOk = await BearoundFlutterSdk.requestPermissions();
-  if (!permissionsOk) {
-    return;
+  // iOS: this triggers the native Always-location prompt.
+  // ANDROID: this is a no-op that returns true — runtime permissions are the host app's
+  // job. Ask for them yourself (permission_handler below), or the scan never starts and
+  // nothing tells you why.
+  await BearoundFlutterSdk.requestPermissions();
+
+  if (Platform.isAndroid) {
+    await [
+      Permission.bluetoothScan,      // the BLE-scan gate on Android 12+
+      Permission.bluetoothAdvertise,  // encounter layer (same "Nearby devices" dialog)
+      Permission.locationWhenInUse,   // also gates the Wi-Fi neighbours
+      Permission.notification,        // foreground-service notification on 13+
+    ].request();
   }
 
   await BearoundFlutterSdk.configure(
@@ -892,7 +906,7 @@ for non-Bearound pushes.
 | `startScanning({foregroundScanConfig})` | Android + iOS | `foregroundScanConfig` is Android-only (ignored on iOS). |
 | `stopScanning()` | Android + iOS | |
 | `isScanning()` | Android + iOS | |
-| `requestPermissions()` | Android + iOS | iOS: native `requestAlwaysAuthorization()`; Android: runtime permissions via `permission_handler` (incl. notifications on 13+). |
+| `requestPermissions()` | iOS only | iOS: native `requestAlwaysAuthorization()`. **On Android it is a no-op that returns `true`** — runtime permissions belong to the host app (the example uses `permission_handler`). Do not read the `true` as "granted". |
 | `checkPermissions()` | Android + iOS | |
 | `requestLocationAuthorization({level})` | iOS | Unlocks the Location eye (terminated-app wake-up requires `always`). No-op on Android. |
 | `requestTrackingAuthorization()` | iOS | Shows the App Tracking Transparency prompt; once authorised the SDK reports the **IDFA**. Android has no prompt → resolves `'unavailable'`. See [Advertising identifier](#advertising-identifier-idfa--aaid). |
@@ -948,7 +962,7 @@ for non-Bearound pushes.
 |---|---|---|
 | No beacons detected (any platform) | Is it a **Bearound beacon**? The SDK only detects beacons advertising the proprietary **`0xBEAD` service data** — a generic iBeacon, or an iPhone simulating an iBeacon, is filtered out **by design** (Android scan filter accepts only `0xBEAD`). | Test with a real Bearound beacon. |
 | No beacons detected | `await BearoundFlutterSdk.isConfigured()` returns `false`. | Call `configure()` (and await it) before `startScanning()`. |
-| No beacons on **Android 12+** | `getBluetoothState()` returns `unauthorized` — "Nearby devices" (`BLUETOOTH_SCAN`) was denied. **Granting location does NOT unlock BLE scan on 12+.** | Request the Nearby devices permission (`requestPermissions()` does it) or send the user to app settings. |
+| No beacons on **Android 12+** | `getBluetoothState()` returns `unauthorized` — "Nearby devices" (`BLUETOOTH_SCAN`) was denied. **Granting location does NOT unlock BLE scan on 12+.** | Request `BLUETOOTH_SCAN` from your app (e.g. `Permission.bluetoothScan.request()` via `permission_handler`) — `requestPermissions()` does **not** do it on Android — or send the user to app settings. |
 | No beacons on **iOS** | `getBluetoothState()` ≠ `poweredOn`, or `getAuthorizationStatus()` is `denied`/`notDetermined`. | Turn Bluetooth on; call `requestPermissions()` (Location "Always" is required for terminated-app wake-up). |
 | Detection stops in background (**Android**) | Battery optimization active or OEM battery killer (Xiaomi/Huawei/…): `isIgnoringBatteryOptimizations()` / `isAutostartManageable()`. | Follow the [Background reliability](#background-reliability-android) flow; for mission-critical presence use the [foreground-service mode](#mode-2--foreground-service-connecteddevice). |
 | Detection stops in background (**iOS**) | Background App Refresh disabled, or `BGTaskSchedulerPermittedIdentifiers` missing from `Info.plist`. | Enable Background App Refresh in device Settings; add both BGTask identifiers + `registerBackgroundTasks()` ([iOS setup](#background-tasks-bgtaskscheduler--required)). |
