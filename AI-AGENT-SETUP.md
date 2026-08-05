@@ -48,6 +48,16 @@ main.dart hardcodes a demo businessToken. Do NOT copy those.
    NSUserTrackingUsageDescription is REQUIRED for the advertising identifier: without the
    key iOS never shows the App Tracking Transparency prompt, the SDK reports no IDFA, and
    nothing errors — it just silently never appears.
+   The two Location strings are NOT optional if Wi-Fi observations matter: on iOS
+   .whenInUse stops revealing the access point once the app is backgrounded (returns nil,
+   not an error) and on Android the equivalent gap is ACCESS_BACKGROUND_LOCATION, where a
+   backgrounded app gets an empty scan list and the placeholder BSSID
+   02:00:00:00:00:00. Measured on a sibling SDK: 25 access points to zero the instant the
+   app was backgrounded, with every permission granted. The plugin's requestPermissions()
+   already asks for both (Permission.locationAlways on Android, .always on iOS) — do NOT
+   strip that flow to reduce prompts without telling me, and note that on Android it drags
+   the app into Google Play's background-location review with a demo video. Verify the
+   outcome in the payload: device.permissions.backgroundLocation.
 
 3. iOS UIScene — REQUIRED (README "Disable UIScene"): find `UIApplicationSceneManifest`
    in ios/Runner/Info.plist and rename it to `_UIApplicationSceneManifest` — keep the

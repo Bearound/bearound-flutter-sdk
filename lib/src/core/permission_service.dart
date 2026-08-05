@@ -52,8 +52,15 @@ class PermissionService {
           final bluetoothScanStatus = await Permission.bluetoothScan.request();
           await Permission.bluetoothConnect.request();
 
-          // Background location still helps CoreLocation-style wake-ups on
-          // Android and is recommended, but it is NOT part of the scan gate.
+          // Background location is NOT part of the scan gate — on 12+ the SDK
+          // scans on BLUETOOTH_SCAN, with no location at all. Do NOT remove it
+          // for that reason: it is what keeps the Wi-Fi observations coming once
+          // the app is backgrounded. Without it, from Android 10 on, a
+          // backgrounded app gets an empty scan list and the placeholder BSSID
+          // 02:00:00:00:00:00 — no error, nothing in logcat, `wifis[]` simply
+          // arrives empty. Measured in production on a sibling SDK: 25 access
+          // points dropped to zero the instant the app went to background, with
+          // every permission it asked for granted.
           final locationStatus = await Permission.location.request();
           if (locationStatus.isGranted) {
             await Permission.locationAlways.request();

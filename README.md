@@ -500,6 +500,30 @@ on both platforms.
 | **Android** | The connected access point **and its neighbours**, with RSSI | Have **either** `ACCESS_FINE_LOCATION` **or** `NEARBY_WIFI_DEVICES` (13+) granted at runtime. Both are already declared by the plugin's manifest, but **your app must request one of them** — see below |
 | **iOS** | Only the **connected** access point, without RSSI (no public API for neighbours) | **Two** things: the **Access WiFi Information** capability, **and** location authorisation — iOS returns nothing without either |
 
+> ### ⚠️ Isto desbloqueia a coleta — não garante que ela continue em background
+>
+> A tabela cobre **o que libera** o Wi-Fi. Falta a parte que surpreende: **por quanto
+> tempo**.
+>
+> - **Android:** a partir do 10, app em background **sem `ACCESS_BACKGROUND_LOCATION`**
+>   recebe lista de scan vazia e o BSSID placeholder `02:00:00:00:00:00`. Não é erro, não é
+>   exceção — o SDK descarta o placeholder e `wifis[]` chega vazio. Medido em produção num
+>   SDK irmão: **25 pontos de acesso viraram zero no instante em que o app foi para
+>   background**, com todas as permissões concedidas.
+> - **iOS:** com `.whenInUse` o sistema para de revelar o access point em background e
+>   retorna `nil`. `.always` é o que mantém a coleta viva.
+>
+> Como uma frota passa quase todo o tempo em background, "só em foreground" significa na
+> prática **quase nunca** — e um teste manual com o app aberto passa perfeitamente.
+>
+> **O plugin já pede os dois por você:** `Permission.locationAlways` no Android e a
+> autorização `.always` no iOS, ambos dentro de `requestPermissions()`. Se você mexer nesse
+> fluxo, saiba o que está removendo. Confira o resultado no payload:
+> `device.permissions.backgroundLocation`.
+>
+> No Android isso implica **revisão de política da Google Play**, com vídeo de
+> demonstração. Vale saber antes de submeter, não depois da rejeição.
+
 On iOS, "add the capability" means this key in `ios/Runner/Runner.entitlements` (the same file
 the push setup uses — Xcode writes it for you via Signing & Capabilities → + Capability →
 Access WiFi Information):
