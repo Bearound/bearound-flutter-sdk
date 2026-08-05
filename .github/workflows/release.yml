@@ -146,6 +146,19 @@ jobs:
           printf '%s' "$PUB_CREDENTIALS" > "$HOME/.config/dart/pub-credentials.json"
           flutter pub publish --force
 
+      # Create a GitHub Release for the tag, mirroring the React Native repo. Without this
+      # the tag exists and pub.dev has the version, but the Releases page stays frozen —
+      # it had been showing 3.5.0 while five further versions had shipped.
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          generate_release_notes: true
+          fail_on_unmatched_files: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   release_success:
     name: Release Success Notification
     runs-on: ubuntu-latest
