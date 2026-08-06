@@ -105,10 +105,23 @@ class BearoundFlutterSdk {
   // ---------------------------------------------------------------------------
 
   /// Solicita as permissões necessárias para operação do SDK.
-  /// No iOS, chama `requestAlwaysAuthorization()` via código nativo.
-  /// No Android, usa `permission_handler` para solicitar permissões.
-  static Future<bool> requestPermissions() =>
-      PermissionService.instance.requestPermissions();
+  ///
+  /// iOS: chama `requestAlwaysAuthorization()` via código nativo.
+  /// Android: usa `permission_handler` — pede BLUETOOTH_SCAN, BLUETOOTH_CONNECT,
+  /// location (foreground), notificações e, no 13+, NEARBY_WIFI_DEVICES.
+  ///
+  /// [includeBackgroundLocation] (Android) — pedir também ACCESS_BACKGROUND_LOCATION.
+  /// **Padrão `false`**: o Google Play exige que o app host mostre uma prominent
+  /// disclosure ANTES desse pedido, então quem decide a hora é o host, não o SDK.
+  /// Passe `true` só depois da sua própria disclosure. Sem essa permissão o app em
+  /// background deixa de receber os access points de Wi-Fi (`wifis[]` chega vazio,
+  /// sem erro); a detecção de beacon não é afetada.
+  static Future<bool> requestPermissions({
+    bool includeBackgroundLocation = false,
+  }) =>
+      PermissionService.instance.requestPermissions(
+        includeBackgroundLocation: includeBackgroundLocation,
+      );
 
   /// Verifica se as permissões necessárias foram concedidas.
   static Future<bool> checkPermissions() =>

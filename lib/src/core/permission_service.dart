@@ -30,7 +30,21 @@ class PermissionService {
     }
   }
 
-  Future<bool> requestPermissions() async {
+  /// [includeBackgroundLocation] — whether to also request ACCESS_BACKGROUND_LOCATION.
+  /// **Defaults to false, and that default is a policy decision, not a preference.**
+  ///
+  /// Google Play requires the host app to show a prominent disclosure *before* any
+  /// background-location request. An SDK asking on its own takes that ordering away from
+  /// the host: the system screen appears no matter what the user answered to the app's own
+  /// disclosure, which also makes the demonstration video Play asks for impossible to record
+  /// honestly. So the host decides when — and whether — to ask.
+  ///
+  /// The permission is not free to skip: from Android 10 on, a backgrounded app without it
+  /// gets an empty Wi-Fi scan list and the placeholder BSSID 02:00:00:00:00:00 — no error,
+  /// nothing in logcat, `wifis[]` simply arrives empty (measured: 25 access points to zero
+  /// the instant the app backgrounded). Beacon detection is unaffected — on 12+ the scan
+  /// runs on BLUETOOTH_SCAN alone. Pass true only after your own disclosure.
+  Future<bool> requestPermissions({bool includeBackgroundLocation = false}) async {
     try {
       if (Platform.isIOS) {
         // iOS: Use native method that calls requestAlwaysAuthorization()
@@ -62,7 +76,7 @@ class PermissionService {
           // points dropped to zero the instant the app went to background, with
           // every permission it asked for granted.
           final locationStatus = await Permission.location.request();
-          if (locationStatus.isGranted) {
+          if (includeBackgroundLocation && locationStatus.isGranted) {
             await Permission.locationAlways.request();
           }
           await Permission.notification.request();
@@ -81,7 +95,7 @@ class PermissionService {
         } else {
           // Android <12: location unlocks the BLE scan.
           final locationStatus = await Permission.location.request();
-          if (locationStatus.isGranted) {
+          if (includeBackgroundLocation && locationStatus.isGranted) {
             await Permission.locationAlways.request();
           }
           await Permission.notification.request();

@@ -142,8 +142,7 @@ time otherwise:
   in [Scan modes](#scan-modes-android)) and no declaration/video is needed.
 - **`POST_NOTIFICATIONS`** — declared by the SDK, but on Android 13+ you still
   need the runtime grant for the foreground-service notification to be visible.
-  **Your app must request it** — on Android `requestPermissions()` is a no-op (see the
-  API table); the example uses `permission_handler`.
+  `requestPermissions()` asks for it on Android (see the API table).
 
 Minimum Android SDK: 23.
 
@@ -537,10 +536,14 @@ It must also be enabled on your App ID in the Apple Developer portal; automatic 
 usually handles that. With a manually managed profile, regenerate it after enabling the
 capability — otherwise the build installs fine and iOS just returns nothing.
 
-> **On Android, `requestPermissions()` does not request anything.** It is a deliberate no-op
-> that returns `true` (runtime permissions belong to the host app, and the example uses
-> [`permission_handler`](https://pub.dev/packages/permission_handler)). Do not read its `true`
-> as "granted".
+> **On Android, `requestPermissions()` DOES request permissions** — via
+> [`permission_handler`](https://pub.dev/packages/permission_handler), from the Dart side. Only
+> the native method-channel handler is a no-op; an earlier version of this README described
+> just that half and said the whole call did nothing. It asks for `BLUETOOTH_SCAN`,
+> `BLUETOOTH_CONNECT`, foreground location, notifications and — on 13+ — `NEARBY_WIFI_DEVICES`.
+>
+> It does **not** ask for `ACCESS_BACKGROUND_LOCATION` unless you pass
+> `includeBackgroundLocation: true`. See [Background location](#background-location-android).
 
 If your app already asks for location — which it does to detect beacons — Wi-Fi observations
 work with no extra prompt on either platform. Requesting `NEARBY_WIFI_DEVICES` is only worth
@@ -553,6 +556,35 @@ await Permission.nearbyWifiDevices.request();
 
 Nothing degrades if you skip any of it: the field is simply omitted and every other feature
 behaves the same.
+
+## Background location (Android)
+
+`ACCESS_BACKGROUND_LOCATION` is **never requested by the SDK on its own**. You opt in:
+
+```dart
+// Only AFTER your own prominent disclosure.
+await BearoundFlutterSdk.requestPermissions(includeBackgroundLocation: true);
+```
+
+**Why the SDK will not ask for you.** Google Play requires the host app to show a prominent
+disclosure *before* any background-location request. An SDK asking on its own takes that
+ordering away: the system screen appears regardless of what the user answered to your
+disclosure — including when they declined — and the demonstration video Play requires becomes
+impossible to record honestly. Only your app knows when the disclosure has been shown, so only
+your app can decide when to ask.
+
+**What you lose by not asking.** From Android 10 on, a backgrounded app without this permission
+gets an empty Wi-Fi scan list and the placeholder BSSID `02:00:00:00:00:00`. There is no error
+and nothing in logcat — `wifis[]` simply arrives empty. Measured on-device: 25 access points
+dropped to zero the instant the app went to background, with every other permission granted.
+
+**What you do NOT lose.** Beacon detection is unaffected: on Android 12+ the scan runs on
+`BLUETOOTH_SCAN` alone, with no location involved. Encounters, `location` and the presence
+heartbeat also keep working. The cost is confined to Wi-Fi observations while backgrounded.
+
+So: an app that needs the access-point map in background asks for it, behind its own
+disclosure. An app that does not need it skips the permission — and the Play declaration that
+comes with it — at no cost to beacons.
 
 ## Presence heartbeat
 
@@ -752,25 +784,16 @@ Future<void> ensureBackgroundReliability() async {
 ## Quick Start
 
 ```dart
-import 'dart:io' show Platform;
-
 import 'package:bearound_flutter_sdk/bearound_flutter_sdk.dart';
-import 'package:permission_handler/permission_handler.dart'; // Android permissions
 
 Future<void> setupSdk() async {
-  // iOS: this triggers the native Always-location prompt.
-  // ANDROID: this is a no-op that returns true — runtime permissions are the host app's
-  // job. Ask for them yourself (permission_handler below), or the scan never starts and
-  // nothing tells you why.
-  await BearoundFlutterSdk.requestPermissions();
-
-  if (Platform.isAndroid) {
-    await [
-      Permission.bluetoothScan,      // the BLE-scan gate on Android 12+
-      Permission.bluetoothAdvertise,  // encounter layer (same "Nearby devices" dialog)
-      Permission.locationWhenInUse,   // also gates the Wi-Fi neighbours
-      Permission.notification,        // foreground-service notification on 13+
-    ].request();
+  // Asks for everything the scan needs, on both platforms. It does NOT ask for
+  // background location — that one is yours to request, after your own prominent
+  // disclosure (see "Background location (Android)").
+  final canScan = await BearoundFlutterSdk.requestPermissions();
+  if (!canScan) {
+    // Bluetooth scanning was denied: nothing will be detected until it is granted.
+    return;
   }
 
   await BearoundFlutterSdk.configure(
@@ -930,7 +953,7 @@ for non-Bearound pushes.
 | `startScanning({foregroundScanConfig})` | Android + iOS | `foregroundScanConfig` is Android-only (ignored on iOS). |
 | `stopScanning()` | Android + iOS | |
 | `isScanning()` | Android + iOS | |
-| `requestPermissions()` | iOS only | iOS: native `requestAlwaysAuthorization()`. **On Android it is a no-op that returns `true`** — runtime permissions belong to the host app (the example uses `permission_handler`). Do not read the `true` as "granted". |
+| `requestPermissions({includeBackgroundLocation = false})` | Android + iOS | iOS: native `requestAlwaysAuthorization()`. Android: requests `BLUETOOTH_SCAN`, `BLUETOOTH_CONNECT`, foreground location, notifications and (13+) `NEARBY_WIFI_DEVICES` via `permission_handler`. **`ACCESS_BACKGROUND_LOCATION` only when `includeBackgroundLocation: true`** — see [Background location](#background-location-android). Returns whether the *scan gate* was granted. |
 | `checkPermissions()` | Android + iOS | |
 | `requestLocationAuthorization({level})` | iOS | Unlocks the Location eye (terminated-app wake-up requires `always`). No-op on Android. |
 | `requestTrackingAuthorization()` | iOS | Shows the App Tracking Transparency prompt; once authorised the SDK reports the **IDFA**. Android has no prompt → resolves `'unavailable'`. See [Advertising identifier](#advertising-identifier-idfa--aaid). |
