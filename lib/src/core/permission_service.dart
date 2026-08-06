@@ -44,7 +44,9 @@ class PermissionService {
   /// nothing in logcat, `wifis[]` simply arrives empty (measured: 25 access points to zero
   /// the instant the app backgrounded). Beacon detection is unaffected — on 12+ the scan
   /// runs on BLUETOOTH_SCAN alone. Pass true only after your own disclosure.
-  Future<bool> requestPermissions({bool includeBackgroundLocation = false}) async {
+  Future<bool> requestPermissions({
+    bool includeBackgroundLocation = false,
+  }) async {
     try {
       if (Platform.isIOS) {
         // iOS: Use native method that calls requestAlwaysAuthorization()

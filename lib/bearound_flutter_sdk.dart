@@ -118,10 +118,9 @@ class BearoundFlutterSdk {
   /// sem erro); a detecção de beacon não é afetada.
   static Future<bool> requestPermissions({
     bool includeBackgroundLocation = false,
-  }) =>
-      PermissionService.instance.requestPermissions(
-        includeBackgroundLocation: includeBackgroundLocation,
-      );
+  }) => PermissionService.instance.requestPermissions(
+    includeBackgroundLocation: includeBackgroundLocation,
+  );
 
   /// Verifica se as permissões necessárias foram concedidas.
   static Future<bool> checkPermissions() =>
