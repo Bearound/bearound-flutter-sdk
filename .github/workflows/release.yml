@@ -124,6 +124,13 @@ jobs:
     needs: [pre_release_validation]
     timeout-minutes: 10
 
+    # Required by the "Create GitHub Release" step below. The default GITHUB_TOKEN is
+    # read-only for contents in this repo, so creating a release answers 403 "Resource not
+    # accessible by integration" — and, because the step runs AFTER the publish, the package
+    # is already on pub.dev by the time the job goes red. The RN repo grants the same.
+    permissions:
+      contents: write
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
