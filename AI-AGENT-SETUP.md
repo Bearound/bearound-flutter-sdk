@@ -53,10 +53,12 @@ main.dart hardcodes a demo businessToken. Do NOT copy those.
    not an error) and on Android the equivalent gap is ACCESS_BACKGROUND_LOCATION, where a
    backgrounded app gets an empty scan list and the placeholder BSSID
    02:00:00:00:00:00. Measured on a sibling SDK: 25 access points to zero the instant the
-   app was backgrounded, with every permission granted. The plugin's requestPermissions()
-   already asks for both (Permission.locationAlways on Android, .always on iOS) — do NOT
-   strip that flow to reduce prompts without telling me, and note that on Android it drags
-   the app into Google Play's background-location review with a demo video. Verify the
+   app was backgrounded, with every permission granted. On iOS requestPermissions() asks for
+   .always itself. On ANDROID it deliberately does NOT ask for ACCESS_BACKGROUND_LOCATION:
+   Google Play requires MY app to show a prominent disclosure first, so the call takes
+   `includeBackgroundLocation: true` and only I decide when to pass it. If the Wi-Fi map in
+   background matters for this app, tell me — wiring it drags the app into Google Play's
+   background-location review with a demo video, and that is my call, not yours. Verify the
    outcome in the payload: device.permissions.backgroundLocation.
 
 3. iOS UIScene — REQUIRED (README "Disable UIScene"): find `UIApplicationSceneManifest`

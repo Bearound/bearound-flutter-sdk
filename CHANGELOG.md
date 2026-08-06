@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.8.2]
+
+### Fixed
+- **`requestPermissions()` no longer asks for `ACCESS_BACKGROUND_LOCATION` on Android.**
+  Google Play requires the host app to show a prominent disclosure *before* any
+  background-location request, and the SDK asking on its own took that ordering away: the
+  system screen appeared regardless of what the user answered to the app's disclosure —
+  including when they declined — which also makes the demonstration video Play requires
+  impossible to record honestly. It is now opt-in:
+
+  ```dart
+  await BearoundFlutterSdk.requestPermissions(includeBackgroundLocation: true);
+  ```
+
+  **This changes behaviour.** Without that flag a backgrounded app stops receiving Wi-Fi
+  access points (`wifis[]` arrives empty, with no error — Android returns the placeholder
+  BSSID `02:00:00:00:00:00`). If your app already shows a disclosure and wants the
+  access-point map in background, pass `true` after showing it. Beacon detection, encounters,
+  `location` and the presence heartbeat are unaffected — on Android 12+ the scan runs on
+  `BLUETOOTH_SCAN` alone. This matches the React Native SDK, which already required an
+  explicit opt-in.
+
+### Documentation
+- The README claimed `requestPermissions()` was "a no-op that returns true" on Android. That
+  is true only of the native method-channel handler; the Dart side requests `BLUETOOTH_SCAN`,
+  `BLUETOOTH_CONNECT`, foreground location, notifications and (13+) `NEARBY_WIFI_DEVICES`.
+  Quick Start, the API table and the troubleshooting rows were all corrected, and a
+  **Background location (Android)** section now spells out the trade-off.
 ## [3.8.1]
 
 ### Fixed
