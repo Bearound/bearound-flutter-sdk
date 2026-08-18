@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.8.3]
+
+### Fixed
+- **The iOS Bluetooth alert no longer pops up over other apps** (BearoundSDK 3.8.2). Both
+  `CBCentralManager` instances in the native iOS SDK were created without
+  `CBCentralManagerOptionShowPowerAlertKey`, which defaults to `true`: with the radio off or
+  the Bluetooth permission denied, iOS answered that instantiation with its own alert. Because
+  the SDK wakes in the **background**, the alert surfaced on top of whatever app the user had
+  open — the host app's name showing up in an alert while the user was somewhere else. Nothing
+  changes functionally: scanning was already gated on the radio being powered on, so a user
+  with Bluetooth off simply doesn't scan — now silently. The first-time authorization prompt
+  is a different mechanism and is unaffected.
+
 ## [3.8.2]
 
 ### Fixed
