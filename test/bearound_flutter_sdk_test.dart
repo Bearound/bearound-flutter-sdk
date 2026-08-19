@@ -46,6 +46,9 @@ void main() {
         periodicScanDuration: const Duration(seconds: 8),
         presenceHeartbeatInterval: const Duration(minutes: 10),
         requestTrackingOnStart: false,
+        collectAdvertisingId: false,
+        collectLocation: false,
+        collectWifi: false,
       );
 
       expect(methodCalls, hasLength(1));
@@ -62,6 +65,9 @@ void main() {
           'periodicScanDurationMs': 8000,
           'presenceHeartbeatIntervalMs': 10 * 60 * 1000,
           'requestTrackingOnStart': false,
+          'collectAdvertisingId': false,
+          'collectLocation': false,
+          'collectWifi': false,
         }),
       );
     });
@@ -87,8 +93,25 @@ void main() {
           'periodicScanDurationMs': 12000,
           'presenceHeartbeatIntervalMs': 5 * 60 * 1000,
           'requestTrackingOnStart': true,
+          // The data-collection switches default ON: an integration that never
+          // mentions them keeps sending exactly what it sends today.
+          'collectAdvertisingId': true,
+          'collectLocation': true,
+          'collectWifi': true,
         }),
       );
+    });
+
+    test('each data-collection switch travels independently', () async {
+      await BearoundFlutterSdk.configure(
+        businessToken: 'test-token',
+        collectAdvertisingId: false,
+      );
+
+      final args = methodCalls.first.arguments as Map;
+      expect(args['collectAdvertisingId'], isFalse);
+      expect(args['collectLocation'], isTrue);
+      expect(args['collectWifi'], isTrue);
     });
 
     test(

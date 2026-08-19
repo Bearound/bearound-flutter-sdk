@@ -250,6 +250,11 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
         // `requestTrackingOnStart` arrives from Dart but has no meaning here: App
         // Tracking Transparency is iOS-only. Read and dropped, so the argument map
         // stays one shape across platforms.
+        // Data-collection switches — default ON, so a host that never mentions them
+        // (or an older Dart layer that does not send them) behaves exactly as before.
+        val collectAdvertisingId = (args?.get("collectAdvertisingId") as? Boolean) ?: true
+        val collectLocation = (args?.get("collectLocation") as? Boolean) ?: true
+        val collectWifi = (args?.get("collectWifi") as? Boolean) ?: true
 
         val scanPrecision = mapToScanPrecision(precisionRaw)
         val maxQueuedPayloads = mapToMaxQueuedPayloads(maxQueuedValue)
@@ -266,7 +271,10 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
           periodicReconciliationEnabled = periodicEnabled,
           periodicReconciliationIntervalMillis = periodicIntervalMs,
           periodicScanDurationMillis = periodicScanMs,
-          presenceHeartbeatIntervalMillis = presenceHeartbeatMs
+          presenceHeartbeatIntervalMillis = presenceHeartbeatMs,
+          collectAdvertisingId = collectAdvertisingId,
+          collectLocation = collectLocation,
+          collectWifi = collectWifi
         )
 
         if (wasScanning) sdk.startScanning()

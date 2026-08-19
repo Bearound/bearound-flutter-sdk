@@ -205,6 +205,31 @@ class BearoundFlutterSdk {
   ///   (mínimo duro do WorkManager); máximo 24 h em ambos.
   /// - Janela de scan: **3–15s no iOS** (budget de ~30s do BGTask), **3–30s no
   ///   Android**.
+  ///
+  /// ## Escolhendo o que o SDK coleta
+  ///
+  /// Três sinais do payload descrevem a **pessoa**, não o avistamento: o
+  /// identificador de publicidade (IDFA no iOS, AAID no Android), a localização
+  /// do próprio aparelho e os pontos de acesso Wi-Fi ao redor. Seu app pode
+  /// coletar cada um deles para uso próprio e ainda assim não querer
+  /// compartilhá-los com a Bearound — base legal diferente, um rótulo de
+  /// privacidade que você não quer estender, ou política do cliente.
+  ///
+  /// [collectAdvertisingId], [collectLocation] e [collectWifi] (**todos default
+  /// `true`**) desligam cada um. Desligado significa **não coletar**, não
+  /// "coletar e reter": o valor nunca é lido da plataforma. Com
+  /// `collectAdvertisingId: false` o iOS também nunca levanta o prompt de App
+  /// Tracking Transparency.
+  ///
+  /// A detecção de beacon **não é afetada** por `collectLocation: false` — no
+  /// iOS o region monitoring é o mecanismo de acordar, no Android a permissão
+  /// de localização é sobre acesso ao rádio; o SDK continua detectando, só para
+  /// de dizer *onde* o aparelho estava. O que muda é o relatório de scan vazio
+  /// ([presenceHeartbeatInterval]): sem localização e sem Wi-Fi ele não tem o
+  /// que carregar e para de disparar — por design.
+  ///
+  /// A escolha é persistida junto com o resto da configuração, então sobrevive
+  /// aos relaunches em background que os dois sistemas fazem por conta própria.
   static Future<void> configure({
     required String businessToken,
     ScanPrecision scanPrecision = ScanPrecision.high,
@@ -215,6 +240,9 @@ class BearoundFlutterSdk {
     Duration periodicScanDuration = const Duration(seconds: 12),
     Duration presenceHeartbeatInterval = const Duration(minutes: 5),
     bool requestTrackingOnStart = true,
+    bool collectAdvertisingId = true,
+    bool collectLocation = true,
+    bool collectWifi = true,
   }) async {
     // presenceHeartbeatInterval: de quanto em quanto tempo um scan que NÃO achou
     //   nada ainda assim reporta — carregando a localização do próprio aparelho e
@@ -245,6 +273,9 @@ class BearoundFlutterSdk {
       'periodicScanDurationMs': periodicScanDuration.inMilliseconds,
       'presenceHeartbeatIntervalMs': presenceHeartbeatInterval.inMilliseconds,
       'requestTrackingOnStart': requestTrackingOnStart,
+      'collectAdvertisingId': collectAdvertisingId,
+      'collectLocation': collectLocation,
+      'collectWifi': collectWifi,
     };
 
     // Install the Dart-layer error telemetry BEFORE the native configure — the

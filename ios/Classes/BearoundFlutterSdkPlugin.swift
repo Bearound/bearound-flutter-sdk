@@ -214,6 +214,11 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
             let presenceHeartbeatMs = (args?["presenceHeartbeatIntervalMs"] as? NSNumber)?.doubleValue
                 ?? PresenceHeartbeatDefaults.interval * 1000
             let requestTrackingOnStart = (args?["requestTrackingOnStart"] as? Bool) ?? true
+            // Data-collection switches — default ON, so a host that never mentions them
+            // (or an older Dart layer that does not send them) behaves exactly as before.
+            let collectAdvertisingId = (args?["collectAdvertisingId"] as? Bool) ?? true
+            let collectLocation = (args?["collectLocation"] as? Bool) ?? true
+            let collectWifi = (args?["collectWifi"] as? Bool) ?? true
 
             let wasScanning = BeAroundSDK.shared.isScanning
             if wasScanning {
@@ -229,7 +234,10 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
                 periodicReconciliationInterval: periodicIntervalMs / 1000.0,
                 periodicScanDuration: periodicScanMs / 1000.0,
                 requestTrackingOnStart: requestTrackingOnStart,
-                presenceHeartbeatInterval: presenceHeartbeatMs / 1000.0
+                presenceHeartbeatInterval: presenceHeartbeatMs / 1000.0,
+                collectAdvertisingId: collectAdvertisingId,
+                collectLocation: collectLocation,
+                collectWifi: collectWifi
             )
             BeAroundSDK.shared.delegate = self
             configured = true
