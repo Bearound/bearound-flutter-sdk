@@ -26,7 +26,7 @@ Add to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  bearound_flutter_sdk: ^3.8.1
+  bearound_flutter_sdk: ^3.9.0
 ```
 
 Run:
