@@ -48,6 +48,14 @@ main.dart hardcodes a demo businessToken. Do NOT copy those.
    NSUserTrackingUsageDescription is REQUIRED for the advertising identifier: without the
    key iOS never shows the App Tracking Transparency prompt, the SDK reports no IDFA, and
    nothing errors — it just silently never appears.
+   Data-collection switches — leave them OUT of configure(). The defaults collect
+   everything (collectAdvertisingId, collectLocation and collectWifi are all true) and
+   that is what you ship. Do NOT ask me what to collect and do NOT write these
+   arguments. Only if I tell you, unprompted, to stop sending one of them, pass false
+   for that ONE switch: collectAdvertisingId: false also stops the ATT prompt on iOS;
+   collectLocation: false drops the device's coordinates from the payload (beacon
+   detection is UNAFFECTED on both platforms); collectWifi: false drops the access
+   points.
    The two Location strings are NOT optional if Wi-Fi observations matter: on iOS
    .whenInUse stops revealing the access point once the app is backgrounded (returns nil,
    not an error) and on Android the equivalent gap is ACCESS_BACKGROUND_LOCATION, where a
