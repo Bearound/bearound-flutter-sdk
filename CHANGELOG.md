@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.9.0]
+
+### Added
+- **`configure()` ganha três interruptores de coleta**: `collectAdvertisingId`,
+  `collectLocation` e `collectWifi` — todos com default `true`, então uma integração que não
+  os mencione se comporta exatamente como antes. Servem ao app que coleta o identificador de
+  publicidade (IDFA/AAID), a localização ou o Wi-Fi para uso próprio e não quer
+  compartilhá-los com a Bearound.
+
+  Desligar significa **não coletar**, não "coletar e reter": o valor nunca é lido da
+  plataforma. Com `collectAdvertisingId: false` o iOS também nunca levanta o prompt de App
+  Tracking Transparency, e o Android não consulta o Play Services.
+
+  | Desligado | Ausente do payload |
+  |---|---|
+  | `collectAdvertisingId` | `device.permissions.advertisingId`, mais `trackingAuthorization` (iOS) / `limitAdTracking` (Android) |
+  | `collectLocation` | bloco `location` no topo do envelope |
+  | `collectWifi` | array `wifis`, `device.network.apId`, `device.network.wifiSSID` |
+
+  `permissions.location` e `locationAccuracy` permanecem: descrevem a autorização concedida,
+  não a posição.
+
+  **A detecção de beacon não é afetada.** No iOS o region monitoring é o mecanismo de acordar
+  em background; no Android a permissão de localização que o scan BLE exige é sobre acesso ao
+  rádio. Com `collectLocation: false` o SDK continua detectando e reportando beacons — apenas
+  para de dizer *onde* o aparelho estava. O que muda é o relatório de scan vazio
+  ([presenceHeartbeatInterval]): sem localização e sem Wi-Fi ele não tem o que carregar e
+  para de disparar, por design.
+
+  A escolha é persistida junto com o resto da configuração e reaplicada nos relaunches em
+  background que os dois sistemas fazem por conta própria.
+
+### Changed
+- Fixa os SDKs nativos **3.9.0** (CocoaPods e JitPack), que carregam os interruptores.
+
 ## [3.8.3]
 
 ### Fixed
