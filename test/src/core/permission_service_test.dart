@@ -112,51 +112,51 @@ void main() {
         expect(requestedCodes, isNot(contains(bluetoothAdvertiseCode)));
       });
 
-      test(
-        'denying bluetoothAdvertise does not break the scan result '
-        '(one-way mesh, not a broken SDK)',
-        () async {
-          mockAndroidSdkInt(31);
-          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-              .setMockMethodCallHandler(permissionChannel, (call) async {
-                permissionCalls.add(call);
-                if (call.method == 'requestPermissions') {
-                  final codes = List<int>.from(call.arguments as List);
-                  return {
-                    for (final code in codes)
-                      // Every permission granted EXCEPT bluetoothAdvertise.
-                      code: code == bluetoothAdvertiseCode ? 0 : 1,
-                  };
-                }
-                return null;
-              });
-
-          final result = await permissionService
-              .requestAndroidPermissionsForTest();
-
-          expect(
-            result,
-            isTrue,
-            reason:
-                'the scan gate is bluetoothScan alone; a denied '
-                'bluetoothAdvertise must not report failure',
-          );
-        },
-      );
-
-      test('checkPermissions reads bluetoothAdvertise status on API 31+', () async {
+      test('denying bluetoothAdvertise does not break the scan result '
+          '(one-way mesh, not a broken SDK)', () async {
         mockAndroidSdkInt(31);
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(permissionChannel, (call) async {
+              permissionCalls.add(call);
+              if (call.method == 'requestPermissions') {
+                final codes = List<int>.from(call.arguments as List);
+                return {
+                  for (final code in codes)
+                    // Every permission granted EXCEPT bluetoothAdvertise.
+                    code: code == bluetoothAdvertiseCode ? 0 : 1,
+                };
+              }
+              return null;
+            });
 
         final result = await permissionService
-            .checkAndroidPermissionsForTest();
+            .requestAndroidPermissionsForTest();
 
-        expect(result, isTrue);
-        final checkedCodes = permissionCalls
-            .where((c) => c.method == 'checkPermissionStatus')
-            .map((c) => c.arguments as int);
-        expect(checkedCodes, contains(bluetoothAdvertiseCode));
-        expect(checkedCodes, contains(bluetoothScanCode));
+        expect(
+          result,
+          isTrue,
+          reason:
+              'the scan gate is bluetoothScan alone; a denied '
+              'bluetoothAdvertise must not report failure',
+        );
       });
+
+      test(
+        'checkPermissions reads bluetoothAdvertise status on API 31+',
+        () async {
+          mockAndroidSdkInt(31);
+
+          final result = await permissionService
+              .checkAndroidPermissionsForTest();
+
+          expect(result, isTrue);
+          final checkedCodes = permissionCalls
+              .where((c) => c.method == 'checkPermissionStatus')
+              .map((c) => c.arguments as int);
+          expect(checkedCodes, contains(bluetoothAdvertiseCode));
+          expect(checkedCodes, contains(bluetoothScanCode));
+        },
+      );
     });
   });
 }
