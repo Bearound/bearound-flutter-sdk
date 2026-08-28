@@ -63,6 +63,10 @@ class _BeaconHomePageState extends State<BeaconHomePage>
   bool _locationGranted = false;
   bool _bluetoothScanGranted = false;
   bool _notificationsGranted = false;
+
+  /// Background location (Android: ACCESS_BACKGROUND_LOCATION, iOS: "Sempre").
+  /// Reported only: it is not the scan gate, and the app never opens Settings.
+  bool _backgroundLocationGranted = false;
   BluetoothState _bluetoothState = BluetoothState.unknown;
 
   // ---- Scanning state ----
@@ -189,11 +193,17 @@ class _BeaconHomePageState extends State<BeaconHomePage>
         ? await Permission.bluetoothScan.status
         : location;
     final notif = await Permission.notification.status;
+    // Read-only probe: on Android 11+ this permission has no dialog, so asking
+    // for it could only mean opening Settings. The card states the cost instead.
+    final background = Platform.isAndroid
+        ? await Permission.locationAlways.status
+        : location;
     if (!mounted) return;
     setState(() {
       _locationGranted = location.isGranted;
       _bluetoothScanGranted = scan.isGranted;
       _notificationsGranted = notif.isGranted;
+      _backgroundLocationGranted = background.isGranted;
     });
   }
 
@@ -201,7 +211,11 @@ class _BeaconHomePageState extends State<BeaconHomePage>
   /// Localização (olho esquerdo) + Nearby devices (olho direito) + Notificações.
   /// No Android o requestPermissions() do plugin é no-op de propósito (runtime
   /// permissions são responsabilidade do app) — quem pede é o permission_handler.
-  Future<void> _requestAllPermissions() async {
+  /// [includeAlwaysUpgrade] (iOS) — also upgrade "Durante o uso" to "Sempre".
+  /// Off by default: only the labelled button turns it on, never the boot path.
+  Future<void> _requestAllPermissions({
+    bool includeAlwaysUpgrade = false,
+  }) async {
     if (Platform.isAndroid) {
       await [
         Permission.locationWhenInUse,
@@ -220,7 +234,7 @@ class _BeaconHomePageState extends State<BeaconHomePage>
     // deixa o app preso em "Durante o uso", porque o SDK só dispara o prompt
     // de Always quando o status ainda é notDetermined.
     await BearoundFlutterSdk.requestPermissions(); // notDetermined -> prompt Always
-    if (!await Permission.locationAlways.isGranted) {
+    if (includeAlwaysUpgrade && !await Permission.locationAlways.isGranted) {
       await Permission.locationAlways.request(); // upgrade "Mudar para Sempre"
     }
     await Permission.notification.request();
@@ -751,6 +765,36 @@ class _BeaconHomePageState extends State<BeaconHomePage>
               _notificationsGranted ? 'Concedida' : 'Negada',
               _notificationsGranted ? Colors.green : Colors.red,
             ),
+            // Reports state and cost. Never a shortcut into Settings — the
+            // example does not navigate the user there.
+            _permRow(
+              'Loc. background',
+              _backgroundLocationGranted ? 'Concedida' : 'Negada',
+              _backgroundLocationGranted ? Colors.green : Colors.orange,
+            ),
+            if (!_backgroundLocationGranted) ...[
+              const SizedBox(height: 4),
+              const Text(
+                'Wi-Fi só com o app na tela. O beacon continua sendo detectado '
+                'em background — as observações de Wi-Fi é que chegam vazias.',
+                style: TextStyle(color: Colors.grey, fontSize: 11),
+              ),
+              if (Platform.isIOS)
+                TextButton.icon(
+                  onPressed: () async {
+                    await _requestAllPermissions(includeAlwaysUpgrade: true);
+                    await _refreshPermissions();
+                  },
+                  icon: const Icon(Icons.my_location, size: 18),
+                  label: const Text('Pedir localização "Sempre" (iOS)'),
+                )
+              else
+                const Text(
+                  'Android: só nos Ajustes do sistema, em Localização → '
+                  'Permitir o tempo todo. O app não abre essa tela por você.',
+                  style: TextStyle(color: Colors.grey, fontSize: 11),
+                ),
+            ],
             const SizedBox(height: 8),
             Text(
               _canScan

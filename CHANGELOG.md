@@ -7,7 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [3.9.0]
 
+### Changed
+- **O app de exemplo não pede mais localização de background no boot.** O pedido agora
+  fica atrás de `includeAlwaysUpgrade`, ligado só pelo botão *Pedir localização "Sempre"
+  (iOS)*; o card de permissões mostra o estado e o que se perde enquanto ela está negada.
+  O SDK (`requestPermissions({includeBackgroundLocation = false})`) não mudou.
+
 ### Added
+- **Catraca `test/no_settings_hijack_test.dart`.** Falha se `lib/` ou `example/lib/`
+  usarem `openAppSettings(`/`AppSettings.`, ou pedirem `Permission.locationAlways`
+  sem um opt-in `include*` na condição imediatamente acima.
 - **`configure()` ganha três interruptores de coleta**: `collectAdvertisingId`,
   `collectLocation` e `collectWifi` — todos com default `true`, então uma integração que não
   os mencione se comporta exatamente como antes. Servem ao app que coleta o identificador de
