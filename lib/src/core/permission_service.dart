@@ -67,10 +67,8 @@ class PermissionService {
     }
   }
 
-  /// Extracted so tests can exercise the Android permission-request flow
-  /// directly. `Platform.isAndroid` reflects the *host* OS in a `flutter test`
-  /// run (there is no device), so it is always false there and the branch in
-  /// [requestPermissions] is otherwise unreachable off-device.
+  /// Test seam for the Android branch: `Platform.isAndroid` is false under
+  /// `flutter test`, so [requestPermissions] never reaches it off-device.
   @visibleForTesting
   Future<bool> requestAndroidPermissionsForTest({
     bool includeBackgroundLocation = false,
@@ -95,13 +93,9 @@ class PermissionService {
       final bluetoothScanStatus = await Permission.bluetoothScan.request();
       await Permission.bluetoothConnect.request();
 
-      // Encounter layer: BLUETOOTH_ADVERTISE lets other SDK devices see
-      // this one. It is in the SAME "Nearby devices" runtime group as
-      // BLUETOOTH_SCAN on Android 12+, so requesting it here does not
-      // pop a second system dialog. Denial degrades gracefully — it does
-      // NOT gate the scan (bluetoothScanStatus below is unaffected), it
-      // only makes this device invisible to peers: the mesh becomes
-      // one-way instead of failing outright.
+      // BLUETOOTH_ADVERTISE makes this device discoverable by peers. Same
+      // "Nearby devices" runtime group as BLUETOOTH_SCAN, so it adds no second
+      // dialog; denial costs only visibility and must not gate the scan.
       await Permission.bluetoothAdvertise.request();
 
       // Background location is NOT part of the scan gate — on 12+ the SDK
@@ -166,11 +160,8 @@ class PermissionService {
     // - <12: fine/coarse location granted.
     final sdkInt = await _androidSdkInt();
     if (sdkInt >= _androidS) {
-      // Read bluetoothAdvertise's status too so it is observable — but
-      // it does NOT gate the returned bool: the scan only depends on
-      // bluetoothScan, and a denied bluetoothAdvertise must not report
-      // the SDK as broken (see requestPermissions doc — it only makes
-      // this device invisible to peers, not blind).
+      // Read only so the status is observable; it must not gate the result —
+      // the scan depends on bluetoothScan alone.
       await Permission.bluetoothAdvertise.isGranted;
       return await Permission.bluetoothScan.isGranted;
     }

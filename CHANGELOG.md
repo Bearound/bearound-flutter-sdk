@@ -8,29 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [3.9.0]
 
 ### Changed
-- **O app de exemplo não escala mais a permissão de background sozinho no boot.** O
-  `_bootstrap()` do `example/lib/main.dart` chamava `Permission.locationAlways.request()`
-  logo depois de configurar o scan — uma escalada para background sem nenhum gesto do
-  usuário. Agora esse pedido vive atrás de `includeAlwaysUpgrade`, ligado só pelo botão
-  rotulado *Pedir localização "Sempre" (iOS)*.
-
-  No lugar da escalada, o card de permissões passou a mostrar **estado e custo**: uma linha
-  `Loc. background` e, quando negada, a frase que diz o que se perde — *"Wi-Fi só com o app
-  na tela. O beacon continua sendo detectado em background"*. No Android a mensagem aponta
-  onde a permissão vive (Ajustes → Localização → Permitir o tempo todo) e diz explicitamente
-  que **o app não abre essa tela por você**: de Android 11 em diante
-  `ACCESS_BACKGROUND_LOCATION` não tem diálogo, então "pedir" só é possível jogando o usuário
-  para fora do app.
-
-  O SDK (`requestPermissions({includeBackgroundLocation = false})`) já era assim e **não
-  mudou** — a API pública está intacta.
+- **O app de exemplo não pede mais localização de background no boot.** O pedido agora
+  fica atrás de `includeAlwaysUpgrade`, ligado só pelo botão *Pedir localização "Sempre"
+  (iOS)*; o card de permissões mostra o estado e o que se perde enquanto ela está negada.
+  O SDK (`requestPermissions({includeBackgroundLocation = false})`) não mudou.
 
 ### Added
-- **Catraca `test/no_settings_hijack_test.dart`.** Lê `lib/` e `example/lib/` como texto e
-  falha se aparecer `openAppSettings(`/`AppSettings.`, ou se `Permission.locationAlways
-  .request()` for chamado sem um opt-in `include*` na condição imediatamente acima. Existe
-  porque o SDK Android irmão já embarcou um exemplo que se jogava nos Ajustes assim que abria.
-### Added
+- **Catraca `test/no_settings_hijack_test.dart`.** Falha se `lib/` ou `example/lib/`
+  usarem `openAppSettings(`/`AppSettings.`, ou pedirem `Permission.locationAlways`
+  sem um opt-in `include*` na condição imediatamente acima.
 - **`configure()` ganha três interruptores de coleta**: `collectAdvertisingId`,
   `collectLocation` e `collectWifi` — todos com default `true`, então uma integração que não
   os mencione se comporta exatamente como antes. Servem ao app que coleta o identificador de

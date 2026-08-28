@@ -65,11 +65,7 @@ class _BeaconHomePageState extends State<BeaconHomePage>
   bool _notificationsGranted = false;
 
   /// Background location (Android: ACCESS_BACKGROUND_LOCATION, iOS: "Sempre").
-  /// It is NOT the scan gate — it is what keeps the Wi-Fi observations coming
-  /// once the app is backgrounded. Read-only here on purpose: from Android 11
-  /// on it cannot be granted by a dialog, only on the system Settings screen,
-  /// and neither the SDK nor an example may push the user there on its own.
-  /// So the row REPORTS the state and the cost; it never navigates.
+  /// Reported only: it is not the scan gate, and the app never opens Settings.
   bool _backgroundLocationGranted = false;
   BluetoothState _bluetoothState = BluetoothState.unknown;
 
@@ -197,10 +193,8 @@ class _BeaconHomePageState extends State<BeaconHomePage>
         ? await Permission.bluetoothScan.status
         : location;
     final notif = await Permission.notification.status;
-    // Read-only probe. Never `.request()`d from here: on Android 11+ the system
-    // shows no dialog for ACCESS_BACKGROUND_LOCATION, so "asking" would either
-    // resolve to a silent denial or force a jump to Settings. The example states
-    // the consequence instead (see _permissionsCard).
+    // Read-only probe: on Android 11+ this permission has no dialog, so asking
+    // for it could only mean opening Settings. The card states the cost instead.
     final background = Platform.isAndroid
         ? await Permission.locationAlways.status
         : location;
@@ -217,11 +211,8 @@ class _BeaconHomePageState extends State<BeaconHomePage>
   /// Localização (olho esquerdo) + Nearby devices (olho direito) + Notificações.
   /// No Android o requestPermissions() do plugin é no-op de propósito (runtime
   /// permissions são responsabilidade do app) — quem pede é o permission_handler.
-  /// [includeAlwaysUpgrade] (iOS) — also ask to upgrade an existing "Durante o
-  /// uso" grant to "Sempre". Off by default so the boot path never escalates on
-  /// its own; only the explicitly labelled button in [_permissionsCard] turns it
-  /// on. Android has no equivalent: ACCESS_BACKGROUND_LOCATION is a Settings-only
-  /// grant there, and this example does not open Settings for the user.
+  /// [includeAlwaysUpgrade] (iOS) — also upgrade "Durante o uso" to "Sempre".
+  /// Off by default: only the labelled button turns it on, never the boot path.
   Future<void> _requestAllPermissions({
     bool includeAlwaysUpgrade = false,
   }) async {
@@ -774,11 +765,8 @@ class _BeaconHomePageState extends State<BeaconHomePage>
               _notificationsGranted ? 'Concedida' : 'Negada',
               _notificationsGranted ? Colors.green : Colors.red,
             ),
-            // Background location: state + COST, never a shortcut into Settings.
-            // On Android 11+ this permission has no dialog at all, so an app that
-            // "asks" for it can only get there by throwing the user out to the
-            // system Settings screen. The example refuses to do that: it says what
-            // is lost while the permission is missing and lets the user decide.
+            // Reports state and cost. Never a shortcut into Settings — the
+            // example does not navigate the user there.
             _permRow(
               'Loc. background',
               _backgroundLocationGranted ? 'Concedida' : 'Negada',

@@ -10,9 +10,8 @@ void main() {
     'flutter.baseflow.com/permissions/methods',
   );
 
-  // permission_handler codes (permission_handler_platform_interface's
-  // `Permission._value`), used to read which permissions were actually
-  // requested/checked off the wire.
+  // `Permission._value` codes from permission_handler_platform_interface, used
+  // to read which permissions went over the wire.
   const int bluetoothScanCode = 28;
   const int bluetoothAdvertiseCode = 29;
 
