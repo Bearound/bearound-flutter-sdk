@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.9.1]
+
+### Fixed
+- **Fixa os SDKs nativos 3.9.1** (CocoaPods e JitPack), que corrigem a malha de encontros.
+  A janela de encontros não era reiniciada após o envio, então cada payload repetia as
+  leituras anteriores e o timestamp inicial nunca avançava. Junto vão o reingresso na malha
+  quando o processo é revivido em background (iOS e Android) e a volta do anúncio de
+  pseudo-beacon no Android.
+
+  Nenhuma API do plugin mudou.
+
 ## [3.9.0]
 
 ### Changed
