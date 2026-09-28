@@ -274,7 +274,8 @@ void main() {
 
     test('trackNotificationOpened forwards the message data untouched', () async {
       final data = <String, dynamic>{
-        'bearound': '{"t":"cold_campaign","sid":"s1","d":"ctx","tr":"https://track.bearound.io"}',
+        'bearound':
+            '{"t":"cold_campaign","sid":"s1","d":"ctx","tr":"https://track.bearound.io"}',
         'campaign_id': 'c1',
       };
 
