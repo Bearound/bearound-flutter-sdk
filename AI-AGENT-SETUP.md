@@ -45,14 +45,17 @@ main.dart hardcodes a demo businessToken. Do NOT copy those.
    NSLocationWhenInUseUsageDescription, NSLocationAlwaysAndWhenInUseUsageDescription,
    and NSUserTrackingUsageDescription) — user-facing rationale, no jargon. Then run
    `plutil -lint ios/Runner/Info.plist`.
-   NSUserTrackingUsageDescription is REQUIRED for the advertising identifier: without the
-   key iOS never shows the App Tracking Transparency prompt, the SDK reports no IDFA, and
-   nothing errors — it just silently never appears.
+   NSUserTrackingUsageDescription is REQUIRED for the advertising identifier, but the key
+   alone shows nothing: the SDK NEVER raises the App Tracking Transparency prompt by itself.
+   ASK ME where in the app flow the prompt belongs, then call
+   BearoundFlutterSdk.requestTrackingAuthorization() there, with the app in the foreground.
+   Without the key and that call, the SDK reports no IDFA and nothing errors.
    Data-collection switches — leave them OUT of configure(). The defaults collect
    everything (collectAdvertisingId, collectLocation and collectWifi are all true) and
    that is what you ship. Do NOT ask me what to collect and do NOT write these
    arguments. Only if I tell you, unprompted, to stop sending one of them, pass false
-   for that ONE switch: collectAdvertisingId: false also stops the ATT prompt on iOS;
+   for that ONE switch: collectAdvertisingId: false also makes requestTrackingAuthorization() skip the ATT
+   prompt on iOS;
    collectLocation: false drops the device's coordinates from the payload (beacon
    detection is UNAFFECTED on both platforms); collectWifi: false drops the access
    points.

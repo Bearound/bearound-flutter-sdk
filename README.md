@@ -683,7 +683,7 @@ read from the platform in the first place.
 
 | Switch | What disappears from the payload | Also |
 |--------|----------------------------------|------|
-| `collectAdvertisingId: false` | `device.permissions.advertisingId`, plus `trackingAuthorization` (iOS) / `limitAdTracking` (Android) | iOS never raises the App Tracking Transparency prompt — not on start, and `requestTrackingAuthorization()` just reports the current status. Android never queries Play Services for the id |
+| `collectAdvertisingId: false` | `device.permissions.advertisingId`, plus `trackingAuthorization` (iOS) / `limitAdTracking` (Android) | iOS: `requestTrackingAuthorization()` does not show the App Tracking Transparency prompt and just reports the current status. Android never queries Play Services for the id |
 | `collectLocation: false` | the top-level `location` block | `device.permissions.location` / `locationAccuracy` **stay** — they report the authorisation the user granted, not where they are |
 | `collectWifi: false` | the top-level `wifis` array, `device.network.apId`, `device.network.wifiSSID` | No Wi-Fi read is issued at all |
 
@@ -999,14 +999,14 @@ for non-Bearound pushes.
 
 | Method | Platform | Notes |
 |---|---|---|
-| `configure({businessToken, scanPrecision, maxQueuedPayloads, periodicReconciliationEnabled, periodicReconciliationInterval, periodicScanDuration, presenceHeartbeatInterval, requestTrackingOnStart})` | Android + iOS | Required before `startScanning()`. Defaults: `ScanPrecision.high`, `MaxQueuedPayloads.medium`, periodic reconciliation on / 20 min / 12s (best effort — see guard rails in Quick Start), presence heartbeat 5 min (see [Presence heartbeat](#presence-heartbeat)), `requestTrackingOnStart: true` (iOS only — shows the ATT prompt on start; Android ignores it). |
+| `configure({businessToken, scanPrecision, maxQueuedPayloads, periodicReconciliationEnabled, periodicReconciliationInterval, periodicScanDuration, presenceHeartbeatInterval, collectAdvertisingId, collectLocation, collectWifi})` | Android + iOS | Required before `startScanning()`. Defaults: `ScanPrecision.high`, `MaxQueuedPayloads.medium`, periodic reconciliation on / 20 min / 12s (best effort, see guard rails in Quick Start), presence heartbeat 5 min (see [Presence heartbeat](#presence-heartbeat)), data-collection switches all `true`. `requestTrackingOnStart` is deprecated and ignored: the SDK never shows the ATT prompt by itself. |
 | `startScanning({foregroundScanConfig})` | Android + iOS | `foregroundScanConfig` is Android-only (ignored on iOS). |
 | `stopScanning()` | Android + iOS | |
 | `isScanning()` | Android + iOS | |
 | `requestPermissions({includeBackgroundLocation = false})` | Android + iOS | iOS: native `requestAlwaysAuthorization()`. Android: requests `BLUETOOTH_SCAN`, `BLUETOOTH_CONNECT`, foreground location, notifications and (13+) `NEARBY_WIFI_DEVICES` via `permission_handler`. **`ACCESS_BACKGROUND_LOCATION` only when `includeBackgroundLocation: true`** — see [Background location](#background-location-android). Returns whether the *scan gate* was granted. |
 | `checkPermissions()` | Android + iOS | |
 | `requestLocationAuthorization({level})` | iOS | Unlocks the Location eye (terminated-app wake-up requires `always`). No-op on Android. |
-| `requestTrackingAuthorization()` | iOS | Shows the App Tracking Transparency prompt; once authorised the SDK reports the **IDFA**. Android has no prompt → resolves `'unavailable'`. See [Advertising identifier](#advertising-identifier-idfa--aaid). |
+| `requestTrackingAuthorization()` | iOS | Shows the App Tracking Transparency prompt (the SDK never shows it on its own; your app picks the moment); once authorised the SDK reports the **IDFA**. Android has no prompt → resolves `'unavailable'`. See [Advertising identifier](#advertising-identifier-idfa--aaid). |
 | `getTrackingAuthorizationStatus()` | iOS | Reads the ATT status **without** prompting. Android: `'unavailable'`. |
 | `isIgnoringBatteryOptimizations()` | Android | iOS always resolves `true` (no equivalent restriction). |
 | `openBatteryOptimizationSettings()` | Android | iOS: no-op, resolves `false`. |

@@ -247,9 +247,6 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
         // Empty-scan report: same deal — the native SDK owns the clamping.
         val presenceHeartbeatMs = (args?.get("presenceHeartbeatIntervalMs") as? Number)?.toLong()
           ?: PresenceHeartbeatDefaults.DEFAULT_INTERVAL_MILLIS
-        // `requestTrackingOnStart` arrives from Dart but has no meaning here: App
-        // Tracking Transparency is iOS-only. Read and dropped, so the argument map
-        // stays one shape across platforms.
         // Data-collection switches — default ON, so a host that never mentions them
         // (or an older Dart layer that does not send them) behaves exactly as before.
         val collectAdvertisingId = (args?.get("collectAdvertisingId") as? Boolean) ?: true
