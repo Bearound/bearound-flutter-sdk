@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- **O erro do SDK chegava ao app como uma frase e nada mais.** `errorStream` entregava só
+  `message`, texto localizado no idioma do device. Um app Flutter em campo (cutpro 1.1.42,
+  iPhone XR, iOS 18.7.2) registrou `"A operação não pôde ser concluída. (kCLErrorDomain erro
+  4.)"` como não-fatal, sem nada para classificar nem ação a tomar. O bridge iOS agora manda
+  também `domain` e `code`, e `BearoundError` expõe os dois. `message` continua igual: nunca
+  case nele.
+
+### Added
+- `BearoundError.domain` e `BearoundError.code`: nulos quando a plataforma não manda
+  (Android, que não tem o conceito).
+- `BearoundError.isLocationAlwaysRequired`: o único erro que é estado de permissão, não
+  falha. O iOS recusou armar o region monitoring porque o app não tem `Sempre`
+  (`kCLErrorDomain#4`, ou `BeAroundSDK#11` quando o SDK nativo passar a re-embrulhar). A
+  detecção continua pelo Bluetooth enquanto o app está vivo, mas **não há acorde** para app
+  em background ou encerrado. Trate como convite a pedir `Sempre` (ou a mandar o usuário para
+  os Ajustes), não como crash.
+
 ## [3.10.0] - 2026-09-28
 
 Fixa os SDKs nativos 3.10.0 (CocoaPods e JitPack). A 3.9.0 do plugin não chegou ao pub.dev;
