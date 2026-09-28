@@ -665,11 +665,23 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
     }
 
     public func didFailWithError(_ error: Error) {
-        let payload: [String: Any] = ["message": error.localizedDescription]
+        // `message` alone is a dead end for the host: a localized sentence, in the device's
+        // language, with no stable thing to switch on ("A operação não pôde ser concluída.
+        // (kCLErrorDomain erro 4.)" is what a Flutter app actually logged in the field).
+        // Ship the domain and the code alongside it so the host can classify.
+        let nsError = error as NSError
+        let payload: [String: Any] = [
+            "message": error.localizedDescription,
+            "domain": nsError.domain,
+            "code": nsError.code,
+        ]
         DispatchQueue.main.async { [weak self] in
             self?.errorStreamHandler.eventSink?(payload)
         }
-        PersistentLog.append(type: "Erro SDK", detail: error.localizedDescription)
+        PersistentLog.append(
+            type: "Erro SDK",
+            detail: "[\(nsError.domain)#\(nsError.code)] \(error.localizedDescription)"
+        )
     }
 
     public func didChangeScanning(isScanning: Bool) {

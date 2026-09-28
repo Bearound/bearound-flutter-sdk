@@ -7,7 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **O erro do SDK chegava ao app como uma frase e nada mais.** `errorStream` entregava só
+  `message`, texto localizado no idioma do device. Um app Flutter em campo (cutpro 1.1.42,
+  iPhone XR, iOS 18.7.2) registrou `"A operação não pôde ser concluída. (kCLErrorDomain erro
+  4.)"` como não-fatal, sem nada para classificar nem ação a tomar. O bridge iOS agora manda
+  também `domain` e `code`, e `BearoundError` expõe os dois. `message` continua igual: nunca
+  case nele.
+
 ### Added
+- `BearoundError.domain` e `BearoundError.code`: nulos quando a plataforma não manda
+  (Android, que não tem o conceito).
+- `BearoundError.isLocationAlwaysRequired`: o único erro que é estado de permissão, não
+  falha. O iOS recusou armar o region monitoring porque o app não tem `Sempre`
+  (`kCLErrorDomain#4`, ou `BeAroundSDK#11` quando o SDK nativo passar a re-embrulhar). A
+  detecção continua pelo Bluetooth enquanto o app está vivo, mas **não há acorde** para app
+  em background ou encerrado. Trate como convite a pedir `Sempre` (ou a mandar o usuário para
+  os Ajustes), não como crash.
 - **`BearoundFlutterSdk.getDetectionReadiness()`**: o que esta instalação consegue detectar,
   em um valor só ([DetectionReadiness]): `full`, `backgroundBle`, `foregroundOnly`, `blind`.
   Um valor em vez de cruzar `getAuthorizationStatus()` com precisão de localização,
