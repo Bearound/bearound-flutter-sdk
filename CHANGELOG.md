@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **Medição de recebimento e abertura de push** via SDKs nativos 3.11.0 (agora fixados nas
+  duas plataformas). O nativo reporta sozinho: no iOS o toque vem do delegate da central de
+  notificações e o recebimento do `handleRemoteMessage` do plugin; no Android os dois vêm do
+  `handleRemoteMessage` e do intent da activity aberta pelo toque. Novo
+  `BearoundFlutterSdk.trackNotificationOpened(data)` para apps que tratam o toque antes do SDK
+  (por exemplo `onMessageOpenedApp`); chamar a mais é inofensivo, cada push conta uma vez.
+
 ## [3.10.0] - 2026-09-28
 
 Fixa os SDKs nativos 3.10.0 (CocoaPods e JitPack). A 3.9.0 do plugin não chegou ao pub.dev;

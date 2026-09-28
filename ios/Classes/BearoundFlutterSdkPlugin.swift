@@ -360,8 +360,16 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
             let args = call.arguments as? [String: Any]
             let data = args?["data"] as? [String: Any] ?? [:]
             guard data["bearound"] != nil else { result(false); return }
+            // Reports receipt for measurable sends (sid, d, tr); a no-op otherwise.
+            BeAroundSDK.shared.trackNotificationReceived(userInfo: data)
             BeAroundSDK.shared.performBackgroundBLERefreshAndSync(trigger: "silent_push") { _ in }
             result(true)
+
+        case "trackNotificationOpened":
+            let args = call.arguments as? [String: Any]
+            let data = args?["data"] as? [String: Any] ?? [:]
+            BeAroundSDK.shared.trackNotificationOpened(userInfo: data)
+            result(nil)
 
         // MARK: - Diagnostic getters
         case "getSdkVersion":
