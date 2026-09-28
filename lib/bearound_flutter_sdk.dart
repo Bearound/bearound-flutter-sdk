@@ -218,8 +218,8 @@ class BearoundFlutterSdk {
   /// [collectAdvertisingId], [collectLocation] e [collectWifi] (**todos default
   /// `true`**) desligam cada um. Desligado significa **não coletar**, não
   /// "coletar e reter": o valor nunca é lido da plataforma. Com
-  /// `collectAdvertisingId: false` o iOS também nunca levanta o prompt de App
-  /// Tracking Transparency.
+  /// `collectAdvertisingId: false`, [requestTrackingAuthorization] não exibe o
+  /// prompt de App Tracking Transparency e só devolve o status atual.
   ///
   /// A detecção de beacon **não é afetada** por `collectLocation: false` — no
   /// iOS o region monitoring é o mecanismo de acordar, no Android a permissão
@@ -239,7 +239,11 @@ class BearoundFlutterSdk {
     Duration periodicReconciliationInterval = const Duration(minutes: 20),
     Duration periodicScanDuration = const Duration(seconds: 12),
     Duration presenceHeartbeatInterval = const Duration(minutes: 5),
-    bool requestTrackingOnStart = true,
+    @Deprecated(
+      'O SDK nunca exibe o prompt de ATT sozinho. Remova este parâmetro e '
+      'chame requestTrackingAuthorization() no momento escolhido pelo app.',
+    )
+    bool? requestTrackingOnStart,
     bool collectAdvertisingId = true,
     bool collectLocation = true,
     bool collectWifi = true,
@@ -250,10 +254,9 @@ class BearoundFlutterSdk {
     //   de "o app não estava rodando". Só o upload é limitado; o scan não muda.
     //   Faixa aceita pelo nativo: 1 min a 1 h (fora disso é ajustado com warning);
     //   `Duration.zero` desliga o relatório.
-    // requestTrackingOnStart: iOS-only. Deixa o SDK levantar o prompt de App
-    //   Tracking Transparency sozinho após o configure(). Passe `false` para
-    //   escolher o momento e chamar requestTrackingAuthorization() você mesmo.
-    //   Ignorado no Android (não existe ATT lá).
+    // requestTrackingOnStart: depreciado e ignorado. O SDK não exibe mais o
+    //   prompt de App Tracking Transparency sozinho: o app chama
+    //   requestTrackingAuthorization() quando quiser.
     if (businessToken.trim().isEmpty) {
       throw ArgumentError.value(
         businessToken,
@@ -272,7 +275,6 @@ class BearoundFlutterSdk {
           periodicReconciliationInterval.inMilliseconds,
       'periodicScanDurationMs': periodicScanDuration.inMilliseconds,
       'presenceHeartbeatIntervalMs': presenceHeartbeatInterval.inMilliseconds,
-      'requestTrackingOnStart': requestTrackingOnStart,
       'collectAdvertisingId': collectAdvertisingId,
       'collectLocation': collectLocation,
       'collectWifi': collectWifi,

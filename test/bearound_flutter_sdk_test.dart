@@ -45,7 +45,6 @@ void main() {
         periodicReconciliationInterval: const Duration(hours: 1),
         periodicScanDuration: const Duration(seconds: 8),
         presenceHeartbeatInterval: const Duration(minutes: 10),
-        requestTrackingOnStart: false,
         collectAdvertisingId: false,
         collectLocation: false,
         collectWifi: false,
@@ -64,7 +63,6 @@ void main() {
           'periodicReconciliationIntervalMs': 60 * 60 * 1000,
           'periodicScanDurationMs': 8000,
           'presenceHeartbeatIntervalMs': 10 * 60 * 1000,
-          'requestTrackingOnStart': false,
           'collectAdvertisingId': false,
           'collectLocation': false,
           'collectWifi': false,
@@ -80,7 +78,7 @@ void main() {
       // Default precision is HIGH (iOS-aligned) since 3.x.
       // Debug notifications default OFF; periodic reconciliation defaults
       // ON / 20 min / 12s (best effort — see configure docs). Empty-scan report
-      // every 5 min; ATT prompt raised by the SDK (iOS-only).
+      // every 5 min.
       expect(
         methodCalls.first.arguments,
         equals({
@@ -92,7 +90,6 @@ void main() {
           'periodicReconciliationIntervalMs': 20 * 60 * 1000,
           'periodicScanDurationMs': 12000,
           'presenceHeartbeatIntervalMs': 5 * 60 * 1000,
-          'requestTrackingOnStart': true,
           // The data-collection switches default ON: an integration that never
           // mentions them keeps sending exactly what it sends today.
           'collectAdvertisingId': true,
@@ -101,6 +98,26 @@ void main() {
         }),
       );
     });
+
+    test(
+      'deprecated requestTrackingOnStart never reaches the native side',
+      () async {
+        // The native SDKs no longer raise the ATT prompt on their own; the flag is
+        // accepted for source compatibility and dropped here.
+        await BearoundFlutterSdk.configure(
+          businessToken: 'test-token',
+          // ignore: deprecated_member_use_from_same_package
+          requestTrackingOnStart: true,
+        );
+
+        expect(
+          (methodCalls.single.arguments as Map).containsKey(
+            'requestTrackingOnStart',
+          ),
+          isFalse,
+        );
+      },
+    );
 
     test('each data-collection switch travels independently', () async {
       await BearoundFlutterSdk.configure(

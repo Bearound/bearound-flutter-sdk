@@ -213,7 +213,6 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
             // Empty-scan report: same wire convention (millis in, seconds out).
             let presenceHeartbeatMs = (args?["presenceHeartbeatIntervalMs"] as? NSNumber)?.doubleValue
                 ?? PresenceHeartbeatDefaults.interval * 1000
-            let requestTrackingOnStart = (args?["requestTrackingOnStart"] as? Bool) ?? true
             // Data-collection switches — default ON, so a host that never mentions them
             // (or an older Dart layer that does not send them) behaves exactly as before.
             let collectAdvertisingId = (args?["collectAdvertisingId"] as? Bool) ?? true
@@ -233,7 +232,6 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
                 periodicReconciliationEnabled: periodicEnabled,
                 periodicReconciliationInterval: periodicIntervalMs / 1000.0,
                 periodicScanDuration: periodicScanMs / 1000.0,
-                requestTrackingOnStart: requestTrackingOnStart,
                 presenceHeartbeatInterval: presenceHeartbeatMs / 1000.0,
                 collectAdvertisingId: collectAdvertisingId,
                 collectLocation: collectLocation,

@@ -5,15 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [3.10.0] - 2026-09-28
+
+Fixa os SDKs nativos 3.10.0 (CocoaPods e JitPack). A 3.9.0 do plugin não chegou ao pub.dev;
+o conteúdo dela (seção abaixo) sai nesta versão.
 
 ### Changed
-- **O plugin deixa de declarar a permissão `com.google.android.gms.permission.AD_ID`.**
-  Coletar o advertising ID no Android passa a ser decisão do app: ele inclui
-  `play-services-ads-identifier` (a 18.x já declara `AD_ID`) ou declara a permissão no
-  próprio manifest. O efeito completo depende do SDK Android nativo sem `AD_ID`
-  (bearound-android-sdk, próxima versão): enquanto o plugin fixar a 3.9.0, ela ainda injeta a
-  permissão.
+- **O rastreamento passa a ser 100% controlado pelo app.** No iOS, o SDK deixa de exibir
+  sozinho o prompt de App Tracking Transparency depois do `configure()`: o app chama
+  `BearoundFlutterSdk.requestTrackingAuthorization()` no momento que escolher. Sem essa
+  chamada (ou uma equivalente do próprio app), o aparelho fica em `notDetermined` e o payload
+  segue sem IDFA.
+- **O plugin e o SDK Android deixam de declarar a permissão
+  `com.google.android.gms.permission.AD_ID`.** Coletar o advertising ID no Android passa a
+  ser decisão do app: ele inclui `play-services-ads-identifier` (a 18.x já declara `AD_ID`) ou
+  declara a permissão no próprio manifest. Sem ela, a partir do `targetSdk` 33 o payload segue
+  sem AAID.
+
+### Deprecated
+- `configure(requestTrackingOnStart:)`: aceito para não quebrar a compilação, mas ignorado e
+  não enviado ao nativo.
+
+### Fixed
+- **Correções da malha de encontros nos SDKs nativos.** A janela de encontros não era
+  reiniciada após o envio, então cada payload repetia as leituras anteriores e o timestamp
+  inicial nunca avançava. Junto vão o reingresso na malha quando o processo é revivido em
+  background (iOS e Android) e a volta do anúncio de pseudo-beacon no Android.
+- A telemetria de erros do Dart reportava a versão `3.8.3`; agora reporta a versão do plugin.
 
 ## [3.9.0]
 
