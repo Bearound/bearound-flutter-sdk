@@ -24,6 +24,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   detecção continua pelo Bluetooth enquanto o app está vivo, mas **não há acorde** para app
   em background ou encerrado. Trate como convite a pedir `Sempre` (ou a mandar o usuário para
   os Ajustes), não como crash.
+- **Medição de recebimento e abertura de push** via SDKs nativos 3.11.0 (agora fixados nas
+  duas plataformas). O nativo reporta sozinho: no iOS o toque vem do delegate da central de
+  notificações e o recebimento do `handleRemoteMessage` do plugin; no Android os dois vêm do
+  `handleRemoteMessage` e do intent da activity aberta pelo toque. Novo
+  `BearoundFlutterSdk.trackNotificationOpened(data)` para apps que tratam o toque antes do SDK
+  (por exemplo `onMessageOpenedApp`); chamar a mais é inofensivo, cada push conta uma vez.
+  No Android, chame-o também com `getInitialMessage()`: no cold start o `configure()` do Dart
+  roda depois da activity aberta pelo toque.
 
 ## [3.10.0] - 2026-09-28
 

@@ -328,6 +328,26 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
         result.success(sdk.handleRemoteMessage(data))
       }
 
+      // Tap reported by the app (onMessageOpenedApp / getInitialMessage). The
+      // native SDK already detects taps from the launched activity's intent;
+      // this covers apps that consume the intent first. Reported once per push.
+      "trackNotificationOpened" -> {
+        @Suppress("UNCHECKED_CAST")
+        val raw = call.argument<Map<String, Any?>>("data") ?: emptyMap()
+        // FCM data is string-only, but a nested map (the marker as an object) is
+        // passed as JSON so the SDK can still parse it; nulls are dropped.
+        val data = raw.mapNotNull { (key, value) ->
+          when (value) {
+            null -> null
+            is String -> key to value
+            is Map<*, *> -> key to org.json.JSONObject(value).toString()
+            else -> key to value.toString()
+          }
+        }.toMap()
+        sdk.trackNotificationOpened(data)
+        result.success(null)
+      }
+
       // Android OS API level (Build.VERSION.SDK_INT) — lets the Dart permission
       // layer mirror the native scan gate (BLUETOOTH_SCAN on 12+, location on <12)
       // without pulling in device_info_plus.
