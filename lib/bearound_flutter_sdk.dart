@@ -14,6 +14,7 @@ import 'src/models/beacon.dart';
 import 'src/models/beacon_region_event.dart';
 import 'src/models/bearound_error.dart';
 import 'src/models/bluetooth_events.dart';
+import 'src/models/detection_readiness.dart';
 import 'src/models/foreground_scan_config.dart';
 import 'src/models/persisted_log_entry.dart';
 import 'src/models/scan_interval_configuration.dart';
@@ -29,6 +30,7 @@ export 'src/models/beacon_metadata.dart';
 export 'src/models/beacon_region_event.dart';
 export 'src/models/bearound_error.dart';
 export 'src/models/bluetooth_events.dart';
+export 'src/models/detection_readiness.dart';
 export 'src/models/foreground_scan_config.dart';
 export 'src/models/persisted_log_entry.dart';
 export 'src/models/rssi_stats.dart';
@@ -484,6 +486,28 @@ class BearoundFlutterSdk {
       'getAuthorizationStatus',
     );
     return AuthorizationStatus.fromString(result);
+  }
+
+  /// What this install can detect right now; see [DetectionReadiness].
+  ///
+  /// One value instead of crossing `getAuthorizationStatus()` with location
+  /// accuracy, Bluetooth permission and the Info.plist background modes. Use it to
+  /// decide what to show the user (ask for `Always`, send them to Settings, or
+  /// leave them alone).
+  ///
+  /// iOS signal: on Android, and on native SDKs without `detectionReadiness`, it
+  /// returns [DetectionReadiness.unknown] instead of throwing.
+  static Future<DetectionReadiness> getDetectionReadiness() async {
+    try {
+      final result = await _channel.invokeMethod<String>(
+        'getDetectionReadiness',
+      );
+      return DetectionReadiness.fromString(result);
+    } on MissingPluginException {
+      return DetectionReadiness.unknown;
+    } on PlatformException {
+      return DetectionReadiness.unknown;
+    }
   }
 
   /// Estado atual do adaptador Bluetooth. O olho Bluetooth funciona enquanto

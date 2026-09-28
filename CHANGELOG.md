@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **`BearoundFlutterSdk.getDetectionReadiness()`**: o que esta instalação consegue detectar,
+  em um valor só ([DetectionReadiness]): `full`, `backgroundBle`, `foregroundOnly`, `blind`.
+  Um valor em vez de cruzar `getAuthorizationStatus()` com precisão de localização,
+  permissão de Bluetooth e os background modes do Info.plist. `wakesWhenTerminated` e
+  `needsAppOpen` respondem direto as duas perguntas que o app costuma fazer. Sinal de iOS;
+  no Android retorna `DetectionReadiness.unknown` em vez de lançar.
+
+  Depende do SDK iOS com `detectionReadiness` (Bearound/bearound-ios-sdk#85): o pin do pod
+  sobe junto com a release nativa.
+
 ## [3.10.0] - 2026-09-28
 
 Fixa os SDKs nativos 3.10.0 (CocoaPods e JitPack). A 3.9.0 do plugin não chegou ao pub.dev;

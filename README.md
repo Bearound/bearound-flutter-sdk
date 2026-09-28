@@ -1003,6 +1003,7 @@ for non-Bearound pushes.
 | `startScanning({foregroundScanConfig})` | Android + iOS | `foregroundScanConfig` is Android-only (ignored on iOS). |
 | `stopScanning()` | Android + iOS | |
 | `isScanning()` | Android + iOS | |
+| `getDetectionReadiness()` | iOS | What the install can detect today: `full` (Always + full accuracy, wakes the app even after a force-quit), `backgroundBle` (no Location waker but `bluetooth-central`: background yes, force-quit no), `foregroundOnly`, `blind`. Android returns `unknown`. |
 | `requestPermissions({includeBackgroundLocation = false})` | Android + iOS | iOS: native `requestAlwaysAuthorization()`. Android: requests `BLUETOOTH_SCAN`, `BLUETOOTH_CONNECT`, foreground location, notifications and (13+) `NEARBY_WIFI_DEVICES` via `permission_handler`. **`ACCESS_BACKGROUND_LOCATION` only when `includeBackgroundLocation: true`** — see [Background location](#background-location-android). Returns whether the *scan gate* was granted. |
 | `checkPermissions()` | Android + iOS | |
 | `requestLocationAuthorization({level})` | iOS | Unlocks the Location eye (terminated-app wake-up requires `always`). No-op on Android. |
