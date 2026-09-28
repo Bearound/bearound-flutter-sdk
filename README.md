@@ -1,6 +1,6 @@
 # 🐻 Bearound Flutter SDK
 
-Official Flutter plugin for the Bearound native SDKs — Android **3.8.1** · iOS **3.8.1**.
+Official Flutter plugin for the Bearound native SDKs: Android **3.12.0** · iOS **3.12.0**.
 
 > [!TIP]
 > **⚡ Set it up with an AI agent.** Don't wire the iOS/Android background integration by hand — hand [one prompt](./AI-AGENT-SETUP.md) to your AI coding agent (Claude Code, Cursor, Copilot) and let it pilot the whole install, pausing only for the few human-only steps. → [Set up with an AI agent](#set-up-with-an-ai-agent)
@@ -19,6 +19,7 @@ Official Flutter plugin for the Bearound native SDKs — Android **3.8.1** · iO
 - **Native permission handling** - iOS uses `requestAlwaysAuthorization()` directly (no blue GPS indicator)
 - Business token authentication with automatic app ID detection
 - Automatic Bluetooth metadata collection and periodic scanning
+- Rich push notifications (image, two images, carousel, play), drawn by the native SDKs: see [Rich push](#rich-push-images-carousel-play)
 
 ## Installation
 
@@ -26,7 +27,7 @@ Add to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  bearound_flutter_sdk: ^3.9.0
+  bearound_flutter_sdk: ^3.12.0
 ```
 
 Run:
@@ -991,6 +992,156 @@ for non-Bearound pushes.
 > already forwards the silent push to the same background BLE refresh + sync path.
 > The Dart `handleRemoteMessage` is also bridged on iOS (same `bearound` guard) for
 > hosts that route pushes through Dart instead.
+
+## Rich push (images, carousel, play)
+
+From 3.12.0 a Bearound push can carry images in four formats: one image (`IMAGE`), two
+side-by-side cards (`TWO_IMAGES`), a paged carousel of 2 to 5 cards (`CAROUSEL`) and a cover
+with a play button that opens a video URL (`PLAY`). The **native SDKs draw them**: the
+plugin adds no Dart API and no rendering of its own. What your app has to do differs per
+platform.
+
+**On a tap**, a card with an `http(s)` link opens it (the click is measured per card), a
+card with a deep link (`yourapp://...`) opens it directly, and a card without a link opens
+your app like a regular notification. Opens keep being measured as before.
+
+### Android: forward the message, the SDK draws it
+
+A rich push reaches Android as a **data-only** FCM message (no `notification` block), so the
+OS shows nothing by itself: the notification appears only when the message reaches
+`handleRemoteMessage`, which builds and posts it. That is the same forwarding the
+[silent-push wake-up](#silent-push-wake-up-android) already asks for, plus the foreground
+case, which `firebase_messaging` delivers to `onMessage` instead of the background handler:
+
+```dart
+// Background and killed: the handler from "Silent-push wake-up" above.
+FirebaseMessaging.onBackgroundMessage(_firebaseBackgroundHandler);
+
+// Foreground: forward too, or a rich push received with the app open never shows.
+FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+  BearoundFlutterSdk.handleRemoteMessage(Map<String, String>.from(message.data));
+});
+```
+
+If your app has its own `FirebaseMessagingService` in Kotlin instead of `firebase_messaging`,
+forward from `onMessageReceived` the same way, with
+`BeAroundSDK.getInstance(this).handleRemoteMessage(message.data)`.
+
+- **Notification permission:** on Android 13+ the app must hold `POST_NOTIFICATIONS`, like
+  for any notification (`FirebaseMessaging.instance.requestPermission()` asks for it).
+- **Channel and icon:** the SDK uses your FCM default channel
+  (`com.google.firebase.messaging.default_notification_channel_id`) and default icon
+  (`com.google.firebase.messaging.default_notification_icon`) when the manifest declares
+  them; otherwise its own "Promotions" channel and the app icon. Declare a monochrome
+  default icon if you have not already.
+- If an image cannot be downloaded, the notification falls back to title and body.
+
+### iOS: add two extension targets
+
+iOS only draws images through **app extensions that your app ships**. The native SDK
+provides the two classes; you add two small targets to `ios/Runner.xcworkspace`.
+
+**Without these extensions nothing breaks:** the device still gets a standard notification
+(title and body). The image and the rich layouts appear once the extensions are in.
+
+#### 1. Create the targets
+
+In Xcode, open `ios/Runner.xcworkspace` and use **File > New > Target** twice:
+
+- **Notification Service Extension**, named e.g. `NotificationService`: downloads the image
+  and attaches it to the notification.
+- **Notification Content Extension**, named e.g. `NotificationContent`: draws the two-card,
+  carousel and play layouts when the user expands the notification.
+
+Set both targets to iOS 13.0 or later.
+
+#### 2. Add the pods per target
+
+Add two top-level blocks to `ios/Podfile`, next to the `Runner` one:
+
+```ruby
+target 'Runner' do
+  use_frameworks!
+  flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+  # ...
+end
+
+target 'NotificationService' do
+  use_frameworks! :linkage => :static
+  pod 'BearoundSDK/NotificationService'
+end
+
+target 'NotificationContent' do
+  use_frameworks! :linkage => :static
+  pod 'BearoundSDK/NotificationContent'
+end
+```
+
+Then run `cd ios && pod install`. Leave the version out of the two extension pods:
+CocoaPods resolves a single `BearoundSDK` version for the whole Podfile, the one this plugin
+pins. The extension subspecs do **not** include the core SDK (no Bluetooth, location or
+background modes inside an extension) and only use extension-safe APIs.
+
+> **`:linkage => :static` is required with Flutter.** The Flutter Podfile turns on
+> `use_frameworks!` for `Runner`, and all three `BearoundSDK` subspecs build a module named
+> `BearoundSDK`. As dynamic frameworks, the app would embed one `BearoundSDK.framework` for
+> itself and its extensions and one would overwrite the other. Static linkage puts the
+> extension code inside each extension binary instead.
+
+#### 3. Subclass the two classes
+
+`NotificationService/NotificationService.swift`, the whole file:
+
+```swift
+import BearoundSDK
+
+class NotificationService: BearoundNotificationService {}
+```
+
+`NotificationContent/NotificationViewController.swift`, the whole file:
+
+```swift
+import BearoundSDK
+
+class NotificationViewController: BearoundNotificationViewController {}
+```
+
+Delete the storyboard Xcode generated for the content extension (the view is drawn in
+code), and in its Info.plist replace `NSExtensionMainStoryboard` with
+`NSExtensionPrincipalClass` = `$(PRODUCT_MODULE_NAME).NotificationViewController`.
+
+#### 4. Declare the categories in the content extension's Info.plist
+
+```xml
+<key>NSExtension</key>
+<dict>
+    <key>NSExtensionAttributes</key>
+    <dict>
+        <key>UNNotificationExtensionCategory</key>
+        <array>
+            <string>BEAROUND_IMAGE</string>
+            <string>BEAROUND_TWO_IMAGES</string>
+            <string>BEAROUND_CAROUSEL</string>
+            <string>BEAROUND_PLAY</string>
+        </array>
+        <key>UNNotificationExtensionInitialContentSizeRatio</key>
+        <real>0.75</real>
+        <key>UNNotificationExtensionUserInteractionEnabled</key>
+        <true/>
+    </dict>
+    <key>NSExtensionPointIdentifier</key>
+    <string>com.apple.usernotifications.content-extension</string>
+    <key>NSExtensionPrincipalClass</key>
+    <string>$(PRODUCT_MODULE_NAME).NotificationViewController</string>
+</dict>
+```
+
+`UNNotificationExtensionUserInteractionEnabled` is what makes the cards tappable. No Dart
+code is involved on iOS: the push arrives through the `AppDelegate` wiring you already have.
+
+> **Build fails with "Cycle inside Runner"?** A known Flutter issue with app extensions. In
+> the `Runner` target's **Build Phases**, drag **Embed Foundation Extensions** above the
+> **Thin Binary** script phase.
 
 ## API Summary
 

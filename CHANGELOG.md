@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.13.0] - 2026-09-29
+
+Fixa os SDKs nativos 3.13.0 (CocoaPods e JitPack), que desenham o push rico.
+
 ### Added
 - **`BearoundFlutterSdk.getDetectionReadiness()`**: o que esta instalação consegue detectar,
   em um valor só ([DetectionReadiness]): `full`, `backgroundBle`, `foregroundOnly`, `blind`.
@@ -15,6 +19,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `needsAppOpen` respondem direto as duas perguntas que o app costuma fazer. Sinal de iOS
   (SDK nativo 3.12.0 ou superior); no Android retorna `DetectionReadiness.unknown` em vez de
   lançar.
+- **Push rico: imagem, duas imagens, carrossel e play.** Quem desenha são os SDKs nativos; o
+  plugin não ganha API Dart nem lógica de renderização. O que muda é a integração do app,
+  descrita na seção "Rich push (images, carousel, play)" do README:
+  - **Android:** nada novo além de encaminhar a mensagem ao SDK. O push rico chega como
+    mensagem FCM só de dados e o SDK monta a notificação dentro do `handleRemoteMessage`.
+    Encaminhe também em foreground (`FirebaseMessaging.onMessage`), não só no handler de
+    background: sem isso, um push rico recebido com o app aberto não aparece.
+  - **iOS:** dois targets de extensão no app (Notification Service e Notification Content),
+    com `pod 'BearoundSDK/NotificationService'` e `pod 'BearoundSDK/NotificationContent'` e
+    `use_frameworks! :linkage => :static` nos dois (o Podfile do Flutter usa
+    `use_frameworks!`; sem o `:static` os frameworks colidem). Cada extensão é uma subclasse
+    de uma linha (`BearoundNotificationService`, `BearoundNotificationViewController`) e o
+    Info.plist da Content Extension declara as categorias `BEAROUND_IMAGE`,
+    `BEAROUND_TWO_IMAGES`, `BEAROUND_CAROUSEL` e `BEAROUND_PLAY`. Sem as extensões o aparelho
+    continua recebendo a notificação padrão (título e texto).
+- **O registro do push token passa a informar a versão do SDK nativo** (nas duas
+  plataformas), para o backend saber quais aparelhos desenham push rico. Depois de atualizar
+  o SDK, o token é reenviado uma vez mesmo sem ter mudado.
 
 ## [3.12.0] - 2026-09-28
 
