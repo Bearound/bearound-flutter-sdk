@@ -157,6 +157,7 @@ class _BeaconHomePageState extends State<BeaconHomePage>
     super.didChangeAppLifecycleState(state);
     if (state == AppLifecycleState.resumed) {
       _refreshState();
+      _requestTrackingIfNeeded();
     }
   }
 
@@ -238,6 +239,18 @@ class _BeaconHomePageState extends State<BeaconHomePage>
       await Permission.locationAlways.request(); // upgrade "Mudar para Sempre"
     }
     await Permission.notification.request();
+    await _requestTrackingIfNeeded();
+  }
+
+  /// The SDK never raises the App Tracking Transparency prompt: the app owns it.
+  /// Asked after the other dialogs and again on every resume, because iOS
+  /// silently drops the request while another system dialog is on screen. Once
+  /// answered, the status is no longer notDetermined and nothing is shown.
+  Future<void> _requestTrackingIfNeeded() async {
+    if (!Platform.isIOS) return;
+    final status = await BearoundFlutterSdk.getTrackingAuthorizationStatus();
+    if (status != 'notDetermined') return;
+    await BearoundFlutterSdk.requestTrackingAuthorization();
   }
 
   Future<void> _bootstrap() async {
