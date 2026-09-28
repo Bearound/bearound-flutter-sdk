@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- **O plugin deixa de declarar a permissão `com.google.android.gms.permission.AD_ID`.**
+  Coletar o advertising ID no Android passa a ser decisão do app: ele inclui
+  `play-services-ads-identifier` (a 18.x já declara `AD_ID`) ou declara a permissão no
+  próprio manifest. O efeito completo depende do SDK Android nativo sem `AD_ID`
+  (bearound-android-sdk, próxima versão): enquanto o plugin fixar a 3.9.0, ela ainda injeta a
+  permissão.
+
 ## [3.9.0]
 
 ### Changed
