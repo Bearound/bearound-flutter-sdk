@@ -114,9 +114,6 @@ plugin's actual manifest — `android/src/main/AndroidManifest.xml`):
 <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
-<!-- Advertising ID -->
-<uses-permission android:name="com.google.android.gms.permission.AD_ID" />
-
 <!-- Hardware features -->
 <uses-feature android:name="android.hardware.bluetooth" android:required="true" />
 <uses-feature android:name="android.hardware.bluetooth_le" android:required="true" />
@@ -127,10 +124,10 @@ plugin's actual manifest — `android/src/main/AndroidManifest.xml`):
 Know these **before** submitting to Google Play — they are discovered at review
 time otherwise:
 
-- **`AD_ID`** — your Play Console **Data Safety form** must declare that the app
-  collects the Advertising ID. Apps in the **Families / Designed for Families**
-  program are **not allowed** to carry this permission at all — if that's your
-  case, talk to Bearound before integrating.
+- **`AD_ID` is not injected.** Collecting the Advertising ID is your app's call (see
+  [Advertising identifier](#advertising-identifier-idfa--aaid)). If you opt in, your Play
+  Console **Data Safety form** must declare it; apps in the **Families / Designed for
+  Families** program must not carry the permission at all.
 - **`uses-feature android.hardware.bluetooth_le required="true"`** — the Play
   Store **filters your app out of devices without BLE**. Usually desirable for a
   beacon product, but be aware your listing's device reach shrinks.
@@ -637,18 +634,23 @@ final status = await BearoundFlutterSdk.requestTrackingAuthorization();
 Without the key iOS shows **no dialog at all** and the status stays `notDetermined` forever.
 Answering is a one-time event per install, so it is safe to call on every launch.
 
-**Android — nothing to ask.** There is no prompt: the user's choice lives in system settings
-and the platform enforces it (opting out zeroes the id and the SDK reports none). To receive
-an id at all, your app needs Play Services on the classpath:
+**Android: you opt in from your app.** Neither the plugin nor the native SDK declares the
+`AD_ID` permission. To share the id, add Play Services to `android/app/build.gradle`:
 
 ```gradle
 implementation 'com.google.android.gms:play-services-ads-identifier:18.2.0'
 ```
 
+Version 18.x also declares `com.google.android.gms.permission.AD_ID` in its own manifest. If
+your app gets Play Services another way, declare the permission in
+`android/app/src/main/AndroidManifest.xml` instead. Without `AD_ID`, from `targetSdk` 33 the
+platform returns a zeroed id and the SDK reports none. There is no runtime prompt: the user's
+choice lives in system settings and the platform enforces it.
+
 > **Store obligations follow the feature, not the SDK:** prompting for tracking obliges you to
 > declare **Tracking** in your App Store privacy label; the `AD_ID` permission obliges you to
-> tick **"Device or other IDs"** in the Play Data Safety form. Apps for children must strip
-> `AD_ID` (Play Families policy).
+> tick **"Device or other IDs"** in the Play Data Safety form. Apps for children must not
+> carry `AD_ID` (Play Families policy).
 
 If your app collects the advertising identifier for its own purposes but you do not want it
 sent to Bearound, pass `collectAdvertisingId: false` — see

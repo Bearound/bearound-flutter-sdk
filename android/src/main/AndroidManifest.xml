@@ -45,8 +45,8 @@
     <!-- Boot completed (for scheduling on reboot) -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
-    <!-- Advertising ID -->
-    <uses-permission android:name="com.google.android.gms.permission.AD_ID" />
+    <!-- NO com.google.android.gms.permission.AD_ID: collecting the advertising id is the
+         host app's decision (see README, "Advertising identifier"). -->
 
     <!-- Features -->
     <uses-feature android:name="android.hardware.bluetooth" android:required="true" />
