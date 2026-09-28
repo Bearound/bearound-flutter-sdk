@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `handleRemoteMessage` e do intent da activity aberta pelo toque. Novo
   `BearoundFlutterSdk.trackNotificationOpened(data)` para apps que tratam o toque antes do SDK
   (por exemplo `onMessageOpenedApp`); chamar a mais é inofensivo, cada push conta uma vez.
+  No Android, chame-o também com `getInitialMessage()`: no cold start o `configure()` do Dart
+  roda depois da activity aberta pelo toque.
 
 ## [3.10.0] - 2026-09-28
 

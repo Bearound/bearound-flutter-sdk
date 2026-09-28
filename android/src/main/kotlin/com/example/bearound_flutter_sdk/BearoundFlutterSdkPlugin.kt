@@ -334,7 +334,17 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
       "trackNotificationOpened" -> {
         @Suppress("UNCHECKED_CAST")
         val raw = call.argument<Map<String, Any?>>("data") ?: emptyMap()
-        sdk.trackNotificationOpened(raw.mapValues { it.value?.toString() ?: "" })
+        // FCM data is string-only, but a nested map (the marker as an object) is
+        // passed as JSON so the SDK can still parse it; nulls are dropped.
+        val data = raw.mapNotNull { (key, value) ->
+          when (value) {
+            null -> null
+            is String -> key to value
+            is Map<*, *> -> key to org.json.JSONObject(value).toString()
+            else -> key to value.toString()
+          }
+        }.toMap()
+        sdk.trackNotificationOpened(data)
         result.success(null)
       }
 
