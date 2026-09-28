@@ -9,8 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **O erro do SDK chegava ao app como uma frase e nada mais.** `errorStream` entregava só
-  `message`, texto localizado no idioma do device. Um app Flutter em campo (cutpro 1.1.42,
-  iPhone XR, iOS 18.7.2) registrou `"A operação não pôde ser concluída. (kCLErrorDomain erro
+  `message`, texto localizado no idioma do device. Um app Flutter de cliente em campo
+  (iPhone XR, iOS 18.7.2) registrou `"A operação não pôde ser concluída. (kCLErrorDomain erro
   4.)"` como não-fatal, sem nada para classificar nem ação a tomar. O bridge iOS agora manda
   também `domain` e `code`, e `BearoundError` expõe os dois. `message` continua igual: nunca
   case nele.
