@@ -434,6 +434,18 @@ class BearoundFlutterSdk {
     return res ?? false;
   }
 
+  /// Reports that the user opened (tapped) a Bearound push, for apps that handle
+  /// the tap themselves (for example `FirebaseMessaging.onMessageOpenedApp` or
+  /// `getInitialMessage()`). Pass the message `data`. A push without a
+  /// measurable `bearound` marker is ignored.
+  ///
+  /// Usually not needed: the native SDK already detects taps on its own (iOS via
+  /// the notification-center delegate, Android via the launched activity's
+  /// intent). Calling it anyway is harmless, since each push is reported once.
+  static Future<void> trackNotificationOpened(Map<String, dynamic> data) async {
+    await _channel.invokeMethod('trackNotificationOpened', {'data': data});
+  }
+
   // ---------------------------------------------------------------------------
   // Diagnostic / state getters (parity with native public API)
   // ---------------------------------------------------------------------------

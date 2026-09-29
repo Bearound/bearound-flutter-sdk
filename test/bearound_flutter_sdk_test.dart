@@ -271,6 +271,20 @@ void main() {
       expect(methodCalls.first.method, equals('setPushToken'));
       expect(methodCalls.first.arguments, equals({'token': token}));
     });
+
+    test('trackNotificationOpened forwards the message data untouched', () async {
+      final data = <String, dynamic>{
+        'bearound':
+            '{"t":"cold_campaign","sid":"s1","d":"ctx","tr":"https://track.bearound.io"}',
+        'campaign_id': 'c1',
+      };
+
+      await BearoundFlutterSdk.trackNotificationOpened(data);
+
+      expect(methodCalls, hasLength(1));
+      expect(methodCalls.first.method, equals('trackNotificationOpened'));
+      expect(methodCalls.first.arguments, equals({'data': data}));
+    });
   });
 
   group('BearoundFlutterSdk Persisted Log (never-crash)', () {

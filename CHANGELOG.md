@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **`BearoundFlutterSdk.getDetectionReadiness()`**: o que esta instalação consegue detectar,
+  em um valor só ([DetectionReadiness]): `full`, `backgroundBle`, `foregroundOnly`, `blind`.
+  Um valor em vez de cruzar `getAuthorizationStatus()` com precisão de localização,
+  permissão de Bluetooth e os background modes do Info.plist. `wakesWhenTerminated` e
+  `needsAppOpen` respondem direto as duas perguntas que o app costuma fazer. Sinal de iOS
+  (SDK nativo 3.12.0 ou superior); no Android retorna `DetectionReadiness.unknown` em vez de
+  lançar.
+
+## [3.12.0] - 2026-09-28
+
+Fixa os SDKs nativos 3.12.0 (CocoaPods e JitPack). A 3.11.0 do bridge não foi publicada; o
+conteúdo dela sai nesta versão.
+
 ### Fixed
 - **O erro do SDK chegava ao app como uma frase e nada mais.** `errorStream` entregava só
   `message`, texto localizado no idioma do device. Um app Flutter de cliente em campo
@@ -16,23 +30,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   case nele.
 
 ### Added
+- **Detecção de visita por GPS** via SDKs nativos 3.12.0. O nativo passa a detectar paradas
+  também fora do alcance de beacon e envia dois eventos por parada (chegada e saída) com o
+  horário real do fix. Não há API nova no Dart: a detecção liga sozinha, o backend pode
+  desligá-la por conta, e ela para com `collectLocation: false`. Requisitos no aparelho:
+  - **iOS:** autorização `Sempre` e precisão total (o mesmo par que o despertador por região
+    já exige). Para visita o SDK usa no máximo 11 regiões (10 ambientes e a cerca de
+    atualização), além da região de beacon, e sempre deixa 5 das 20 do iOS livres para o
+    app; o prefixo `bearound.visit.` é reservado a ele.
+  - **Android:** com `ACCESS_BACKGROUND_LOCATION` declarada pelo app e concedida pelo
+    usuário, usa geofence nativa e detecta com o app fechado. Sem ela, só detecta com o app
+    aberto (o Android não entrega localização em background sem essa permissão). O SDK não
+    declara a permissão: a decisão, e a revisão da Play Store que vem com ela, é do app.
+  - **Android:** nova dependência transitiva `com.google.android.gms:play-services-location:21.3.0`.
+- **O retry mantém o contexto capturado** (nativos 3.12.0): lotes guardados offline carregam
+  a localização, o Wi-Fi e o gatilho do momento da captura, em vez de remontá-los na hora do
+  reenvio.
 - `BearoundError.domain` e `BearoundError.code`: nulos quando a plataforma não manda
   (Android, que não tem o conceito).
 - `BearoundError.isLocationAlwaysRequired`: o único erro que é estado de permissão, não
   falha. O iOS recusou armar o region monitoring porque o app não tem `Sempre`
-  (`kCLErrorDomain#4`, ou `BeAroundSDK#11` quando o SDK nativo passar a re-embrulhar). A
+  (`BeAroundSDK#11` a partir do nativo 3.12.0, `kCLErrorDomain#4` antes dele). A
   detecção continua pelo Bluetooth enquanto o app está vivo, mas **não há acorde** para app
   em background ou encerrado. Trate como convite a pedir `Sempre` (ou a mandar o usuário para
   os Ajustes), não como crash.
-- **`BearoundFlutterSdk.getDetectionReadiness()`**: o que esta instalação consegue detectar,
-  em um valor só ([DetectionReadiness]): `full`, `backgroundBle`, `foregroundOnly`, `blind`.
-  Um valor em vez de cruzar `getAuthorizationStatus()` com precisão de localização,
-  permissão de Bluetooth e os background modes do Info.plist. `wakesWhenTerminated` e
-  `needsAppOpen` respondem direto as duas perguntas que o app costuma fazer. Sinal de iOS;
-  no Android retorna `DetectionReadiness.unknown` em vez de lançar.
-
-  Depende do SDK iOS com `detectionReadiness` (Bearound/bearound-ios-sdk#85): o pin do pod
-  sobe junto com a release nativa.
+- **Medição de recebimento e abertura de push** via SDKs nativos 3.11.0 (incluídos na
+  3.12.0). O nativo reporta sozinho: no iOS o toque vem do delegate da central de
+  notificações e o recebimento do `handleRemoteMessage` do plugin; no Android os dois vêm do
+  `handleRemoteMessage` e do intent da activity aberta pelo toque. Novo
+  `BearoundFlutterSdk.trackNotificationOpened(data)` para apps que tratam o toque antes do SDK
+  (por exemplo `onMessageOpenedApp`); chamar a mais é inofensivo, cada push conta uma vez.
+  No Android, chame-o também com `getInitialMessage()`: no cold start o `configure()` do Dart
+  roda depois da activity aberta pelo toque.
 
 ## [3.10.0] - 2026-09-28
 
