@@ -56,15 +56,15 @@ void main() {
     expect(major(pubspecVersion), major(iosPin));
   });
 
-  test('pins are at least the native 3.12.0 that draws rich push', () {
-    bool atLeast3_12(String version) {
+  test('pins are at least the native 3.13.0 that draws rich push', () {
+    bool atLeast3_13(String version) {
       final parts = version.split('.').map(int.parse).toList();
-      return parts[0] > 3 || (parts[0] == 3 && parts[1] >= 12);
+      return parts[0] > 3 || (parts[0] == 3 && parts[1] >= 13);
     }
 
-    expect(atLeast3_12(iosPin), isTrue, reason: 'iOS pin: $iosPin');
+    expect(atLeast3_13(iosPin), isTrue, reason: 'iOS pin: $iosPin');
     expect(
-      atLeast3_12(androidCoordinate!.group(2)!),
+      atLeast3_13(androidCoordinate!.group(2)!),
       isTrue,
       reason: 'Android pin: ${androidCoordinate.group(2)}',
     );

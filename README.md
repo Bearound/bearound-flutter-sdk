@@ -1,6 +1,6 @@
 # 🐻 Bearound Flutter SDK
 
-Official Flutter plugin for the Bearound native SDKs: Android **3.12.0** · iOS **3.12.0**.
+Official Flutter plugin for the Bearound native SDKs: Android **3.13.0** · iOS **3.13.0**.
 
 > [!TIP]
 > **⚡ Set it up with an AI agent.** Don't wire the iOS/Android background integration by hand — hand [one prompt](./AI-AGENT-SETUP.md) to your AI coding agent (Claude Code, Cursor, Copilot) and let it pilot the whole install, pausing only for the few human-only steps. → [Set up with an AI agent](#set-up-with-an-ai-agent)
@@ -27,7 +27,7 @@ Add to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  bearound_flutter_sdk: ^3.12.0
+  bearound_flutter_sdk: ^3.13.0
 ```
 
 Run:
@@ -995,7 +995,7 @@ for non-Bearound pushes.
 
 ## Rich push (images, carousel, play)
 
-From 3.12.0 a Bearound push can carry images in four formats: one image (`IMAGE`), two
+From 3.13.0 a Bearound push can carry images in four formats: one image (`IMAGE`), two
 side-by-side cards (`TWO_IMAGES`), a paged carousel of 2 to 5 cards (`CAROUSEL`) and a cover
 with a play button that opens a video URL (`PLAY`). The **native SDKs draw them**: the
 plugin adds no Dart API and no rendering of its own. What your app has to do differs per
