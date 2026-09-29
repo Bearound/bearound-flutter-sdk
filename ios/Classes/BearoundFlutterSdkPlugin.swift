@@ -389,6 +389,8 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
         case "getBluetoothState":
             ensureBluetoothManager()
             result(btState)
+        case "getDetectionReadiness":
+            result(BeAroundSDK.shared.detectionReadiness.rawValue)
 
         // MARK: - Permissions
         case "requestPermissions":

@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **`BearoundFlutterSdk.getDetectionReadiness()`**: o que esta instalação consegue detectar,
+  em um valor só ([DetectionReadiness]): `full`, `backgroundBle`, `foregroundOnly`, `blind`.
+  Um valor em vez de cruzar `getAuthorizationStatus()` com precisão de localização,
+  permissão de Bluetooth e os background modes do Info.plist. `wakesWhenTerminated` e
+  `needsAppOpen` respondem direto as duas perguntas que o app costuma fazer. Sinal de iOS
+  (SDK nativo 3.12.0 ou superior); no Android retorna `DetectionReadiness.unknown` em vez de
+  lançar.
+
 ## [3.12.0] - 2026-09-28
 
 Fixa os SDKs nativos 3.12.0 (CocoaPods e JitPack). A 3.11.0 do bridge não foi publicada; o
