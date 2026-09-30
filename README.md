@@ -233,10 +233,9 @@ on), while Flutter's migrator — which re-injects the block whenever the substr
 `UIApplicationSceneManifest` disappears from the plist — still finds the substring and leaves
 the project alone. One rename, both systems satisfied.
 
-**Does it work?** Yes — validated on real devices, on the reference `example/` app and on a
-production fleet app (car.media): with the app suspended *and* with it terminated, a beacon
-region entry or a backend silent push wakes the process, the 10s BLE scan finds the beacons and
-the sync lands in the ingest backend seconds later. Foreground behavior, UI and the rest of the
+**Does it work?** Yes, validated on real devices with the reference `example/` app: with the
+app suspended *and* with it terminated, a beacon region entry or a silent push wakes the process,
+the 10s BLE scan finds the beacons and the sync is sent seconds later. Foreground behavior, UI and the rest of the
 Flutter app are untouched — the legacy cycle is simply the stable, documented path iOS has
 supported since day one.
 
@@ -577,7 +576,7 @@ and nothing in logcat: `wifis[]` simply arrives empty as soon as the app goes to
 `BLUETOOTH_SCAN` alone, with no location involved. Encounters, `location` and the presence
 heartbeat also keep working. The cost is confined to Wi-Fi observations while backgrounded.
 
-So: an app that needs the access-point map in background asks for it, behind its own
+So: an app that needs Wi-Fi observations in background asks for it, behind its own
 disclosure. An app that does not need it skips the permission — and the Play declaration that
 comes with it — at no cost to beacons.
 
