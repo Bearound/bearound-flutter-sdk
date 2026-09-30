@@ -19,9 +19,14 @@ Fixa os SDKs nativos 3.13.0 (CocoaPods e JitPack), que desenham o push rico.
   `needsAppOpen` respondem direto as duas perguntas que o app costuma fazer. Sinal de iOS
   (SDK nativo 3.12.0 ou superior); no Android retorna `DetectionReadiness.unknown` em vez de
   lançar.
-- **Push rico: imagem, duas imagens, carrossel e play.** Quem desenha são os SDKs nativos; o
+- **Push rico: imagem, duas imagens, carrossel e vídeo.** Quem desenha são os SDKs nativos; o
   plugin não ganha API Dart nem lógica de renderização. O que muda é a integração do app,
   descrita na seção "Rich push (images, carousel, play)" do README:
+  - **`PLAY` é um vídeo de verdade** (MP4 de até 15 MB e 30 s, com imagem de capa). No iOS a
+    Service Extension baixa o MP4 e anexa à notificação; ao expandir, o player do sistema
+    toca o vídeo. No Android a notificação expandida mostra quadros do próprio vídeo e o toque
+    abre o player em tela cheia do SDK; em rede tarifada ou com Economia de dados ligada, o
+    SDK mostra a capa e o vídeo toca no toque.
   - **Android:** nada novo além de encaminhar a mensagem ao SDK. O push rico chega como
     mensagem FCM só de dados e o SDK monta a notificação dentro do `handleRemoteMessage`.
     Encaminhe também em foreground (`FirebaseMessaging.onMessage`), não só no handler de
@@ -32,8 +37,10 @@ Fixa os SDKs nativos 3.13.0 (CocoaPods e JitPack), que desenham o push rico.
     `use_frameworks!`; sem o `:static` os frameworks colidem). Cada extensão é uma subclasse
     de uma linha (`BearoundNotificationService`, `BearoundNotificationViewController`) e o
     Info.plist da Content Extension declara as categorias `BEAROUND_IMAGE`,
-    `BEAROUND_TWO_IMAGES`, `BEAROUND_CAROUSEL` e `BEAROUND_PLAY`. Sem as extensões o aparelho
-    continua recebendo a notificação padrão (título e texto).
+    `BEAROUND_TWO_IMAGES` e `BEAROUND_CAROUSEL`. A Content Extension desenha só a imagem,
+    as duas imagens e o carrossel. **Não declare `BEAROUND_PLAY`:** a extensão que assume uma
+    categoria substitui a view do sistema, e no `PLAY` a view do sistema é o player de vídeo.
+    Sem as extensões o aparelho continua recebendo a notificação padrão (título e texto).
 - **O registro do push token passa a informar a versão do SDK nativo** (nas duas
   plataformas), para o backend saber quais aparelhos desenham push rico. Depois de atualizar
   o SDK, o token é reenviado uma vez mesmo sem ter mudado.

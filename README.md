@@ -19,7 +19,7 @@ Official Flutter plugin for the Bearound native SDKs: Android **3.13.0** · iOS 
 - **Native permission handling** - iOS uses `requestAlwaysAuthorization()` directly (no blue GPS indicator)
 - Business token authentication with automatic app ID detection
 - Automatic Bluetooth metadata collection and periodic scanning
-- Rich push notifications (image, two images, carousel, play), drawn by the native SDKs: see [Rich push](#rich-push-images-carousel-play)
+- Rich push notifications (image, two images, carousel, video), drawn by the native SDKs: see [Rich push](#rich-push-images-carousel-play)
 
 ## Installation
 
@@ -996,14 +996,27 @@ for non-Bearound pushes.
 ## Rich push (images, carousel, play)
 
 From 3.13.0 a Bearound push can carry images in four formats: one image (`IMAGE`), two
-side-by-side cards (`TWO_IMAGES`), a paged carousel of 2 to 5 cards (`CAROUSEL`) and a cover
-with a play button that opens a video URL (`PLAY`). The **native SDKs draw them**: the
-plugin adds no Dart API and no rendering of its own. What your app has to do differs per
-platform.
+side-by-side cards (`TWO_IMAGES`), a paged carousel of 2 to 5 cards (`CAROUSEL`) and a real
+video (`PLAY`, an MP4 up to 15 MB and 30 s, with a poster image). The **native SDKs draw
+them**: the plugin adds no Dart API and no rendering of its own. What your app has to do
+differs per platform.
+
+**`PLAY` is a real video on both platforms:**
+
+- **iOS:** the Notification Service Extension downloads the MP4 and attaches it, so expanding
+  the notification plays it in the system player. If the video fails or is over 15 MB, the
+  poster image is attached instead.
+- **Android:** a notification cannot host a video player, so the expanded notification shows
+  frames of the video itself, advancing on their own. A tap opens the SDK's own full-screen
+  player, which plays the video with sound (never a browser). On a metered network or with
+  Data Saver on, the SDK does not download the video up front: the notification shows the
+  poster and the video plays when the user taps it.
 
 **On a tap**, a card with an `http(s)` link opens it (the click is measured per card), a
 card with a deep link (`yourapp://...`) opens it directly, and a card without a link opens
-your app like a regular notification. Opens keep being measured as before.
+your app like a regular notification. A `PLAY` tap opens the SDK's player on Android and your
+app on iOS (the video already played in the expanded notification). Opens keep being
+measured as before.
 
 ### Android: forward the message, the SDK draws it
 
@@ -1049,9 +1062,11 @@ provides the two classes; you add two small targets to `ios/Runner.xcworkspace`.
 In Xcode, open `ios/Runner.xcworkspace` and use **File > New > Target** twice:
 
 - **Notification Service Extension**, named e.g. `NotificationService`: downloads the image
-  and attaches it to the notification.
-- **Notification Content Extension**, named e.g. `NotificationContent`: draws the two-card,
-  carousel and play layouts when the user expands the notification.
+  and attaches it to the notification. For `PLAY` it downloads the MP4 and attaches the
+  video, so expanding the notification plays it in the system player.
+- **Notification Content Extension**, named e.g. `NotificationContent`: draws the image,
+  two-card and carousel layouts when the user expands the notification. It does not handle
+  `PLAY`: the video relies only on the Service Extension attachment.
 
 Set both targets to iOS 13.0 or later.
 
@@ -1122,7 +1137,6 @@ code), and in its Info.plist replace `NSExtensionMainStoryboard` with
             <string>BEAROUND_IMAGE</string>
             <string>BEAROUND_TWO_IMAGES</string>
             <string>BEAROUND_CAROUSEL</string>
-            <string>BEAROUND_PLAY</string>
         </array>
         <key>UNNotificationExtensionInitialContentSizeRatio</key>
         <real>0.75</real>
@@ -1138,6 +1152,10 @@ code), and in its Info.plist replace `NSExtensionMainStoryboard` with
 
 `UNNotificationExtensionUserInteractionEnabled` is what makes the cards tappable. No Dart
 code is involved on iOS: the push arrives through the `AppDelegate` wiring you already have.
+
+**Do not add `BEAROUND_PLAY` here.** A content extension that claims a category replaces
+the system view of that notification, and for `PLAY` the system view is the video player.
+Left out, the notification shows the attached video with the native player controls.
 
 > **Build fails with "Cycle inside Runner"?** A known Flutter issue with app extensions. In
 > the `Runner` target's **Build Phases**, drag **Embed Foundation Extensions** above the
