@@ -1082,33 +1082,30 @@ target 'Runner' do
 end
 
 target 'NotificationService' do
-  use_frameworks! :linkage => :static
-  pod 'BearoundSDK/NotificationService'
+  pod 'BearoundSDKNotificationExtensions', '3.13.0'
 end
 
 target 'NotificationContent' do
-  use_frameworks! :linkage => :static
-  pod 'BearoundSDK/NotificationContent'
+  pod 'BearoundSDKNotificationExtensions', '3.13.0'
 end
 ```
 
-Then run `cd ios && pod install`. Leave the version out of the two extension pods:
-CocoaPods resolves a single `BearoundSDK` version for the whole Podfile, the one this plugin
-pins. The extension subspecs do **not** include the core SDK (no Bluetooth, location or
-background modes inside an extension) and only use extension-safe APIs.
+Then run `cd ios && pod install`. The extensions ship as a **separate pod**,
+`BearoundSDKNotificationExtensions`, with its own module, so it can never overwrite the app's
+`BearoundSDK.framework`. Pin it to the same version as the native SDK this package uses
+(`3.13.0`). It does **not** include the core SDK (no Bluetooth, location or background modes
+inside an extension) and only uses extension-safe APIs.
 
-> **`:linkage => :static` is required with Flutter.** The Flutter Podfile turns on
-> `use_frameworks!` for `Runner`, and all three `BearoundSDK` subspecs build a module named
-> `BearoundSDK`. As dynamic frameworks, the app would embed one `BearoundSDK.framework` for
-> itself and its extensions and one would overwrite the other. Static linkage puts the
-> extension code inside each extension binary instead.
+> Dynamic `use_frameworks!` and `use_frameworks! :linkage => :static` both work in the
+> extension targets. Import `BearoundSDKNotificationExtensions` (not `BearoundSDK`) in the two
+> extension files.
 
 #### 3. Subclass the two classes
 
 `NotificationService/NotificationService.swift`, the whole file:
 
 ```swift
-import BearoundSDK
+import BearoundSDKNotificationExtensions
 
 class NotificationService: BearoundNotificationService {}
 ```
@@ -1116,7 +1113,7 @@ class NotificationService: BearoundNotificationService {}
 `NotificationContent/NotificationViewController.swift`, the whole file:
 
 ```swift
-import BearoundSDK
+import BearoundSDKNotificationExtensions
 
 class NotificationViewController: BearoundNotificationViewController {}
 ```
