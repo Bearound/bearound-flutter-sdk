@@ -9,18 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [3.14.0] - 2026-09-30
 
-Fixa os SDKs nativos 3.14.0 (CocoaPods e JitPack), que detectam visita por Wi-Fi.
+Fixa os SDKs nativos 3.14.0 (CocoaPods e JitPack).
 
 ### Added
-- **Visita por Wi-Fi** (vem dos nativos, sem API nova no bridge). Quando a configuração de
-  lugares traz os pontos de acesso conhecidos de um lugar, o SDK nativo envia chegada e saída
-  ao reconhecê-los, com a mesma régua de dwell da visita por GPS. Android casa pelos pontos
-  visíveis na varredura; iOS só pelo ponto conectado, e precisa do entitlement
-  **Access WiFi Information** (`com.apple.developer.networking.wifi-info`) e de localização
-  Always no app. Nenhuma permissão nova. Liga e desliga pelos mesmos controles da detecção
-  de visita (`visit_detection_enabled` remoto, `collectWifi` e `collectLocation`).
-- GPS e Wi-Fi no mesmo lugar geram uma parada só (uma chegada, uma saída), e o evento de
-  uma parada aberta só por Wi-Fi vai sem localização.
+- **Visita por Wi-Fi** (vem dos nativos, sem API nova no bridge). Nos lugares configurados
+  para isso, o SDK nativo também detecta a visita pela rede Wi-Fi. No iOS exige o entitlement
+  **Access WiFi Information** (`com.apple.developer.networking.wifi-info`) e localização
+  Always no app. Nenhuma permissão nova. Desliga pelos mesmos controles da detecção de visita.
 
 ## [3.13.0] - 2026-09-29
 
