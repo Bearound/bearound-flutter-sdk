@@ -42,8 +42,8 @@ class PermissionService {
   ///
   /// The permission is not free to skip: from Android 10 on, a backgrounded app without it
   /// gets an empty Wi-Fi scan list and the placeholder BSSID 02:00:00:00:00:00 — no error,
-  /// nothing in logcat, `wifis[]` simply arrives empty (measured: 25 access points to zero
-  /// the instant the app backgrounded). Beacon detection is unaffected — on 12+ the scan
+  /// nothing in logcat, `wifis[]` simply arrives empty once the app is backgrounded.
+  /// Beacon detection is unaffected: on 12+ the scan
   /// runs on BLUETOOTH_SCAN alone. Pass true only after your own disclosure.
   Future<bool> requestPermissions({
     bool includeBackgroundLocation = false,

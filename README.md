@@ -485,8 +485,6 @@ Minimum iOS version: 13.0.
 ## Wi-Fi observations
 
 Alongside each beacon sighting the SDK reports the **access points visible at that moment**.
-An access point seen repeatedly next to a known beacon gets a position of its own, and from
-then on it can place a device even where no beacon reaches.
 
 **No network name is used as identity.** What travels is `apId` — a one-way hash of the
 access point's hardware address, canonicalised so the same router yields the same identifier
@@ -573,8 +571,7 @@ your app can decide when to ask.
 
 **What you lose by not asking.** From Android 10 on, a backgrounded app without this permission
 gets an empty Wi-Fi scan list and the placeholder BSSID `02:00:00:00:00:00`. There is no error
-and nothing in logcat — `wifis[]` simply arrives empty. Measured on-device: 25 access points
-dropped to zero the instant the app went to background, with every other permission granted.
+and nothing in logcat: `wifis[]` simply arrives empty as soon as the app goes to background.
 
 **What you do NOT lose.** Beacon detection is unaffected: on Android 12+ the scan runs on
 `BLUETOOTH_SCAN` alone, with no location involved. Encounters, `location` and the presence
@@ -614,8 +611,8 @@ it sent before — and so does one that turned both signals off in
 
 ## Advertising identifier (IDFA / AAID)
 
-The SDK can report the advertising identifier — what makes audiences built from beacon visits
-usable in ad platforms.
+The SDK can report the advertising identifier, the resettable, user-controlled identifier used
+for advertising.
 
 **iOS — you must ask.** Add to `ios/Runner/Info.plist`:
 
@@ -710,7 +707,7 @@ The SDK ships **two background-scan strategies**, and **you pick per app** — r
 
 | | 🪶 Opportunistic *(default)* | 🛡️ Foreground service |
 |---|---|---|
-| **Best for** | casual presence, battery-first apps | real-time footfall, mission-critical presence |
+| **Best for** | casual presence, battery-first apps | real-time, mission-critical presence |
 | **You gain** | zero setup · **no Play video** · lowest battery | reliable detection that **survives app-kill & aggressive OEMs** |
 | **You accept** | unpredictable latency · misses in deep background | persistent notification + Play demo video |
 
@@ -739,7 +736,7 @@ To fully drop the Play video, also remove the FGS permission the native SDK inje
 
 ### Mode 2 — Foreground service (`connectedDevice`)
 
-**What you gain:** continuous, low-latency detection that **survives app-kill and aggressive OEMs** (Xiaomi/Huawei/Samsung) — the reliable path for footfall/presence analytics.
+**What you gain:** continuous, low-latency detection that **survives app-kill and aggressive OEMs** (Xiaomi/Huawei/Samsung): the reliable path for continuous presence.
 
 ```dart
 // By default the notification shows the host app's own name (localized by the
