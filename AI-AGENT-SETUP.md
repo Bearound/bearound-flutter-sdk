@@ -63,8 +63,7 @@ main.dart hardcodes a demo businessToken. Do NOT copy those.
    .whenInUse stops revealing the access point once the app is backgrounded (returns nil,
    not an error) and on Android the equivalent gap is ACCESS_BACKGROUND_LOCATION, where a
    backgrounded app gets an empty scan list and the placeholder BSSID
-   02:00:00:00:00:00. Measured on a sibling SDK: 25 access points to zero the instant the
-   app was backgrounded, with every permission granted. On iOS requestPermissions() asks for
+   02:00:00:00:00:00, even with every other permission granted. On iOS requestPermissions() asks for
    .always itself. On ANDROID it deliberately does NOT ask for ACCESS_BACKGROUND_LOCATION:
    Google Play requires MY app to show a prominent disclosure first, so the call takes
    `includeBackgroundLocation: true` and only I decide when to pass it. If the Wi-Fi map in

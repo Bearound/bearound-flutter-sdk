@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.14.0] - 2026-09-30
+
+Fixa os SDKs nativos 3.14.0 (CocoaPods e JitPack).
+
+### Added
+- **Visita por Wi-Fi** (vem dos nativos, sem API nova no bridge). Nos lugares configurados
+  para isso, o SDK nativo também detecta a visita pela rede Wi-Fi. No iOS exige o entitlement
+  **Access WiFi Information** (`com.apple.developer.networking.wifi-info`) e localização
+  Always no app. Nenhuma permissão nova. Desliga pelos mesmos controles da detecção de visita.
+
 ## [3.13.0] - 2026-09-29
 
 Fixa os SDKs nativos 3.13.0 (CocoaPods e JitPack), que desenham o push rico.

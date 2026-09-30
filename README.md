@@ -1,6 +1,6 @@
 # 🐻 Bearound Flutter SDK
 
-Official Flutter plugin for the Bearound native SDKs: Android **3.13.0** · iOS **3.13.0**.
+Official Flutter plugin for the Bearound native SDKs: Android **3.14.0** · iOS **3.14.0**.
 
 > [!TIP]
 > **⚡ Set it up with an AI agent.** Don't wire the iOS/Android background integration by hand — hand [one prompt](./AI-AGENT-SETUP.md) to your AI coding agent (Claude Code, Cursor, Copilot) and let it pilot the whole install, pausing only for the few human-only steps. → [Set up with an AI agent](#set-up-with-an-ai-agent)
@@ -27,7 +27,7 @@ Add to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  bearound_flutter_sdk: ^3.13.0
+  bearound_flutter_sdk: ^3.14.0
 ```
 
 Run:
@@ -233,10 +233,9 @@ on), while Flutter's migrator — which re-injects the block whenever the substr
 `UIApplicationSceneManifest` disappears from the plist — still finds the substring and leaves
 the project alone. One rename, both systems satisfied.
 
-**Does it work?** Yes — validated on real devices, on the reference `example/` app and on a
-production fleet app (car.media): with the app suspended *and* with it terminated, a beacon
-region entry or a backend silent push wakes the process, the 10s BLE scan finds the beacons and
-the sync lands in the ingest backend seconds later. Foreground behavior, UI and the rest of the
+**Does it work?** Yes, validated on real devices with the reference `example/` app: with the
+app suspended *and* with it terminated, a beacon region entry or a silent push wakes the process,
+the 10s BLE scan finds the beacons and the sync is sent seconds later. Foreground behavior, UI and the rest of the
 Flutter app are untouched — the legacy cycle is simply the stable, documented path iOS has
 supported since day one.
 
@@ -485,8 +484,6 @@ Minimum iOS version: 13.0.
 ## Wi-Fi observations
 
 Alongside each beacon sighting the SDK reports the **access points visible at that moment**.
-An access point seen repeatedly next to a known beacon gets a position of its own, and from
-then on it can place a device even where no beacon reaches.
 
 **No network name is used as identity.** What travels is `apId` — a one-way hash of the
 access point's hardware address, canonicalised so the same router yields the same identifier
@@ -573,14 +570,13 @@ your app can decide when to ask.
 
 **What you lose by not asking.** From Android 10 on, a backgrounded app without this permission
 gets an empty Wi-Fi scan list and the placeholder BSSID `02:00:00:00:00:00`. There is no error
-and nothing in logcat — `wifis[]` simply arrives empty. Measured on-device: 25 access points
-dropped to zero the instant the app went to background, with every other permission granted.
+and nothing in logcat: `wifis[]` simply arrives empty as soon as the app goes to background.
 
 **What you do NOT lose.** Beacon detection is unaffected: on Android 12+ the scan runs on
 `BLUETOOTH_SCAN` alone, with no location involved. Encounters, `location` and the presence
 heartbeat also keep working. The cost is confined to Wi-Fi observations while backgrounded.
 
-So: an app that needs the access-point map in background asks for it, behind its own
+So: an app that needs Wi-Fi observations in background asks for it, behind its own
 disclosure. An app that does not need it skips the permission — and the Play declaration that
 comes with it — at no cost to beacons.
 
@@ -614,8 +610,8 @@ it sent before — and so does one that turned both signals off in
 
 ## Advertising identifier (IDFA / AAID)
 
-The SDK can report the advertising identifier — what makes audiences built from beacon visits
-usable in ad platforms.
+The SDK can report the advertising identifier, the resettable, user-controlled identifier used
+for advertising.
 
 **iOS — you must ask.** Add to `ios/Runner/Info.plist`:
 
@@ -710,7 +706,7 @@ The SDK ships **two background-scan strategies**, and **you pick per app** — r
 
 | | 🪶 Opportunistic *(default)* | 🛡️ Foreground service |
 |---|---|---|
-| **Best for** | casual presence, battery-first apps | real-time footfall, mission-critical presence |
+| **Best for** | casual presence, battery-first apps | real-time, mission-critical presence |
 | **You gain** | zero setup · **no Play video** · lowest battery | reliable detection that **survives app-kill & aggressive OEMs** |
 | **You accept** | unpredictable latency · misses in deep background | persistent notification + Play demo video |
 
@@ -739,7 +735,7 @@ To fully drop the Play video, also remove the FGS permission the native SDK inje
 
 ### Mode 2 — Foreground service (`connectedDevice`)
 
-**What you gain:** continuous, low-latency detection that **survives app-kill and aggressive OEMs** (Xiaomi/Huawei/Samsung) — the reliable path for footfall/presence analytics.
+**What you gain:** continuous, low-latency detection that **survives app-kill and aggressive OEMs** (Xiaomi/Huawei/Samsung): the reliable path for continuous presence.
 
 ```dart
 // By default the notification shows the host app's own name (localized by the
@@ -1082,18 +1078,18 @@ target 'Runner' do
 end
 
 target 'NotificationService' do
-  pod 'BearoundSDKNotificationExtensions', '3.13.0'
+  pod 'BearoundSDKNotificationExtensions', '3.14.0'
 end
 
 target 'NotificationContent' do
-  pod 'BearoundSDKNotificationExtensions', '3.13.0'
+  pod 'BearoundSDKNotificationExtensions', '3.14.0'
 end
 ```
 
 Then run `cd ios && pod install`. The extensions ship as a **separate pod**,
 `BearoundSDKNotificationExtensions`, with its own module, so it can never overwrite the app's
 `BearoundSDK.framework`. Pin it to the same version as the native SDK this package uses
-(`3.13.0`). It does **not** include the core SDK (no Bluetooth, location or background modes
+(`3.14.0`). It does **not** include the core SDK (no Bluetooth, location or background modes
 inside an extension) and only uses extension-safe APIs.
 
 > Dynamic `use_frameworks!` and `use_frameworks! :linkage => :static` both work in the
