@@ -434,6 +434,7 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
   // --- BeAroundSDKListener callbacks ---
 
   override fun onBeaconsUpdated(beacons: List<Beacon>) {
+    if (beaconsEventSink == null) return
     val payload = mapOf("beacons" to beacons.map { mapBeacon(it) })
     mainHandler.post { beaconsEventSink?.success(payload) }
   }
