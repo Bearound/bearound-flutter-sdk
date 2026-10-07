@@ -1,9 +1,11 @@
 pluginManagement {
     resolutionStrategy {
         eachPlugin {
-            when (requested.id.id) {
-                "com.android.library" -> useModule("com.android.tools.build:gradle:${requested.version}")
-                "org.jetbrains.kotlin.android" -> useModule("org.jetbrains.kotlin:kotlin-gradle-plugin:${requested.version}")
+            if (requested.version != null) {
+                when (requested.id.id) {
+                    "com.android.library", "com.android.application" -> useModule("com.android.tools.build:gradle:${requested.version}")
+                    "org.jetbrains.kotlin.android" -> useModule("org.jetbrains.kotlin:kotlin-gradle-plugin:${requested.version}")
+                }
             }
         }
     }
@@ -23,3 +25,5 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "beacon-bridge-benchmark"
+include(":physical-app")
+project(":physical-app").projectDir = file("e2e/physical-app")

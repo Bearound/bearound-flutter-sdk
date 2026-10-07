@@ -101,6 +101,52 @@ Runner físico ausente pode ser deferido com evidência de disponibilidade ADB; 
 
 ## Test strategy
 
+### Physical Android follow-up
+
+The reconnected Samsung enables F3-01. Add an isolated QA application under
+`tools/bridge-benchmark/e2e/physical-app`, depending on the existing harness library,
+so both real production classes and the fixed published native SDK run on ART in
+the same APK. Do not change Car Media, initialize scanning, request permissions or
+publish a package. Use the existing AGP, Kotlin and Flutter embedding dependencies.
+
+Keep fixed complete 1/6/50-beacon input, warm-up, bounded batches and ABBA ordering.
+Yield the main looper between batches. Install test sinks with Java reflection on
+the plugin's own fields; do not reflect into Android hidden APIs. Count input reads,
+ordered deliveries and public Handler queue presence independently. Record producer
+and consumer thread CPU separately, elapsed wall time and process allocation/GC
+counters when available. Process counters are not isolated thread allocation.
+
+Verify complete golden maps, null/empty shapes, asynchronous delivery, cancellation,
+resubscription and callbacks received while unobserved. A separate real Flutter
+codec round-trip check verifies all serialized fields and types. This covers the
+callback and codec on the device, not a Flutter engine, Dart consumer, BLE/location,
+network, frame performance or whole-app ANR certification. Preserve every measured
+round and source/APK hashes. The root executes all ADB operations and updates evidence.
+
+### Private compact-model probe
+
+The user's request also authorizes an isolated representation experiment after F3.
+Do not replace a published SDK or network contract. Store uuid/major/minor once per
+beacon, keep every other field in every observation, and retain ordered frame
+references. No averaging, numeric deltas or rounding. Reconstruct identical field
+types, nulls, omitted keys, observations and order, including changing metadata.
+
+Reuse the proven physical fixture golden maps and Flutter StandardMethodCodec.
+Run an additional intent mode on a worker thread in the isolated QA app. Compare
+baseline batch codec round-trip against pack + codec round-trip + unpack, counting
+all grouping/reconstruction CPU. Test 1/6/50 beacons across 1/10/100 frames, equal
+warm-up and ABBA rounds. Preserve all data and separately record encode/decode CPU,
+wall time, process allocation and encoded bytes. A single-frame overhead case is a
+required counterexample. Root owns this sequential follow-up. Report phone codec
+bytes separately from the existing host JSON counts and whole-app performance.
+
+The first identity-only model showed a byte reduction without a CPU improvement.
+Compare a second private representation: one field-name table per batch and positional
+observation/metadata/RSSI value lists. Preserve explicit RSSI-key presence, nulls and
+additional fields; retain version and ordered frame references. Its encoder must build
+rows directly from each input record, without first building the identity-only map.
+All row reconstruction and grouping CPU remains included in the measured paths.
+
 REQ-001 a REQ-004: `BeaconBridgeRegressionTest` usa ambos os plugins reais e looper pausado. Casos: sem sink com lista que denuncia leitura e sem mensagem pendente; listas vazias; 1/6/50 com metadata/stats; nulls e chave stats omitida; async antes/depois da drenagem; entrega ordenada de callbacks consecutivos; cancelamento antes da entrega; reassinatura antes de drenar; callbacks sem sink entre assinaturas e próximo callback entregue. A comparação com publicado cobre payload e lifecycle; assertiva zero leitura é exclusiva do candidato.
 
 Preparar harness/testes primeiro. Rodar contra source-set candidato ainda intocado e guardar RED real de REQ-001, confirmando que regressões assinadas passam. Adicionar guard e rodar GREEN, seguido da compilação Kotlin real. Não reescrever a expectativa para esconder a diferença. Baseline Dart informado pelo executor: 36 testes de API/modelo passaram; a alteração é somente Kotlin.

@@ -41,15 +41,29 @@
   - kind: required
 
 ### Wave 3
-- [ ] F3-01: Root optional Android stream E2E
+- [x] F3-01: Root optional Android stream E2E
   - req: REQ-001, REQ-002, REQ-003, REQ-005
   - layer: e2e
   - deps: F2-01
-  - writes: `tools/bridge-benchmark/e2e/physical-check.sh`, `docs/specs/flutter-unobserved-beacon-events/physical-validation.md`
+  - writes: `tools/bridge-benchmark/settings.gradle.kts`, `tools/bridge-benchmark/run.sh`, `tools/bridge-benchmark/build.gradle.kts`, `tools/bridge-benchmark/e2e/physical-check.sh`, `tools/bridge-benchmark/e2e/physical-app/`, `tools/bridge-benchmark/README.md`, `docs/specs/flutter-unobserved-beacon-events/physical-validation.md`
   - reuse: `tools/bridge-benchmark/README.md`, `docs/specs/flutter-unobserved-beacon-events/benchmark-report.md`
-  - design: "Test strategy", "Execution boundaries"
+  - design: "Test strategy", "Physical Android follow-up", "Execution boundaries"
   - contracts: `PhysicalValidation`
-  - tests: native Android stream E2E subscribed/unobserved/cancel/resubscribe; crash; documented hardware deferral
+  - tests: physical callback subscribed/unobserved/cancel/resubscribe; full golden payload and separate codec round-trip; matched ABBA workload; crash/exit records; whole-app limits
   - validate: `bash tools/bridge-benchmark/e2e/physical-check.sh --serial "$BRIDGE_DEVICE_SERIAL"`
   - cost: m
   - kind: optional
+
+### Wave 4
+- [x] F4-01: Root private lossless model probe on Android
+  - req: REQ-002, REQ-005
+  - layer: e2e
+  - deps: F3-01
+  - writes: `tools/bridge-benchmark/e2e/physical-app/src/main/kotlin/io/bearound/qa/bridge/PhysicalModelProbe.kt`, `tools/bridge-benchmark/e2e/physical-app/src/main/kotlin/io/bearound/qa/bridge/MainActivity.kt`, `docs/specs/flutter-unobserved-beacon-events/physical-validation.md`
+  - reuse: `tools/bridge-benchmark/e2e/physical-app/src/main/kotlin/io/bearound/qa/bridge/PhysicalFixtures.kt`
+  - design: "Private compact-model probe"
+  - contracts: `PrivateModelProbe`
+  - tests: complete typed round-trip and event order; changing metadata/nulls/omissions; single-frame overhead; equal ABBA workload and grouping/restore CPU
+  - validate: `bash tools/bridge-benchmark/run.sh physical-build`
+  - cost: m
+  - kind: required

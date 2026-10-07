@@ -20,20 +20,24 @@ args=(-p "$harness_dir" --offline --no-daemon --console=plain --max-workers=2 -P
 case "${1:-}" in
   regression)
     [[ $# -eq 1 ]] || exit 2
-    args+=(testDebugUnitTest --tests com.example.bearound_flutter_sdk.BeaconBridgeRegressionTest)
+    args+=(:testDebugUnitTest --tests com.example.bearound_flutter_sdk.BeaconBridgeRegressionTest)
     ;;
   benchmark)
     [[ $# -eq 2 && "$2" = /* ]] || {
       echo "Usage: bash tools/bridge-benchmark/run.sh benchmark /absolute/result.json" >&2; exit 2;
     }
-    args+=(testDebugUnitTest --tests com.example.bearound_flutter_sdk.BridgeBenchmarkTest "-PbridgeOutput=$2")
+    args+=(:testDebugUnitTest --tests com.example.bearound_flutter_sdk.BridgeBenchmarkTest "-PbridgeOutput=$2")
     ;;
   compile)
     [[ $# -eq 1 ]] || exit 2
-    args+=(compileDebugKotlin compileDebugUnitTestKotlin)
+    args+=(:compileDebugKotlin :compileDebugUnitTestKotlin)
+    ;;
+  physical-build)
+    [[ $# -eq 1 ]] || exit 2
+    args+=(:physical-app:assembleDebug)
     ;;
   *)
-    echo "Usage: bash tools/bridge-benchmark/run.sh regression|compile|benchmark /absolute/result.json" >&2
+    echo "Usage: bash tools/bridge-benchmark/run.sh regression|compile|physical-build|benchmark /absolute/result.json" >&2
     exit 2
     ;;
 esac

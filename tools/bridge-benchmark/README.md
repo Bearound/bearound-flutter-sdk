@@ -53,3 +53,92 @@ desktop APIs. No forced GC is used.
 Measured timing includes list counters, actual queue probes, metric snapshots, checksum and drain
 overhead on the measured thread. It excludes setup, IO, Flutter codec/engine, JNI,
 Dart and BLE. Host measurements cannot establish whole-app CPU, ANR or battery gains.
+
+
+## Physical Android follow-up
+
+Build the isolated debug app offline with the same Gradle launcher and pinned
+published native SDK used by the host harness:
+
+```bash
+bash tools/bridge-benchmark/run.sh physical-build
+```
+
+The APK is `tools/bridge-benchmark/e2e/physical-app/build/outputs/apk/debug/physical-app-debug.apk`.
+The application ID is `io.bearound.qa.bridge`. This plain Android activity does not
+attach a Flutter engine, initialize the SDK, start scanning, use a network API,
+or request runtime permissions. Dependency manifests may declare permissions.
+The dependency startup provider is removed from the QA app manifest.
+
+A device operator runs the bounded launcher with an explicit serial and absolute
+output directory. Use `--skip-build` only after a successful current build:
+
+```bash
+bash tools/bridge-benchmark/e2e/physical-check.sh --serial SERIAL --output /absolute/qa-directory
+```
+
+The launcher records the APK SHA256, aggregate device OS information, package
+exit information before and after the run, and crash records filtered to the QA
+package. It launches with a unique `run_id` and retrieves private `files/results.json`
+using `run-as`. The result is written only after success or a caught control error.
+A 240-second result watchdog and individual command timeouts bound the run. The
+launcher rejects mismatched source hashes, missing controls, incomplete ABBA
+rounds, and invalid list, event, queue, thread, or CPU accounting controls. The
+QA app remains installed after the run for inspection.
+
+The app first checks complete payload equality for 1, 6, and 50 beacons, empty and
+nullable payloads, asynchronous delivery, callback order, cancellation, live sink
+lookup after resubscription, and rejected list access without a sink. The fixed
+published source must demonstrate positive list access and queue presence without
+a sink. `Handler.hasMessages(0)` independently observes queue presence inside each
+producer batch. It does not count queued messages or infer a count from callbacks.
+
+Six scenarios use deterministic 1/6/50 beacon lists with and without a sink. Each
+variant and scenario receives 5,000 warmup callbacks. Three ABBA cycles produce
+72 retained raw rounds of 1,000 callbacks each. Batches contain 25 callbacks and
+yield the actual Android main looper so delivery runs before the next batch. Main
+thread producer CPU is accumulated using `Debug.threadCpuTimeNanos`; consumer CPU
+covers the instrumented bounded sink's delivery counting, payload checksum, and
+thread check. Their sum is reported separately from elapsed real time, which
+includes scheduling and yields. Probe costs are present in both variants.
+
+ART allocated bytes and GC counts are process-wide observations, so they can
+include UI work and other threads. Unsupported allocation counters produce null
+and an explicit reason. The runner never forces GC. All raw rounds are retained
+for paired analysis; no timing threshold is an acceptance criterion.
+
+Five separate functional `StandardMethodCodec` success-envelope roundtrips cover
+empty, nullable, and complete 1/6/50 payloads. Buffers are flipped before decoding;
+exact equality proves integer, long, double, null, metadata, and RSSI-statistic
+values survive serialization. Encoded bytes and one-shot CPU/wall probes are
+recorded separately. These probes are not a codec throughput benchmark.
+
+This is a synthetic actual Android bridge test. It does not establish Flutter
+engine or Dart delivery costs, radio behavior, or whole Car Media ANR freedom.
+The device operator must validate physical results; an APK build alone does not
+validate on-device behavior.
+
+### Private batch model probe
+
+The same QA APK has a separate worker-thread mode for representation experiments:
+
+```bash
+adb -s SERIAL shell am force-stop io.bearound.qa.bridge
+adb -s SERIAL shell am start -n io.bearound.qa.bridge/.MainActivity --es run_id MODEL_RUN --ez model_probe_only true --ez packed_rows true
+```
+
+Wait for private `files/model-results.json`, then retrieve it with
+`adb -s SERIAL shell run-as io.bearound.qa.bridge cat files/model-results.json`.
+Require matching `runId`, `status: success`, all six controls and 108 retained rounds.
+Use a new process and run ID for each repeat. `packed_rows false` selects model 1
+(identity plus observation maps); `true` selects model 2 (identity plus field tables
+and positional rows). Neither changes the production callback or public protocol.
+
+Both compare 1/6/50 beacons across 1/10/100 frames using equal warm-up and three ABBA
+cycles. Baseline is full input frames through StandardMethodCodec. Prototype CPU
+includes grouping, encoding, decoding and complete reconstruction. Every measured
+operation checks exact typed golden equality outside the CPU interval; wall time
+and process allocation include that check. Empty frames, duplicate occurrences,
+changing metadata, nulls and omitted RSSI fields have explicit controls. Encoded
+bytes are codec bytes, not JSON or network transfer sizes. Preserve all rounds and
+small-input counterexamples; this component probe does not measure the whole app.
