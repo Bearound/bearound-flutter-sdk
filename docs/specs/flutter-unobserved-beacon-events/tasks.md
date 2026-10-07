@@ -9,6 +9,8 @@
 | Android runtime | `android/build.gradle` | reuse versions/dependency; avoid editing |
 | Robolectric | `/Users/jotta/Documents/bearound/wt-android-sdk-idle-performance-20261006/sdk/src/test/java/io/bearound/sdk/BeaconManagerRadioRecoveryTest.kt` | adapt paused-looper fixture |
 | Published callback | Git commit `4f61d32d47b96cd16de0464c3f04f4aaea5d8a50` | generate renamed class; normalize comments |
+| Private rows model | `tools/bridge-benchmark/e2e/physical-app/src/main/kotlin/io/bearound/qa/bridge/PhysicalModelProbe.kt` | adapt schema3; reuse schema2 as direct baseline |
+| Private QA mode | `tools/bridge-benchmark/e2e/physical-app/src/main/kotlin/io/bearound/qa/bridge/MainActivity.kt` | adapt existing worker/atomic-result path |
 
 ### Tasks
 
@@ -64,6 +66,20 @@
   - design: "Private compact-model probe"
   - contracts: `PrivateModelProbe`
   - tests: complete typed round-trip and event order; changing metadata/nulls/omissions; single-frame overhead; equal ABBA workload and grouping/restore CPU
+  - validate: `bash tools/bridge-benchmark/run.sh physical-build`
+  - cost: m
+  - kind: required
+
+### Wave 5
+- [x] F5-01: Root private dictionary model paired on Android
+  - req: REQ-005, REQ-006
+  - layer: e2e
+  - deps: F4-01
+  - writes: `tools/bridge-benchmark/e2e/physical-app/src/main/kotlin/io/bearound/qa/bridge/PhysicalModelProbe.kt`, `tools/bridge-benchmark/e2e/physical-app/src/main/kotlin/io/bearound/qa/bridge/MainActivity.kt`, `tools/bridge-benchmark/README.md`, `docs/specs/flutter-unobserved-beacon-events/physical-validation.md`
+  - reuse: `tools/bridge-benchmark/e2e/physical-app/src/main/kotlin/io/bearound/qa/bridge/PhysicalModelProbe.kt`, `tools/bridge-benchmark/e2e/physical-app/src/main/kotlin/io/bearound/qa/bridge/MainActivity.kt`
+  - design: "Private dictionary-model probe"
+  - contracts: `PrivateDictionaryModel`
+  - tests: golden each op; null/omission/extras/collisions/duplicates/order; direct schema2/3; 11 cases, 132 ABBA rounds/process, two processes; all CPU/bytes/allocation
   - validate: `bash tools/bridge-benchmark/run.sh physical-build`
   - cost: m
   - kind: required

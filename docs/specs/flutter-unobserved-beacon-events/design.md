@@ -1,3 +1,5 @@
+Budget exceeded: preserving the completed design and complete schema3 contracts raises prose above the fast limit.
+
 # Design: eventos Android sem observador
 
 ## Component design
@@ -147,6 +149,48 @@ additional fields; retain version and ordered frame references. Its encoder must
 rows directly from each input record, without first building the identity-only map.
 All row reconstruction and grouping CPU remains included in the measured paths.
 
+### Private dictionary-model probe
+
+REQ-005 e REQ-006: estender somente o probe privado já executado por F4-01. Recomendação: schema3 com arrays e dicionários locais ao batch. Por quê: strings e blocos completos podem repetir entre observações sem permitir descartar observações. Alternativa considerada: referenciar estados anteriores ou aplicar deltas, descartada porque acrescenta dependência temporal e dificulta provar conservação integral. Nenhum canal, endpoint, status code ou contrato público muda; Car Media não é reconstruído nem substituído.
+
+#### Dictionary data contract
+
+O envelope versionado `schemaVersion=3` conserva as tabelas de campos já usadas pelo schema2, uma vez por batch. O conteúdo usa as keys privadas abaixo:
+
+| Elemento | Forma e reconstrução |
+|---|---|
+| `strings` | Array local ao batch com strings UUID, proximity e firmwareVersion; referências são índices Int não negativos. A mesma string pode ser compartilhada entre papéis; null permanece null. |
+| `metadata` | Array de rows completos `[firmwareVersionRef, batteryLevel, movements, temperature, txPower, rssiFromBLE, isConnectable, extraFields]`. Null metadata usa null na observação; não cria uma row incompleta. |
+| `rssiSamples` | Array de rows completos `[count, min, max, avg, stdDev, firstSeen, lastSeen, extraFields]`; todas as medidas e timestamps mantêm valores e tipos originais. |
+| `beacons` | Array de `[uuidRef, major, minor, observations]`; identidade completa é `(uuid, major, minor)`, com igualdade tipada. |
+| Observation rows | Array de `[rssi, proximityRef, accuracy, timestamp, metadataRef, txPower, alreadySynced, syncedAt, isStale, rssiRaw, rssiSamplesPresent, rssiSamplesRef, extraFields]`. Cada ocorrência ganha sua row, mesmo se inteiramente igual a outra. |
+| `frames` | Array de frames; cada frame é um array ordenado de `[beaconIndex, observationIndex]`. Frame vazio fica `[]`; referências duplicadas de identidade conservam ocorrências e posição. |
+| Extra fields | Mapas de campos adicionais de observação, metadata e stats permanecem integrais no slot próprio; valores null e tipos aninhados são conservados. |
+
+Construir rows diretamente do input, reutilizando as listas de campos de `PhysicalModelProbe.kt`. Dicionários usam a igualdade dos valores completos e tipados, incluindo extras; não usar `toString`, JSON serializado ou chave por concatenação. O índice de busca deve resolver colisões por igualdade, e suas chaves não podem apontar para dados mutáveis alterados depois da inserção. Mudança em qualquer campo, tipo ou extra cria uma entrada distinta. Não deduplicar observações, converter números, arredondar, gerar médias ou transformar timestamps em deltas.
+
+Restaurar o mapa original depois do codec, com mapas metadata/stats novos por observação para impedir aliases mutáveis entre resultados. `rssiSamplesPresent=false` omite a chave; `true` com referência null restaura a chave com valor null; `true` com índice restaura a row completa. Null metadata, txPower, rssiRaw e syncedAt permanecem null. Slots de firmware/proximity usam índices somente quando o valor é String, conservando null sem coerção. Formas de row, versão e limites de índices são validados antes do uso; referência inválida ou campo obrigatório ausente aborta o QA, sem descarte parcial.
+
+`PhysicalModelProbe(context, packedRows=false, dictionaryRows=false)` preserva os modos existentes. `MainActivity` aceita `--ez dictionary_rows true`, que implica `packed_rows=true`, no modo privado `model_probe_only`; usa o worker e a gravação atômica existentes.
+
+#### Direct paired protocol
+
+A é packing schema2 + StandardMethodCodec + reconstrução schema2; B é packing schema3 + o mesmo codec + reconstrução schema3. Executar ambos no mesmo worker thread e APK. O baseline não pode ser o batch original sem packing, nem resultado de uma execução histórica. Construir input fora da região CPU e usar os mesmos objetos golden e contagem de operações em A/B.
+
+Conservar os nove casos atuais de `frames`: tamanhos 1/6/50 e 1/10/100 frames, inclusive metadata variável, timestamps absolutos e ordem alternada. `fixtureProfile=changingMetadata` identifica esses casos. Acrescentar `repeatedBlocks` e `uniqueBlocks`, ambos 6 beacons por 100 frames. No primeiro, blocos completos de metadata/RSSI se repetem; no segundo, metadata já variável e stats com firstSeen/lastSeen/count variáveis tornam os blocos distintos por observação. Não exigir firmware artificialmente variável. O perfil distingue casos com tamanhos iguais. A/B recebem exatamente a mesma composição dentro de cada cenário; nenhum valor é simplificado para favorecer o dicionário.
+
+Usar `operations=maxOf(1,1000/(size*count))` e `warmup=maxOf(20,operations/10)`, como no probe atual. Aquecer A/B igualmente; executar três ciclos `[A,B,B,A]` por caso. Onze casos por doze rodadas geram 132 rodadas por processo; dois processos novos e independentes geram 264 rodadas. Não fazer GC forçado entre variantes. Root controla a instalação e os processos por ADB.
+
+`encodeCpuNs` inclui packing e encode de cada representação; `decodeCpuNs` inclui decode e reconstrução; `roundTripCpuNs` é a soma. Golden é comparado após a região CPU a cada operação, inclusive warm-up. Wall time e deltas de `art.gc.bytes-allocated`/GC incluem validação e atividade concorrente do processo; não representam alocação isolada nem RAM retida. Registrar métrica indisponível como null, nunca zero.
+
+#### Dictionary test and report contract
+
+REQ-006: antes das medições, exercitar ambos os modelos com frames vazios, identidade duplicada, ordem invertida, campos null, RSSI omitido e RSSI presente-null. Acrescentar extras em observação/metadata/stats, strings de hash colidente, identidades distintas que colidiriam numa concatenação ingênua e rows iguais nos campos conhecidos mas diferentes nos extras. Confirmar entradas distintas para metadata/stats/strings que mudam e reconstrução tipada integral em todos os controles. Igualdade de mapas verifica tipos/valores; listas verificam sequência e duplicatas. Falha de qualquer controle ou operação impede `status=success`.
+
+REQ-005: conservar `variant=baseline|prototype`, `operations`, `encodedBytes`, `encodeCpuNs`, `decodeCpuNs`, `roundTripCpuNs`, `wallNs`, `processAllocatedBytes`, `gcCount` e `goldenEqual` por rodada. Resultado identifica `modelSchemaVersion=3` e `baselineModelSchemaVersion=2`, além de `fixtureProfile`, tamanho, frames, observações, ciclo/ordem, warm-up, source/APK hashes, ambiente e controles. `originalPayloadEncodedBytes` é calculado por caso fora do timing, somente para reconciliar tamanho; não mede CPU contra o payload original. Preservar exemplos dos dois modelos e todas as rodadas. O validador exige exatamente dois processos, 132 rodadas em cada, pares com cargas iguais, ordem ABBA, versões corretas e golden verdadeiro.
+
+O relatório privado compara apenas pares novos schema2/schema3 e mostra bytes, CPU, alocação, dispersão e diferenças por processo/cenário. Repeated-blocks mede a oportunidade de compartilhamento; unique-blocks e entradas pequenas são contraprovas obrigatórias. Concluir separadamente sobre tamanho codificado e custo de CPU/alocação, sem pressupor melhora universal. Medições F4 são contexto histórico, não denominador. CPU aqui não cobre scanner, engine Flutter, Dart, rede, frames, bateria ou certificação de ANR. A validação física de F5 e seus limites são acrescentados a `physical-validation.md` pelo root.
+
 REQ-001 a REQ-004: `BeaconBridgeRegressionTest` usa ambos os plugins reais e looper pausado. Casos: sem sink com lista que denuncia leitura e sem mensagem pendente; listas vazias; 1/6/50 com metadata/stats; nulls e chave stats omitida; async antes/depois da drenagem; entrega ordenada de callbacks consecutivos; cancelamento antes da entrega; reassinatura antes de drenar; callbacks sem sink entre assinaturas e próximo callback entregue. A comparação com publicado cobre payload e lifecycle; assertiva zero leitura é exclusiva do candidato.
 
 Preparar harness/testes primeiro. Rodar contra source-set candidato ainda intocado e guardar RED real de REQ-001, confirmando que regressões assinadas passam. Adicionar guard e rodar GREEN, seguido da compilação Kotlin real. Não reescrever a expectativa para esconder a diferença. Baseline Dart informado pelo executor: 36 testes de API/modelo passaram; a alteração é somente Kotlin.
@@ -175,9 +219,15 @@ Método e caminhos dos JSONs entram ao final. Informar explicitamente que EventS
 | `docs/specs/flutter-unobserved-beacon-events/benchmark-report.md` | F2-01, executor principal: resultados e limites. |
 | `tools/bridge-benchmark/e2e/physical-check.sh` | F3-01 opcional, executor principal: procedimento/captura Android reproduzível. |
 | `docs/specs/flutter-unobserved-beacon-events/physical-validation.md` | F3-01 opcional, executor principal: execução ou deferimento documentado. |
+| `tools/bridge-benchmark/e2e/physical-app/src/main/kotlin/io/bearound/qa/bridge/PhysicalModelProbe.kt` | F5-01, root: rows/dicionários schema3, baseline schema2 direto, controles e 132 rodadas por processo. |
+| `tools/bridge-benchmark/e2e/physical-app/src/main/kotlin/io/bearound/qa/bridge/MainActivity.kt` | F5-01, root: selecionar novo modo privado por intent, mantendo os modos anteriores. |
+| `tools/bridge-benchmark/README.md` | F5-01, root: construção e operação reproduzível da comparação direta. |
+| `docs/specs/flutter-unobserved-beacon-events/physical-validation.md` | F5-01, root: nova evidência pareada e limites, preservando histórico F3/F4. |
 
 O source-set gerado fica em `tools/bridge-benchmark/build/generated/published`, fora do git. JSONs brutos e evidência de execução ficam em diretório QA escolhido explicitamente pelo executor; referência no relatório, fora dos fingerprints do engine. Nenhuma escrita em Android build.gradle, iOS, modelos nativos, versão ou state/ledger pela implementação F1-01.
 
 ## Execution boundaries
 
 Três waves sequenciais: um worker entrega guard/harness/regressões; executor consome o harness para benchmark/report; executor faz ou defere a verificação física opcional. F2-01 depende de F1-01 validado. F3-01 não segura o experimento controlado aberto quando hardware falta. Todas as REQs são obrigatoriamente provadas por F1-01/F2-01; hardware acrescenta cobertura.
+
+F1-01 a F4-01 já estão concluídas e conservam seus registros. A extensão acrescenta somente F5-01, obrigatório e sequencial após F4-01. Root possui os quatro arquivos git listados para F5 e toda operação de aparelho. Fora do git, root adapta o controller QA existente `physical_model_run.py` e cria `dictionary_model_report.py`; JSONs, APK e relatórios ficam no diretório QA existente. Esses artefatos não entram no write-set git nem são editados pelo planner. O novo experimento não autoriza integração em produção, migração, dependências, publicação ou alteração em Car Media.

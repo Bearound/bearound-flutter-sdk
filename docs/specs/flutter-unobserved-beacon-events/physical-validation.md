@@ -69,3 +69,59 @@ All QA processes stayed alive throughout their measured runs. No process-level A
 or crash exit was found in the retained QA exit captures. This remains a short
 synthetic component test, not whole-app ANR certification. Car Media was not rebuilt
 or replaced and no package was published.
+
+## Private dictionary follow-up
+
+F5-01 executed on the same Samsung. Schema 3 uses beacon/frame arrays, a batch-local
+string dictionary and complete metadata/RSSI row dictionaries. Every observation
+remains present. Schema 2 packing + codec + reconstruction is now the direct baseline,
+in the same APK and worker thread as schema 3. Historical full-payload CPU is not used
+as the denominator. Both processes passed 13 controls and retained all 132 ABBA rounds
+each. Complete typed golden equality is checked on every operation, including warm-up.
+
+| Fixture, 6 beacons x 100 frames | Schema 2 bytes | Schema 3 bytes | Byte reduction | Paired CPU change | Process allocation change |
+|---|---:|---:|---:|---:|---:|
+| Changing metadata, repeated RSSI | 97,252 | 62,195 | 36.0476% | -2.2732% pooled, inconclusive | -5.2763% |
+| Repeated metadata/RSSI blocks | 97,252 | 43,835 | 54.9264% | -12.8219% | -15.1992% |
+| Unique metadata/RSSI blocks | 97,252 | 96,755 | 0.5110% | +4.3916% | +5.4599% |
+
+In the original changing-metadata case, per-process CPU changes were -3.4677% and
++2.8303%, so the pooled -2.2732% is not a reliable universal CPU gain. Repeated-block
+CPU fell 9.7461% and 15.8977% in the two processes. Unique-block CPU rose 4.1923% and
+4.5908%. One beacon in one frame increased bytes 11.7733% and CPU 12.5074% versus
+schema 2. All 11 cases, dispersions and raw rounds are retained.
+
+Full original codec payload was measured separately outside timed loops: 272,943 B
+for the three 6 x 100 cases. This supports byte reconciliation only. Do not combine
+the earlier full-payload CPU reduction with current paired CPU ratios. Process
+allocation includes golden checks and other process activity, not retained RAM.
+
+Dictionary cardinalities independently explain the result: changing metadata has
+546 distinct metadata rows and 6 RSSI rows; repeated blocks have 6 of each; unique
+blocks have 546 of each. All retain 600 observations, including 54 with null metadata
+and omitted RSSI fields. Controls cover extras, null firmware, RSSI present-null,
+hash/identity collisions, duplicates/order, fresh nested maps and invalid references.
+Four isolated validator checks rejected missing controls, false golden equality,
+broken ABBA order and an incorrect baseline version without modifying raw evidence.
+
+The first dictionary revision also completed all 132 rounds. It saved identical
+bytes but increased changing-metadata CPU 7.7055% in its single process. Its exact
+APK/source and raw evidence remain in `dictionary-model-initial`. Moving the required
+field set outside each observation and constructing dictionary rows only for new
+entries removed avoidable allocations. Final ratios use the two processes of the
+new APK only, not a selectively trimmed timing sample of the initial revision.
+
+Recommendation: use arrays for complete observations and dictionaries for genuinely
+repeated identifiers/blocks. Why: byte savings are strong with repetition, while
+unique blocks and tiny inputs expose overhead. Alternative considered: always pool
+every changing block, rejected as a general performance recommendation because
+unique-block CPU increased. This is still private QA, not an SDK integration.
+
+Final QA APK SHA-256: `66729cd2d7d21abdedf0556bf4c978fd6fb49c561c85fdb649694e13f07822d5`.
+Evidence under `physical-samsung`: `dictionary-model-run-1`, `dictionary-model-run-2`,
+`dictionary-verified-summary.json`, `dictionary-model-report.html`, exact APK/source
+and `dictionary-exit-audit.json`. The complete generated model is
+`compact-data-model.dictionary.prototype.json` in the QA parent directory.
+No QA ANR/crash exit was found in these short captures. Car Media stayed at PID 17745,
+was not replaced, and the QA app was stopped afterward. Whole-app ANR, radio/engine,
+battery and production integration remain outside this component experiment.

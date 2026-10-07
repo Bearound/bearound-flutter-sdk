@@ -64,17 +64,28 @@ Preservado: WHEN publica resultados THEN o executor SHALL CONTINUE TO distinguir
 - [ ] Registrar CPU da thread, tempo, alocações suportadas, leituras e entregas independentes.
 - [ ] Relatório inclui hashes, dispersão e métricas indisponíveis; não extrapola para ANR ou bateria.
 
+### REQ-006: Dicionários privados e comparação direta
+
+Atual: WHEN usa schema2 THEN o probe repete strings/blocos nas observações.
+
+Esperado: WHEN mede schema3 THEN o probe SHALL reconstruir golden integral e comparar schema2 no mesmo APK.
+
+Preservado: WHEN executa QA privado THEN o sistema SHALL CONTINUE TO preservar SDK público, protocolo e Car Media.
+
+- [ ] Golden tipado por operação preserva números/timestamps absolutos, nulls, omissões RSSI, extras, colisões, duplicatas e ordem.
+- [ ] Onze casos, warm-up igual e três ABBA por processo retêm 264 rodadas em dois processos.
+- [ ] CPU inclui packing/codec/reconstrução de ambos; bytes/alocação não inferem RAM retida.
+
 ## Assumptions
 
 - Baseline é o tag Flutter `v3.14.0`, commit `4f61d32d47b96cd16de0464c3f04f4aaea5d8a50`; native permanece `v3.14.0` em ambos os lados.
 - O executor confirmou baseline Dart de 36 testes direcionados, todos verdes.
-- Samsung ausente do ADB permite deferimento documentado da tarefa física opcional; não bloqueia o experimento controlado.
-- O harness captura `EventSink` nativo; não mede codec Flutter, engine ou renderização Dart.
+- O deferimento por Samsung ausente era permitido em F3-01. F3/F4 já foram executadas no Samsung conectado; F5-01 é o follow-up privado obrigatório em dois processos.
+- O harness host captura `EventSink` nativo; não mede codec Flutter, engine ou renderização Dart. O probe privado físico mede StandardMethodCodec em ART, sem engine ou Dart.
 
 ## Open questions
 
-- Quais métricas de CPU/alocação o JVM disponível oferece? Detectar suporte e registrar indisponibilidade explicitamente.
-- O Samsung estará conectado para a verificação física opcional? O executor verifica disponibilidade e documenta deferimento se necessário.
+- Nenhuma decisão de produto aberta. O usuário delegou a arquitetura privada ao planner; F3/F4 resolveram disponibilidade do Samsung e medição em ART. Métricas indisponíveis continuam registradas explicitamente, conforme REQ-005.
 
 ## Unchanged behavior
 
@@ -84,3 +95,4 @@ Preservado: WHEN publica resultados THEN o executor SHALL CONTINUE TO distinguir
 - Detecção nativa, metadata, RSSI, sync e native SDK 3.14.0.
 - Gradle Android de produção, dependências de produção e versão do pacote.
 - iOS, armazenamento diagnóstico, payload de rede e publicação.
+- Car Media e o APK instalado pelo usuário; os modelos novos ficam somente no QA isolado.

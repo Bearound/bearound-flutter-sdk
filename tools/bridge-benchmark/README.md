@@ -142,3 +142,17 @@ and process allocation include that check. Empty frames, duplicate occurrences,
 changing metadata, nulls and omitted RSSI fields have explicit controls. Encoded
 bytes are codec bytes, not JSON or network transfer sizes. Preserve all rounds and
 small-input counterexamples; this component probe does not measure the whole app.
+
+Use `--ez dictionary_rows true` with `model_probe_only` to compare schema 2 rows
+directly against schema 3 arrays with batch-local dictionaries. This implies
+`packed_rows true`. Both sides include packing, codec and reconstruction in CPU.
+Schema 3 pools strings and complete metadata/RSSI rows, preserving every observation
+and ordered frame reference. Reconstructed metadata/RSSI maps are fresh per observation.
+Null, omitted keys, extra fields and hash collisions have preservation controls.
+
+This mode retains 132 rounds: the nine existing cases plus repeated-block and
+unique-block 6 x 100 cases. Run two fresh processes, require 13 successful controls,
+`modelSchemaVersion: 3`, `baselineModelSchemaVersion: 2`, and matched ABBA counts.
+`caseContexts.originalPayloadEncodedBytes` is measured outside timed loops for byte
+reconciliation only. CPU is compared against schema 2 in the same run, not against
+historical full-payload CPU. Dictionaries may add overhead when blocks are distinct.

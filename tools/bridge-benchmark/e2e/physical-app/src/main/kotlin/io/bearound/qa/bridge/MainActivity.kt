@@ -24,7 +24,9 @@ class MainActivity : Activity() {
             Thread({
                 val report = try {
                     check(runId.matches(Regex("[A-Za-z0-9._-]{1,80}")) && runId != "missing")
-                    PhysicalModelProbe(this, intent.getBooleanExtra("packed_rows", false)).run(runId)
+                    val dictionaryRows = intent.getBooleanExtra("dictionary_rows", false)
+                    PhysicalModelProbe(this, intent.getBooleanExtra("packed_rows", false) || dictionaryRows,
+                        dictionaryRows).run(runId)
                 } catch (error: Exception) {
                     JSONObject().put("status", "error").put("runId", runId)
                         .put("error", "${error.javaClass.simpleName}: ${error.message}")
