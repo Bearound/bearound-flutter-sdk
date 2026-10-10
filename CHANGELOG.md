@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.15.0] - 2026-10-09
+
+Fixa os SDKs nativos 3.15.0 (CocoaPods e JitPack).
+
+### Added
+- Android: o payload do aparelho passa a levar, dentro de `network`, os códigos opcionais de
+  operadora do chip e da rede registrada (`simMccMnc`, `simOperatorName`, `networkMccMnc`).
+  Nenhuma permissão nova. No iOS nada muda: a Apple não expõe a operadora desde o iOS 16.
+
 ## [3.14.0] - 2026-09-30
 
 Fixa os SDKs nativos 3.14.0 (CocoaPods e JitPack).
