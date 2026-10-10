@@ -1,6 +1,6 @@
 # 🐻 Bearound Flutter SDK
 
-Official Flutter plugin for the Bearound native SDKs: Android **3.14.0** · iOS **3.14.0**.
+Official Flutter plugin for the Bearound native SDKs: Android **3.15.0** · iOS **3.15.0**.
 
 > [!TIP]
 > **⚡ Set it up with an AI agent.** Don't wire the iOS/Android background integration by hand — hand [one prompt](./AI-AGENT-SETUP.md) to your AI coding agent (Claude Code, Cursor, Copilot) and let it pilot the whole install, pausing only for the few human-only steps. → [Set up with an AI agent](#set-up-with-an-ai-agent)
@@ -27,7 +27,7 @@ Add to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  bearound_flutter_sdk: ^3.14.0
+  bearound_flutter_sdk: ^3.15.0
 ```
 
 Run:
@@ -1078,18 +1078,18 @@ target 'Runner' do
 end
 
 target 'NotificationService' do
-  pod 'BearoundSDKNotificationExtensions', '3.14.0'
+  pod 'BearoundSDKNotificationExtensions', '3.15.0'
 end
 
 target 'NotificationContent' do
-  pod 'BearoundSDKNotificationExtensions', '3.14.0'
+  pod 'BearoundSDKNotificationExtensions', '3.15.0'
 end
 ```
 
 Then run `cd ios && pod install`. The extensions ship as a **separate pod**,
 `BearoundSDKNotificationExtensions`, with its own module, so it can never overwrite the app's
 `BearoundSDK.framework`. Pin it to the same version as the native SDK this package uses
-(`3.14.0`). It does **not** include the core SDK (no Bluetooth, location or background modes
+(`3.15.0`). It does **not** include the core SDK (no Bluetooth, location or background modes
 inside an extension) and only uses extension-safe APIs.
 
 > Dynamic `use_frameworks!` and `use_frameworks! :linkage => :static` both work in the
