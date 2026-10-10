@@ -67,7 +67,62 @@ android {
     }
 }
 
+// Local native artifact (development only, opt-in). With BEAROUND_APP_PRESENCE_LOCAL=1 the
+// plugin compiles against a locally built native AAR (BEAROUND_NATIVE_AAR_PATH, absolute)
+// instead of the published JitPack tag, so the app presence API can be exercised before a
+// native release exists. Without the variable nothing below changes the published pin.
+// The AAR is compileOnly here because an AAR cannot embed a local AAR (bundleAar rejects
+// it); the host app adds the same file to its runtime (see example/android/app).
+// See scripts/app-presence-local-native.sh.
+def bearoundAarHasAppPresence(File aar) {
+    def zip = new java.util.zip.ZipFile(aar)
+    try {
+        def classesEntry = zip.getEntry("classes.jar")
+        if (classesEntry == null) return false
+        def jar = new java.util.zip.ZipInputStream(zip.getInputStream(classesEntry))
+        try {
+            def entry
+            while ((entry = jar.nextEntry) != null) {
+                if (entry.name == "io/bearound/sdk/models/AppPresenceConfiguration.class") return true
+            }
+            return false
+        } finally {
+            jar.close()
+        }
+    } finally {
+        zip.close()
+    }
+}
+
+def bearoundLocalNativeAar = null
+if (System.getenv("BEAROUND_APP_PRESENCE_LOCAL") == "1") {
+    def aarPath = System.getenv("BEAROUND_NATIVE_AAR_PATH")
+    def aarFile = aarPath ? new File(aarPath) : null
+    if (aarFile == null || !aarFile.isAbsolute() || !aarFile.isFile()) {
+        throw new GradleException("BEAROUND_APP_PRESENCE_LOCAL=1 requires BEAROUND_NATIVE_AAR_PATH to be an absolute path to an existing native AAR (got '${aarPath}').")
+    }
+    if (!bearoundAarHasAppPresence(aarFile)) {
+        throw new GradleException("Native AAR ${aarPath} does not contain the app presence API; build it from a native SDK that has it.")
+    }
+    bearoundLocalNativeAar = aarFile
+    logger.lifecycle("BeAround native: local AAR ${aarFile}")
+}
+
 dependencies {
+    if (bearoundLocalNativeAar != null) {
+        compileOnly files(bearoundLocalNativeAar)
+        testImplementation files(bearoundLocalNativeAar)
+        // A file dependency carries no POM: declare the native SDK runtime dependencies
+        // explicitly, with the versions from bearound-android-sdk/sdk/build.gradle.
+        implementation 'androidx.core:core-ktx:1.16.0'
+        implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
+        implementation 'androidx.lifecycle:lifecycle-process:2.9.1'
+        implementation 'androidx.security:security-crypto:1.1.0-alpha06'
+        implementation 'androidx.work:work-runtime-ktx:2.10.1'
+        implementation 'com.google.code.gson:gson:2.13.2'
+        implementation 'com.google.android.gms:play-services-location:21.3.0'
+        return
+    }
     // Published native Android SDK v3.6.2 — persisted detection log with app-state
     // tagging (getDetectionLogJson/clearDetectionLog, 1:1 with iOS), on top of the
     // 3.6.x line (telemetry handoff, ghost-beacon fixes, scan watchdog).
