@@ -18,6 +18,9 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
     private let bluetoothScanModeStreamHandler = EventStreamHandler()
     // Bluetooth adapter state (both platforms).
     private let bluetoothStateStreamHandler = EventStreamHandler()
+    // App presence snapshots: local only. A detached Dart side gets no queue here; the
+    // native SDK keeps only its last snapshot, replayed through getLastAppPresenceSnapshot.
+    private let appPresenceStreamHandler = EventStreamHandler()
 
     /// Tracks if Flutter explicitly started scanning.
     private var isActiveScan = false
@@ -162,6 +165,12 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
             binaryMessenger: registrar.messenger()
         )
         bluetoothStateChannel.setStreamHandler(instance.bluetoothStateStreamHandler)
+
+        let appPresenceChannel = FlutterEventChannel(
+            name: "bearound_flutter_sdk/app_presence",
+            binaryMessenger: registrar.messenger()
+        )
+        appPresenceChannel.setStreamHandler(instance.appPresenceStreamHandler)
 
         // Register as delegate
         BeAroundSDK.shared.delegate = instance
@@ -370,6 +379,42 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
             let data = args?["data"] as? [String: Any] ?? [:]
             BeAroundSDK.shared.trackNotificationOpened(userInfo: data)
             result(nil)
+
+        // MARK: - App presence (opt-in, local only)
+        // Always forwarded to the native SDK, which validates it: an invalid configuration
+        // disables only this feature, drops its snapshot and reaches didFailWithError. The
+        // bridge also rejects the Dart future with the same stable code.
+        case "configureAppPresence":
+            let configuration: AppPresenceConfiguration
+            do {
+                let data = try JSONSerialization.data(withJSONObject: call.arguments as? [String: Any] ?? [:])
+                configuration = try JSONDecoder().decode(AppPresenceConfiguration.self, from: data)
+            } catch {
+                // Malformed shape: same outcome as an invalid configuration, feature off.
+                BeAroundSDK.shared.configureAppPresence(AppPresenceConfiguration())
+                result(FlutterError(
+                    code: AppPresenceConfigurationError.code,
+                    message: "\(AppPresenceConfigurationError.code): malformed configuration",
+                    details: nil
+                ))
+                return
+            }
+            BeAroundSDK.shared.configureAppPresence(configuration)
+            do {
+                try configuration.validate()
+                result(nil)
+            } catch {
+                result(FlutterError(
+                    code: AppPresenceConfigurationError.code,
+                    message: (error as? AppPresenceConfigurationError)?.description
+                        ?? AppPresenceConfigurationError.code,
+                    details: nil
+                ))
+            }
+
+        case "getLastAppPresenceSnapshot":
+            // Cached snapshot (cached == true) or nil; never queries.
+            result(BeAroundSDK.shared.getLastAppPresenceSnapshot().flatMap { appPresencePayload($0) })
 
         // MARK: - Diagnostic getters
         case "getSdkVersion":
@@ -686,10 +731,24 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
         DispatchQueue.main.async { [weak self] in
             self?.errorStreamHandler.eventSink?(payload)
         }
+        // App presence errors may name targets: delivered to the host only, never logged.
+        let appPresenceCodes = [
+            BearoundErrorCode.appPresenceInvalidConfiguration.rawValue,
+            BearoundErrorCode.appPresenceStorageUnavailable.rawValue,
+        ]
+        if nsError.domain == "BeAroundSDK", appPresenceCodes.contains(nsError.code) { return }
         PersistentLog.append(
             type: "Erro SDK",
             detail: "[\(nsError.domain)#\(nsError.code)] \(error.localizedDescription)"
         )
+    }
+
+    public func didUpdateAppPresence(_ snapshot: AppPresenceSnapshot) {
+        // A serialization failure drops this delivery only, never the next ones.
+        guard let payload = appPresencePayload(snapshot) else { return }
+        DispatchQueue.main.async { [weak self] in
+            self?.appPresenceStreamHandler.eventSink?(payload)
+        }
     }
 
     public func didChangeScanning(isScanning: Bool) {
@@ -804,6 +863,15 @@ public class BearoundFlutterSdkPlugin: NSObject, FlutterPlugin, BeAroundSDKDeleg
     }
 
     // MARK: - Mapping Helpers
+
+    /// Uses the native JSON contract (explicit null for present/reason, ISO 8601 UTC
+    /// timestamps); NSNull reaches Dart as null.
+    private func appPresencePayload(_ snapshot: AppPresenceSnapshot) -> [String: Any]? {
+        guard let data = try? JSONEncoder().encode(snapshot),
+              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+        else { return nil }
+        return object
+    }
 
     private func mapProximity(_ proximity: BeaconProximity) -> String {
         switch proximity {
