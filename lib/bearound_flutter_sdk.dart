@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 
 import 'src/core/permission_service.dart';
 import 'src/models/active_scan_event.dart';
+import 'src/models/app_presence.dart';
 import 'src/telemetry/error_reporter.dart';
 import 'src/models/authorization_status.dart';
 import 'src/models/background_detection_event.dart';
@@ -22,6 +23,7 @@ import 'src/models/sync_lifecycle_event.dart';
 import 'src/models/user_properties.dart';
 
 export 'src/models/active_scan_event.dart';
+export 'src/models/app_presence.dart';
 export 'src/models/authorization_status.dart';
 export 'src/models/background_detection_event.dart';
 export 'src/models/beacon.dart';
@@ -82,6 +84,9 @@ class BearoundFlutterSdk {
   static const EventChannel _bluetoothStateChannel = EventChannel(
     'bearound_flutter_sdk/bluetooth_state',
   );
+  static const EventChannel _appPresenceChannel = EventChannel(
+    'bearound_flutter_sdk/app_presence',
+  );
 
   static Stream<List<Beacon>>? _beaconsStream;
   static Stream<bool>? _scanningStream;
@@ -101,6 +106,7 @@ class BearoundFlutterSdk {
   static Stream<BluetoothZoneEvent>? _bluetoothZoneStream;
   static Stream<BluetoothScanModeEvent>? _bluetoothScanModeStream;
   static Stream<BluetoothState>? _bluetoothStateStream;
+  static Stream<AppPresenceSnapshot>? _appPresenceLiveStream;
 
   // ---------------------------------------------------------------------------
   // Permissions
@@ -531,6 +537,123 @@ class BearoundFlutterSdk {
 
   // NOTE: push/notifications são app-level agora. O SDK nativo removeu a API
   // de notificações da biblioteca, então o bridge também não a expõe mais.
+
+  // ---------------------------------------------------------------------------
+  // App presence (opt-in, local only)
+  // ---------------------------------------------------------------------------
+
+  /// Configures the opt-in app presence check. Independent of [configure], which
+  /// never changes it. This call never queries: rounds start with [startScanning].
+  ///
+  /// The configuration is always forwarded to the native SDK, which validates it.
+  /// An invalid configuration disables **only** this feature and drops its cached
+  /// snapshot; the returned future then completes with an
+  /// [AppPresenceConfigurationException] (code `app_presence_invalid_configuration`)
+  /// and the native SDK also reports it on [errorStream]. `enabled: false` or an
+  /// empty target list deletes the cached snapshot but keeps the hourly cooldown.
+  static Future<void> configureAppPresence(
+    AppPresenceConfiguration configuration,
+  ) async {
+    try {
+      await _channel.invokeMethod<void>(
+        'configureAppPresence',
+        configuration.toJson(),
+      );
+    } on PlatformException catch (e) {
+      if (e.code == AppPresenceConfigurationException.errorCode) {
+        throw AppPresenceConfigurationException(e.message ?? e.code);
+      }
+      rethrow;
+    }
+  }
+
+  /// The last snapshot compatible with the current configuration and business
+  /// token, with `cached == true` and its original ids and times, or `null`.
+  /// Never runs a query.
+  static Future<AppPresenceSnapshot?> getLastAppPresenceSnapshot() async {
+    final raw = await _channel.invokeMethod<Object?>(
+      'getLastAppPresenceSnapshot',
+    );
+    return _decodeAppPresenceSnapshot(raw);
+  }
+
+  /// Complete snapshots of every app presence round, in the configured target
+  /// order, delivered only to this app.
+  ///
+  /// Each subscription first registers for live rounds, then receives the last
+  /// compatible snapshot (if any) once, as a replay with `cached == true`, without
+  /// triggering a query. A `snapshotId` reaches a given subscription at most once,
+  /// so the replay and a live delivery of the same round never duplicate; distinct
+  /// rounds are always delivered, even with identical results. A replay is skipped
+  /// when a live round already reached the subscription first, so an older state is
+  /// never delivered after a newer one. Cancelling the subscription removes it;
+  /// rounds completed while no Dart listener is attached are not queued (only the
+  /// native cache is kept). A Dart runtime must be running: there is no headless
+  /// delivery.
+  static Stream<AppPresenceSnapshot> get appPresenceStream {
+    return Stream<AppPresenceSnapshot>.multi((controller) {
+      final delivered = <String>{};
+      var liveReceived = false;
+      var cancelled = false;
+
+      void deliver(AppPresenceSnapshot snapshot) {
+        if (cancelled || !delivered.add(snapshot.snapshotId)) return;
+        controller.add(snapshot);
+      }
+
+      // Live first, getter second: a round that completes in between reaches this
+      // subscription live and the replay is deduplicated by snapshotId.
+      final live = _appPresenceEvents().listen(
+        (snapshot) {
+          liveReceived = true;
+          deliver(snapshot);
+        },
+        // NEVER-CRASH-THE-HOST: a channel failure must not become an unhandled
+        // async error in the host. Not reported to telemetry: app presence data
+        // never leaves the device.
+        onError: (Object _, StackTrace _) {},
+      );
+
+      _channel.invokeMethod<Object?>('getLastAppPresenceSnapshot').then(
+        (raw) {
+          if (liveReceived) return;
+          final snapshot = _decodeAppPresenceSnapshot(raw);
+          if (snapshot != null) deliver(snapshot);
+        },
+        // A failed replay leaves the live subscription untouched.
+        onError: (Object _, StackTrace _) {},
+      );
+
+      controller.onCancel = () {
+        cancelled = true;
+        return live.cancel();
+      };
+    }, isBroadcast: true);
+  }
+
+  /// Native app presence events shared by every [appPresenceStream] subscription.
+  /// A malformed event is dropped without affecting the next ones.
+  static Stream<AppPresenceSnapshot> _appPresenceEvents() {
+    _appPresenceLiveStream ??= _appPresenceChannel
+        .receiveBroadcastStream()
+        .expand((event) {
+          final snapshot = _decodeAppPresenceSnapshot(event);
+          return snapshot == null
+              ? const <AppPresenceSnapshot>[]
+              : <AppPresenceSnapshot>[snapshot];
+        });
+    return _appPresenceLiveStream!;
+  }
+
+  /// `null` for a missing or malformed snapshot; never throws.
+  static AppPresenceSnapshot? _decodeAppPresenceSnapshot(Object? raw) {
+    if (raw is! Map) return null;
+    try {
+      return AppPresenceSnapshot.fromJson(Map<String, dynamic>.from(raw));
+    } catch (_) {
+      return null;
+    }
+  }
 
   // ---------------------------------------------------------------------------
   // Persistent log

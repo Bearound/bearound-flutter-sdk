@@ -14,6 +14,9 @@ import android.os.Looper
 import androidx.core.content.ContextCompat
 import io.bearound.sdk.BeAroundSDK
 import io.bearound.sdk.interfaces.BeAroundSDKListener
+import io.bearound.sdk.models.AppPresenceConfiguration
+import io.bearound.sdk.models.AppPresenceConfigurationException
+import io.bearound.sdk.models.AppPresenceSnapshot
 import io.bearound.sdk.models.Beacon
 import io.bearound.sdk.models.BeaconMetadata
 import io.bearound.sdk.models.ForegroundScanConfig
@@ -30,6 +33,8 @@ import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
 import java.util.Locale
+import org.json.JSONArray
+import org.json.JSONObject
 
 class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKListener {
   private lateinit var methodChannel: MethodChannel
@@ -44,6 +49,7 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
   private lateinit var bluetoothZoneEventChannel: EventChannel
   private lateinit var bluetoothScanModeEventChannel: EventChannel
   private lateinit var bluetoothStateEventChannel: EventChannel
+  private lateinit var appPresenceEventChannel: EventChannel
 
   private var beaconsEventSink: EventChannel.EventSink? = null
   private var scanningEventSink: EventChannel.EventSink? = null
@@ -60,6 +66,10 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
 
   // Bluetooth adapter state — emitted live so JS/Dart mirrors the iOS "Bluetooth eye".
   private var bluetoothStateEventSink: EventChannel.EventSink? = null
+
+  // App presence snapshots: local only. A detached Dart side gets no queue here; the
+  // native SDK keeps only its last snapshot, replayed through getLastAppPresenceSnapshot.
+  private var appPresenceEventSink: EventChannel.EventSink? = null
 
   private lateinit var context: Context
   private val mainHandler = Handler(Looper.getMainLooper())
@@ -160,6 +170,12 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
       override fun onCancel(arguments: Any?) { bluetoothStateEventSink = null }
     })
 
+    appPresenceEventChannel = EventChannel(binding.binaryMessenger, "bearound_flutter_sdk/app_presence")
+    appPresenceEventChannel.setStreamHandler(object : EventChannel.StreamHandler {
+      override fun onListen(arguments: Any?, events: EventChannel.EventSink?) { appPresenceEventSink = events }
+      override fun onCancel(arguments: Any?) { appPresenceEventSink = null }
+    })
+
     try {
       ContextCompat.registerReceiver(
         context,
@@ -184,6 +200,7 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
     bluetoothZoneEventChannel.setStreamHandler(null)
     bluetoothScanModeEventChannel.setStreamHandler(null)
     bluetoothStateEventChannel.setStreamHandler(null)
+    appPresenceEventChannel.setStreamHandler(null)
 
     try { context.unregisterReceiver(btStateReceiver) } catch (_: Throwable) { /* not registered */ }
 
@@ -199,6 +216,7 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
     bluetoothZoneEventSink = null
     bluetoothScanModeEventSink = null
     bluetoothStateEventSink = null
+    appPresenceEventSink = null
   }
 
   override fun onMethodCall(call: MethodCall, result: Result) {
@@ -348,6 +366,28 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
         result.success(null)
       }
 
+      // --- App presence (opt-in, local only) ---
+      // Always forwarded to the native SDK, which validates it: an invalid configuration
+      // disables only this feature, drops its snapshot and reaches onError. The bridge
+      // also rejects the Dart future with the same stable code.
+      "configureAppPresence" -> {
+        val configuration = try {
+          AppPresenceConfiguration.fromJson(JSONObject(call.arguments as? Map<*, *> ?: emptyMap<Any, Any>()))
+        } catch (e: AppPresenceConfigurationException) {
+          // Malformed shape: same outcome as an invalid configuration, feature off.
+          sdk.configureAppPresence(AppPresenceConfiguration.DISABLED)
+          result.error(e.code, e.message, null)
+          return
+        }
+        val error = configuration.validationError()
+        sdk.configureAppPresence(configuration)
+        if (error != null) result.error(error.code, error.message, null) else result.success(null)
+      }
+
+      // Cached snapshot (cached = true) or null; never queries.
+      "getLastAppPresenceSnapshot" ->
+        result.success(sdk.getLastAppPresenceSnapshot()?.let { appPresenceSnapshotToMap(it) })
+
       // Android OS API level (Build.VERSION.SDK_INT) — lets the Dart permission
       // layer mirror the native scan gate (BLUETOOTH_SCAN on 12+, location on <12)
       // without pulling in device_info_plus.
@@ -488,7 +528,37 @@ class BearoundFlutterSdkPlugin : FlutterPlugin, MethodCallHandler, BeAroundSDKLi
     mainHandler.post { activeScanEventSink?.success(mapOf("isActive" to isActive)) }
   }
 
+  override fun onAppPresenceUpdated(snapshot: AppPresenceSnapshot) {
+    // A serialization or sink failure drops this delivery only, never the next ones.
+    val payload = try {
+      appPresenceSnapshotToMap(snapshot)
+    } catch (_: Throwable) {
+      return
+    }
+    mainHandler.post {
+      try {
+        appPresenceEventSink?.success(payload)
+      } catch (_: Throwable) {
+        // Dart side detached mid-delivery; nothing to retry.
+      }
+    }
+  }
+
   // --- Mapping helpers ---
+
+  // Uses the native JSON contract (explicit null for present/reason, ISO 8601 UTC
+  // timestamps) and converts it to codec-friendly maps and lists.
+  private fun appPresenceSnapshotToMap(snapshot: AppPresenceSnapshot): Map<String, Any?> {
+    @Suppress("UNCHECKED_CAST")
+    return jsonToPlatformValue(snapshot.toJson()) as Map<String, Any?>
+  }
+
+  private fun jsonToPlatformValue(value: Any?): Any? = when (value) {
+    null, JSONObject.NULL -> null
+    is JSONObject -> value.keys().asSequence().associateWith { jsonToPlatformValue(value.opt(it)) }
+    is JSONArray -> (0 until value.length()).map { jsonToPlatformValue(value.opt(it)) }
+    else -> value
+  }
 
   private fun mapBeacon(beacon: Beacon): Map<String, Any?> {
     val map = mutableMapOf<String, Any?>(
