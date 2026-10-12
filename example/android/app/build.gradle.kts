@@ -56,3 +56,10 @@ if (System.getenv("BEAROUND_APP_PRESENCE_LOCAL") == "1") {
         implementation(files(bearoundNativeAar))
     }
 }
+
+// App presence build evidence (device E2E, opt-in): applies the native SDK's evidence script so
+// the declared <queries> packages can be reported as present/absent. Set by
+// e2e/app-presence/run.sh; without it the example builds exactly as before.
+System.getenv("BEAROUND_APP_PRESENCE_EVIDENCE_SCRIPT")?.takeIf { it.isNotEmpty() }?.let { script ->
+    apply(from = File(script))
+}

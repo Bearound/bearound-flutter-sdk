@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io' show Platform;
 
 import 'package:bearound_flutter_sdk/bearound_flutter_sdk.dart';
@@ -11,7 +12,15 @@ import 'log_modal.dart';
 import 'settings_page.dart';
 import 'two_eyes_modal.dart';
 
+/// Built with `--dart-define=BEAROUND_APP_PRESENCE_E2E=true` by the app presence device
+/// E2E (e2e/app-presence/run.sh): the app then runs only [AppPresenceE2EApp].
+const bool _appPresenceE2E = bool.fromEnvironment('BEAROUND_APP_PRESENCE_E2E');
+
 void main() {
+  if (_appPresenceE2E) {
+    runApp(const AppPresenceE2EApp());
+    return;
+  }
   runApp(const MyApp());
 }
 
@@ -1457,5 +1466,138 @@ class _BeaconHomePageState extends State<BeaconHomePage>
     if (sec < 60) return '${sec}s atrás';
     if (sec < 3600) return '${sec ~/ 60}min ${sec % 60}s atrás';
     return '${sec ~/ 3600}h ${(sec % 3600) ~/ 60}min atrás';
+  }
+}
+
+// ---------------------------------------------------------------------------
+// App presence device E2E mode
+// ---------------------------------------------------------------------------
+
+/// Same targets in every host of the E2E (native, Flutter, React Native).
+const List<AppPresenceTarget> _appPresenceE2ETargets = <AppPresenceTarget>[
+  AppPresenceTarget(
+    id: 'fixture',
+    iosScheme: 'bearound-presence-fixture',
+    androidPackageName: 'io.bearound.fixture.presence',
+  ),
+  AppPresenceTarget(
+    id: 'undeclared',
+    iosScheme: 'bearound-presence-undeclared',
+    androidPackageName: 'io.bearound.fixture.undeclared',
+  ),
+  AppPresenceTarget(id: 'ios-only', iosScheme: 'bearound-presence-ios-only'),
+];
+
+/// One launch of the device E2E: configure, subscribe, start scanning, report every
+/// delivery as a `BEAROUND_E2E {json}` log line, then stop. The client label comes from
+/// the launch route (`am start --es route /<client>`); each label is its own cooldown
+/// namespace. No permission is requested
+/// and the device is offline: the round must not depend on either. The harness asserts
+/// the records (e2e/app-presence/tests/test_device_results.py).
+class AppPresenceE2EApp extends StatefulWidget {
+  const AppPresenceE2EApp({super.key});
+
+  @override
+  State<AppPresenceE2EApp> createState() => _AppPresenceE2EAppState();
+}
+
+class _AppPresenceE2EAppState extends State<AppPresenceE2EApp> {
+  final List<StreamSubscription<Object>> _subscriptions =
+      <StreamSubscription<Object>>[];
+  String _status = 'starting';
+  late final String _client = _clientFromRoute();
+
+  static String _clientFromRoute() {
+    final route = WidgetsBinding.instance.platformDispatcher.defaultRouteName;
+    return route.length > 1 ? route.substring(1) : 'F';
+  }
+
+  void _emit(String event, {AppPresenceSnapshot? snapshot, String? code}) {
+    final record = <String, Object?>{
+      'host': 'flutter',
+      'client': _client,
+      'action': 'run',
+      'event': event,
+      'snapshot': snapshot?.toJson(),
+      if (code != null) 'code': code,
+    };
+    // print, not debugPrint: one unthrottled logcat line per record.
+    // ignore: avoid_print
+    print('BEAROUND_E2E ${jsonEncode(record)}');
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _run();
+  }
+
+  Future<void> _run() async {
+    try {
+      _subscriptions.add(
+        BearoundFlutterSdk.errorStream.listen(
+          (error) => _emit('error', code: error.message),
+        ),
+      );
+      await BearoundFlutterSdk.configure(
+        businessToken: 'e2e-flutter-client-$_client',
+        collectAdvertisingId: false,
+        collectLocation: false,
+        collectWifi: false,
+      );
+      await BearoundFlutterSdk.configureAppPresence(
+        const AppPresenceConfiguration(
+          enabled: true,
+          targets: _appPresenceE2ETargets,
+        ),
+      );
+      _emit(
+        'getter_start',
+        snapshot: await BearoundFlutterSdk.getLastAppPresenceSnapshot(),
+      );
+      _subscriptions.add(
+        BearoundFlutterSdk.appPresenceStream.listen(
+          (snapshot) => _emit('stream', snapshot: snapshot),
+        ),
+      );
+      await BearoundFlutterSdk.startScanning();
+      _emit('started');
+      // A late subscription gets the cached snapshot as a replay, without a new round.
+      await Future<void>.delayed(const Duration(seconds: 8));
+      _subscriptions.add(
+        BearoundFlutterSdk.appPresenceStream.listen(
+          (snapshot) => _emit('stream_late', snapshot: snapshot),
+        ),
+      );
+      await Future<void>.delayed(const Duration(seconds: 12));
+      _emit(
+        'getter_end',
+        snapshot: await BearoundFlutterSdk.getLastAppPresenceSnapshot(),
+      );
+      await BearoundFlutterSdk.stopScanning();
+      _emit('done');
+      if (mounted) setState(() => _status = 'done');
+    } catch (error) {
+      // The E2E driver itself broke (not an SDK onError): the harness stops the step.
+      _emit('failed', code: error.runtimeType.toString());
+      if (mounted) setState(() => _status = 'error');
+    }
+  }
+
+  @override
+  void dispose() {
+    for (final subscription in _subscriptions) {
+      subscription.cancel();
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      // The launch route carries the client label, not a page.
+      initialRoute: '/',
+      home: Scaffold(body: Center(child: Text('App presence E2E: $_status'))),
+    );
   }
 }
