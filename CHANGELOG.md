@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.16.0] - 2026-10-13
+
+Fixa os SDKs nativos 3.16.0 (CocoaPods e JitPack).
+
+### Added
+- **App presence (opt-in, só local).** `AppPresenceConfiguration`, `AppPresenceTarget`,
+  `AppPresenceSnapshot` e `AppPresenceResult` expõem o recurso nativo: o SDK verifica
+  localmente se há handler para os alvos que o app declara no próprio build
+  (`LSApplicationQueriesSchemes` no iOS, `<queries>` no Android). Desligado por padrão, sem
+  interface e sem permissão nova; o resultado chega só ao app, por callback, e nunca entra no
+  payload de beacon, na fila offline nem na telemetria. Leia a nota de política das lojas no
+  README antes de usar: a App Store e o Google Play restringem o uso de informação de apps
+  instalados para analytics, publicidade ou marketing.
+
 ## [3.15.0] - 2026-10-09
 
 Fixa os SDKs nativos 3.15.0 (CocoaPods e JitPack).

@@ -39,7 +39,7 @@ Official SDKs for integrating Bearound's secure BLE beacon detection and indoor 
     end
     s.dependency 'BearoundSDK', Pod::Specification.from_file(native_podspec).version.to_s
   else
-    s.dependency 'BearoundSDK', '3.15.0'
+    s.dependency 'BearoundSDK', '3.16.0'
   end
 
   # If your plugin requires a privacy manifest, for example if it uses any
