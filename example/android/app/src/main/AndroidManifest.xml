@@ -61,6 +61,8 @@
             android:value="2" />
     </application>
     <queries>
+        <!-- App presence device E2E: the only package this example may check. -->
+        <package android:name="io.bearound.fixture.presence" />
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>

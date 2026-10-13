@@ -34,7 +34,16 @@ target 'Runner' do
   # Flutter example pick up changes to the native iOS SDK without waiting for
   # a CocoaPods trunk release. Mirrors the RN example layout.
   # Opt-in (BEAROUND_LOCAL_PODS=1 pod install) — CI resolve do trunk.
-  if ENV['BEAROUND_LOCAL_PODS'] == '1'
+  if ENV['BEAROUND_APP_PRESENCE_LOCAL'] == '1'
+    # App presence development against an unreleased native SDK: explicit absolute path
+    # only (scripts/app-presence-local-native.sh exports it). The plugin podspec requires
+    # the version this checkout declares.
+    ios_sdk_path = ENV['BEAROUND_IOS_SDK_PATH'].to_s
+    unless ios_sdk_path.start_with?('/') && File.file?(File.join(ios_sdk_path, 'BearoundSDK.podspec'))
+      raise "BEAROUND_APP_PRESENCE_LOCAL=1 requires BEAROUND_IOS_SDK_PATH to be the absolute path of a native iOS SDK checkout (got '#{ios_sdk_path}')."
+    end
+    pod 'BearoundSDK', :path => ios_sdk_path
+  elsif ENV['BEAROUND_LOCAL_PODS'] == '1'
     pod 'BearoundSDK', :path => '../../../bearound-ios-sdk'
   end
 

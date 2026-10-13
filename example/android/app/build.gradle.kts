@@ -42,3 +42,24 @@ android {
 flutter {
     source = "../.."
 }
+
+// Local native artifact (development only, opt-in): the plugin compiles against the AAR in
+// BEAROUND_NATIVE_AAR_PATH but cannot embed it, so the host packages it. Without
+// BEAROUND_APP_PRESENCE_LOCAL=1 the published native SDK comes from the plugin as before.
+// See scripts/app-presence-local-native.sh.
+if (System.getenv("BEAROUND_APP_PRESENCE_LOCAL") == "1") {
+    val bearoundNativeAar = File(System.getenv("BEAROUND_NATIVE_AAR_PATH").orEmpty())
+    require(bearoundNativeAar.isAbsolute && bearoundNativeAar.isFile) {
+        "BEAROUND_APP_PRESENCE_LOCAL=1 requires BEAROUND_NATIVE_AAR_PATH to be an absolute path to an existing native AAR"
+    }
+    dependencies {
+        implementation(files(bearoundNativeAar))
+    }
+}
+
+// App presence build evidence (device E2E, opt-in): applies the native SDK's evidence script so
+// the declared <queries> packages can be reported as present/absent. Set by
+// e2e/app-presence/run.sh; without it the example builds exactly as before.
+System.getenv("BEAROUND_APP_PRESENCE_EVIDENCE_SCRIPT")?.takeIf { it.isNotEmpty() }?.let { script ->
+    apply(from = File(script))
+}
