@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.16.1] - 2026-10-13
+
+Fixa o SDK Android 3.16.1 (JitPack); iOS segue em 3.16.0.
+
+### Fixed
+- **Ponte Android sem assinante.** Quando nenhum consumidor Dart assina o stream de beacons, o
+  plugin deixa de mapear beacons, metadados e estatísticas de RSSI e de postar entregas sem
+  destinatário. O payload público e a busca assíncrona do sink continuam iguais.
+
 ## [3.16.0] - 2026-10-13
 
 Fixa os SDKs nativos 3.16.0 (CocoaPods e JitPack).
