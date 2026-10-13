@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io' show Platform;
+import 'dart:io' show File, FileMode, Platform, exit;
 
 import 'package:bearound_flutter_sdk/bearound_flutter_sdk.dart';
 import 'package:flutter/material.dart';
@@ -1490,8 +1490,16 @@ const List<AppPresenceTarget> _appPresenceE2ETargets = <AppPresenceTarget>[
 
 /// One launch of the device E2E: configure, subscribe, start scanning, report every
 /// delivery as a `BEAROUND_E2E {json}` log line, then stop. The client label comes from
-/// the launch route (`am start --es route /<client>`); each label is its own cooldown
-/// namespace. No permission is requested
+/// the launch route on Android (`am start --es route /<client>`) and from the launch
+/// environment on iOS (`BEAROUND_E2E_CLIENT`, `BEAROUND_E2E_STEP`, set by
+/// `xcrun devicectl device process launch`); each label is its own cooldown namespace.
+/// Dart cannot read the launch environment on iOS (Platform.environment is always empty
+/// there): the harness links its iOS host support into the E2E build, which writes the
+/// launch variables to `Library/Caches/bearound-e2e/launch-env.json` and makes the data
+/// container the working directory. On iOS every record is also appended to
+/// `Library/Caches/bearound-e2e/records/flutter.jsonl` (pulled with
+/// `xcrun devicectl device copy from`) and the process exits after `done`, so each launch
+/// is a restart. No permission is requested
 /// and the device is offline: the round must not depend on either. The harness asserts
 /// the records (e2e/app-presence/tests/test_device_results.py).
 class AppPresenceE2EApp extends StatefulWidget {
@@ -1508,9 +1516,26 @@ class _AppPresenceE2EAppState extends State<AppPresenceE2EApp> {
   late final String _client = _clientFromRoute();
 
   static String _clientFromRoute() {
+    if (Platform.isIOS) return _iosLaunch['BEAROUND_E2E_CLIENT'] ?? 'F';
     final route = WidgetsBinding.instance.platformDispatcher.defaultRouteName;
     return route.length > 1 ? route.substring(1) : 'F';
   }
+
+  /// iOS only: the launch variables, relative to the data container (working directory).
+  static final Map<String, String> _iosLaunch = Platform.isIOS
+      ? (jsonDecode(
+                  File(
+                    'Library/Caches/bearound-e2e/launch-env.json',
+                  ).readAsStringSync(),
+                )
+                as Map<String, dynamic>)
+            .cast<String, String>()
+      : const <String, String>{};
+
+  /// iOS only: the records file inside the data container.
+  static final File? _iosRecords = Platform.isIOS
+      ? File('Library/Caches/bearound-e2e/records/flutter.jsonl')
+      : null;
 
   void _emit(String event, {AppPresenceSnapshot? snapshot, String? code}) {
     final record = <String, Object?>{
@@ -1520,10 +1545,18 @@ class _AppPresenceE2EAppState extends State<AppPresenceE2EApp> {
       'event': event,
       'snapshot': snapshot?.toJson(),
       if (code != null) 'code': code,
+      if (Platform.isIOS) 'step': _iosLaunch['BEAROUND_E2E_STEP'],
+      if (Platform.isIOS) 'epochMs': DateTime.now().millisecondsSinceEpoch,
     };
+    final line = jsonEncode(record);
     // print, not debugPrint: one unthrottled logcat line per record.
     // ignore: avoid_print
-    print('BEAROUND_E2E ${jsonEncode(record)}');
+    print('BEAROUND_E2E $line');
+    final records = _iosRecords;
+    if (records != null) {
+      records.parent.createSync(recursive: true);
+      records.writeAsStringSync('$line\n', mode: FileMode.append, flush: true);
+    }
   }
 
   @override
@@ -1577,6 +1610,11 @@ class _AppPresenceE2EAppState extends State<AppPresenceE2EApp> {
       await BearoundFlutterSdk.stopScanning();
       _emit('done');
       if (mounted) setState(() => _status = 'done');
+      // iOS: a step is one process, the next launch is a restart.
+      if (Platform.isIOS) {
+        await Future<void>.delayed(const Duration(milliseconds: 500));
+        exit(0);
+      }
     } catch (error) {
       // The E2E driver itself broke (not an SDK onError): the harness stops the step.
       _emit('failed', code: error.runtimeType.toString());
