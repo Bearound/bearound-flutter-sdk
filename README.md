@@ -711,19 +711,16 @@ beacon payload, the retry queue, the error telemetry or any other upload.
 
 ### Store policy first
 
-The requested purpose of this feature is commercial. Read this before shipping it:
+Both app stores regulate how apps query and use information about other installed apps.
+Before enabling this feature in a published app:
 
-- **Apple App Review Guideline 5.1.2(iv)** forbids using information about installed apps
-  for analytics, advertising or marketing. Asking for consent, or App Tracking Transparency
-  authorization, is **not** an exception, and neither is the fact that another product on
-  the market advertises a similar capability.
-- **Google Play** only allows querying installed apps when it is tied to a core,
-  user-facing function of your app, and forbids selling or sharing that inventory for
-  advertising or analytics monetization. Declare it in the Data safety form as required.
-- A short, declared list of targets does not change either policy. The SDK makes the check
-  technically possible; it **does not** grant or imply any store approval, and nothing in it
-  bypasses store review. Publishing it for a purpose the stores prohibit is your decision
-  and responsibility.
+- **Apple App Store**: review App Review Guideline 5.1.2 (Data Use and Sharing).
+- **Google Play**: review the package visibility policy (`<queries>` and
+  `QUERY_ALL_PACKAGES`) and the User Data policy, and declare the data in the Data safety
+  form as required.
+- The SDK makes the check technically possible; it **does not** grant or imply any store
+  approval, and nothing in it bypasses store review. Whether and how your app uses the
+  result is your decision and responsibility.
 - The absence of UI does not remove the transparency obligations that apply to your app.
 
 ### Declare the targets in your build
