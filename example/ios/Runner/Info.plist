@@ -70,11 +70,6 @@
 	</dict>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
-	<key>LSApplicationQueriesSchemes</key>
-	<array>
-		<string>bearound-presence-fixture</string>
-		<string>bearound-presence-ios-only</string>
-	</array>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>location</string>

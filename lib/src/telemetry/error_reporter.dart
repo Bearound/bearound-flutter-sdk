@@ -3,10 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart' show PlatformException;
 import 'package:permission_handler/permission_handler.dart';
-
-import '../models/app_presence.dart';
 
 /// Isolated Dart-layer error telemetry for the Bearound Flutter SDK — a
 /// "try/catch around the library" for the plugin's own Dart code.
@@ -34,9 +31,6 @@ import '../models/app_presence.dart';
 ///    [_maxStackChars].
 /// 5. Isolated transport with short timeouts (own [HttpClient], 5 s).
 /// 6. Public opt-out [setEnabled] (default enabled).
-/// 7. An invalid app presence configuration is the host's input, answered to
-///    the host, and its message may carry target ids: it is never reported,
-///    even when it escapes uncaught from an SDK frame.
 class ErrorReporter {
   ErrorReporter._();
 
@@ -111,7 +105,7 @@ class ErrorReporter {
       _previousFlutterOnError = FlutterError.onError;
       FlutterError.onError = (FlutterErrorDetails details) {
         try {
-          if (!_isExcluded(details.exception) && _isFromSdk(details.stack)) {
+          if (_isFromSdk(details.stack)) {
             _report(
               type: details.exception.runtimeType.toString(),
               message: _messageOf(
@@ -143,7 +137,7 @@ class ErrorReporter {
       _previousDispatcherOnError = PlatformDispatcher.instance.onError;
       PlatformDispatcher.instance.onError = (Object error, StackTrace stack) {
         try {
-          if (!_isExcluded(error) && _isFromSdk(stack)) {
+          if (_isFromSdk(stack)) {
             _report(
               type: error.runtimeType.toString(),
               message: _messageOf(error, ''),
@@ -224,13 +218,6 @@ class ErrorReporter {
   // ---------------------------------------------------------------------------
   // Classification
   // ---------------------------------------------------------------------------
-
-  /// Errors that must never reach the ingest, whatever their origin: an invalid
-  /// app presence configuration (typed, or still as the raw channel error).
-  bool _isExcluded(Object error) =>
-      error is AppPresenceConfigurationException ||
-      (error is PlatformException &&
-          error.code == AppPresenceConfigurationException.errorCode);
 
   /// True ONLY when the error ORIGINATED in our package — never a host-app error.
   ///
@@ -474,7 +461,6 @@ class ErrorReporter {
     required String context,
   }) {
     try {
-      if (_isExcluded(error)) return;
       _report(
         type: error.runtimeType.toString(),
         message: _messageOf(error, ''),
