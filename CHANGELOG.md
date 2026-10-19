@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.18.0] - 2026-10-19
+
+Fixa os SDKs nativos 3.18.0 (CocoaPods e JitPack).
+
+### Changed
+- **Visita por GPS: permanência mínima padrão de 5 para 2 min** nos dois SDKs nativos, para
+  lugares sem `minDwellMinutes`. No Android, o payload de visita ganha o bloco `visit`
+  (`kind`, `environmentId`, `source`, `at`), como no iOS 3.17.0, e a partida pela cerca
+  deixa de se perder quando a saída chega sem localização. Nenhuma mudança na API do plugin.
+
 ## [3.17.0] - 2026-10-19
 
 Fixa os SDKs nativos 3.17.0 (CocoaPods e JitPack).
