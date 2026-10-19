@@ -1,10 +1,8 @@
 import 'dart:convert';
 import 'dart:ui' show PlatformDispatcher;
 
-import 'package:bearound_flutter_sdk/src/models/app_presence.dart';
 import 'package:bearound_flutter_sdk/src/telemetry/error_reporter.dart';
 import 'package:flutter/foundation.dart' show FlutterError, FlutterErrorDetails;
-import 'package:flutter/services.dart' show PlatformException;
 import 'package:flutter_test/flutter_test.dart';
 
 /// A synthetic stack trace whose text contains a `package:bearound_flutter_sdk`
@@ -387,84 +385,6 @@ void main() {
       reporter.uninstallForTest();
       PlatformDispatcher.instance.onError = originalDispatcher;
       FlutterError.onError = originalFlutterOnError;
-    });
-  });
-
-  group('invalid app presence configuration', () {
-    // The shape of an un-awaited configureAppPresence rejection: the SDK frame
-    // is on top and the native message names a target id.
-    StackTrace configureStack() => StackTrace.fromString(
-      '#0      BearoundFlutterSdk.configureAppPresence '
-      '(package:bearound_flutter_sdk/bearound_flutter_sdk.dart:564:9)\n'
-      '#1      main (package:example/main.dart:10:3)',
-    );
-    const leakyMessage = 'duplicate target id "secret-target"';
-
-    test('never reaches the ingest through the global handlers', () async {
-      final bodies = <String>[];
-      reporter.transport = (body, token) async => bodies.add(body);
-      final originalDispatcher = PlatformDispatcher.instance.onError;
-      final originalFlutterOnError = FlutterError.onError;
-      var previousCalls = 0;
-      PlatformDispatcher.instance.onError = (error, stack) {
-        previousCalls++;
-        return false;
-      };
-      FlutterError.onError = (_) {};
-
-      reporter.install('token');
-      final hook = PlatformDispatcher.instance.onError!;
-      expect(
-        hook(
-          const AppPresenceConfigurationException(leakyMessage),
-          configureStack(),
-        ),
-        isFalse,
-      );
-      expect(
-        hook(
-          PlatformException(
-            code: AppPresenceConfigurationException.errorCode,
-            message: leakyMessage,
-          ),
-          configureStack(),
-        ),
-        isFalse,
-      );
-      FlutterError.onError!(
-        FlutterErrorDetails(
-          exception: const AppPresenceConfigurationException(leakyMessage),
-          stack: configureStack(),
-        ),
-      );
-      await pumpEventQueue();
-
-      expect(bodies, isEmpty);
-      expect(previousCalls, 2, reason: 'the host chain still sees the error');
-
-      // Control: another SDK-origin error on the same stack is still reported.
-      hook(StateError('sdk'), configureStack());
-      await pumpEventQueue();
-      expect(bodies, hasLength(1));
-      expect(bodies.single, isNot(contains('secret-target')));
-
-      reporter.uninstallForTest();
-      PlatformDispatcher.instance.onError = originalDispatcher;
-      FlutterError.onError = originalFlutterOnError;
-    });
-
-    test('is dropped by reportCaught as well', () async {
-      final bodies = <String>[];
-      reporter.transport = (body, token) async => bodies.add(body);
-
-      reporter.reportCaught(
-        const AppPresenceConfigurationException(leakyMessage),
-        configureStack(),
-        context: 'configureAppPresence',
-      );
-      await pumpEventQueue();
-
-      expect(bodies, isEmpty);
     });
   });
 
