@@ -7,13 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.17.0] - 2026-10-19
+
+Fixa os SDKs nativos 3.17.0 (CocoaPods e JitPack).
+
 ### Removed
 - **App presence.** Saem do plugin, sem substituto, `configureAppPresence`,
   `getLastAppPresenceSnapshot`, `appPresenceStream`, os tipos `AppPresenceConfiguration`,
   `AppPresenceTarget`, `AppPresenceSnapshot`, `AppPresenceResult`, `AppPresenceState`,
   `AppPresenceReason`, `AppPresenceDetectionMethod` e `AppPresenceConfigurationException`, o
   canal `bearound_flutter_sdk/app_presence` e o override local de artefatos nativos
-  (`BEAROUND_APP_PRESENCE_LOCAL`). Os pins nativos não mudam.
+  (`BEAROUND_APP_PRESENCE_LOCAL`).
 
   **Migração:** apague as chamadas a essas APIs e as referências a esses tipos; depois remova do
   app as declarações acrescentadas só para o recurso: as entradas `<package>` em `<queries>` do
